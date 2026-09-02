@@ -1,6 +1,6 @@
 # Deployment
 
-Language: English | [简体中文](zh-CN/deployment.md) | [日本語](ja/deployment.md)
+Language: English | [简体中文](zh-CN/deployment.md) | [日本語](ja/deployment.md) | [Русский](ru/deployment.md)
 
 TokenHub is designed for private deployment with a Go backend, a Next.js admin console, and support for SQLite or PostgreSQL persistence.
 

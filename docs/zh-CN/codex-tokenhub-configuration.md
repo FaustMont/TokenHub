@@ -1,6 +1,6 @@
 # Codex 接入 TokenHub：四种配置方式与恢复指南
 
-Language: [English](../codex-tokenhub-configuration.md) | 简体中文 | [日本語](../ja/codex-tokenhub-configuration.md)
+Language: [English](../codex-tokenhub-configuration.md) | 简体中文 | [日本語](../ja/codex-tokenhub-configuration.md) | [Русский](../ru/codex-tokenhub-configuration.md)
 
 > 本文说明如何将本地 Codex CLI、Codex 桌面端及 IDE 扩展接入 TokenHub，并提供 Profile、进程级临时配置、CLI 全局配置和桌面端配置四种实施方案。
 >

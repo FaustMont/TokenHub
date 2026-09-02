@@ -1,6 +1,6 @@
 # Codex を TokenHub に接続する：Profile クイック設定
 
-Language: [English](../codex-tokenhub-profile-quick-start.md) | [简体中文](../zh-CN/codex-tokenhub-profile-quick-start.md) | 日本語
+Language: [English](../codex-tokenhub-profile-quick-start.md) | [简体中文](../zh-CN/codex-tokenhub-profile-quick-start.md) | 日本語 | [Русский](../ru/codex-tokenhub-profile-quick-start.md)
 
 > 独立した `tokenhub` Profile だけを使って Codex を TokenHub に接続するための簡易ガイドです。Profile の作成、API Key の設定、検証、既定環境への復旧を説明します。
 >

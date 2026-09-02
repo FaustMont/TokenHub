@@ -1,6 +1,6 @@
 # Agent Token 成本 API
 
-Language: [English](../agent-token-cost-api.md) | 简体中文 | [日本語](../ja/agent-token-cost-api.md)
+Language: [English](../agent-token-cost-api.md) | 简体中文 | [日本語](../ja/agent-token-cost-api.md) | [Русский](../ru/agent-token-cost-api.md)
 
 版本化的 Agent Token 成本 API 让本地报表或监控 Agent 无需管理员会话、模型调用 API Key、Provider 凭证或人工导出，即可只读访问 TokenHub 用量。接口与管理员用量页面使用相同的请求、Token、错误数和预估客户成本口径。
 

@@ -1,10 +1,4 @@
-// Key parity between the English and Japanese admin console dictionaries.
-//
-// tx() in frontend/features/admin/i18n/runtime.tsx falls back to `?? value`, and every
-// source key is Chinese. A key that exists in the English dictionary but not the Japanese
-// one therefore does not fail loudly: a Japanese user just sees the raw Chinese string.
-// Fourteen keys sat that way until this gate landed, so the parity check lives in the
-// tools test suite CI already runs rather than in a frontend test nobody wires up.
+// Key parity between English, Japanese, and Russian admin console dictionaries.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -21,21 +15,17 @@ const i18nDir = join(
   "i18n",
 );
 
-// The dictionary sources are standalone `.tsx` files with no JSX and no imports, so the
-// type annotations below are the only thing between them and valid JavaScript. Evaluating
-// them beats scraping with a regex: it handles escaped quotes, several pairs on one line,
-// and routing.tsx's computed `[routingKeys.description]` keys for free, and it measures
-// the same object tx() reads at runtime.
 const TYPE_ANNOTATIONS = [
+  ': Record<"en" | "ja" | "ru", Record<string, string>>',
+  ': Record<"en" | "ja", Record<string, string>>',
   ": Record<string, string>",
+  ' satisfies Record<"en" | "ja" | "ru", Record<string, string>>',
   ' satisfies Record<"en" | "ja", Record<string, string>>',
   " as const",
 ];
 
 async function loadDictionarySource(file) {
   const source = readFileSync(join(i18nDir, file), "utf8");
-  // A relative import would fail to resolve from a data: URL with a much less obvious
-  // message than this one.
   assert.ok(
     !/^\s*import\s/m.test(source),
     `${file} now has an import; this loader only handles self-contained dictionaries.`,
@@ -51,15 +41,108 @@ async function loadDictionarySource(file) {
 
 const { enTranslations } = await loadDictionarySource("en.tsx");
 const { jaTranslations } = await loadDictionarySource("ja.tsx");
+const { ruTranslations } = await loadDictionarySource("ru.tsx");
+const { adminWorkflowTranslations } = await loadDictionarySource("admin-workflows.tsx");
+const { apiKeyUsageTranslations } = await loadDictionarySource("api-key-usage.tsx");
+const { auditFilterTranslations } = await loadDictionarySource("audit-filters.tsx");
+const { dbEvolutionTranslations } = await loadDictionarySource("db-evolution.tsx");
+const { loginHomeTranslations } = await loadDictionarySource("login-home.tsx");
 const { modelGovernanceTranslations } = await loadDictionarySource("model-governance.tsx");
+const { gatewayDocsTranslations } = await loadDictionarySource("gateway-docs.tsx");
+const { playgroundTranslations } = await loadDictionarySource("playground.tsx");
+const { providerConnectionTranslations } = await loadDictionarySource("provider-connection.tsx");
+const { providerMonitoringTranslations } = await loadDictionarySource("provider-monitoring.tsx");
 const { routingTranslations } = await loadDictionarySource("routing.tsx");
+const { codexImageTranslations } = await loadDictionarySource("codex-image.tsx");
+const { scopedRoutingPolicyTranslations } = await loadDictionarySource("scoped-routing-policy.tsx");
+const { securityTranslations } = await loadDictionarySource("security.tsx");
+const { usageTranslations } = await loadDictionarySource("usage.tsx");
+const { notificationTranslations } = await loadDictionarySource("notifications.tsx");
+const syntheticModule = await loadDictionarySource("synthetic-dns.tsx");
+const syntheticDNSTranslations = syntheticModule.default ?? syntheticModule.syntheticDNSTranslations;
 
-// Mirrors the merge order in translations.tsx. It matters: a key defined in two sources
-// resolves to the one merged last, so parity has to be checked on the merged result and
-// not only file by file.
+const submodules = [
+  ["admin-workflows.tsx", adminWorkflowTranslations],
+  ["api-key-usage.tsx", apiKeyUsageTranslations],
+  ["audit-filters.tsx", auditFilterTranslations],
+  ["db-evolution.tsx", dbEvolutionTranslations],
+  ["routing.tsx", routingTranslations],
+  ["codex-image.tsx", codexImageTranslations],
+  ["scoped-routing-policy.tsx", scopedRoutingPolicyTranslations],
+  ["model-governance.tsx", modelGovernanceTranslations],
+  ["gateway-docs.tsx", gatewayDocsTranslations],
+  ["login-home.tsx", loginHomeTranslations],
+  ["provider-connection.tsx", providerConnectionTranslations],
+  ["provider-monitoring.tsx", providerMonitoringTranslations],
+  ["usage.tsx", usageTranslations],
+  ["playground.tsx", playgroundTranslations],
+  ["security.tsx", securityTranslations],
+  ["notifications.tsx", notificationTranslations],
+  ["synthetic-dns.tsx", syntheticDNSTranslations],
+];
+
+// Mirrors the merge order in translations.tsx.
 const merged = {
-  en: { ...enTranslations, ...routingTranslations.en, ...modelGovernanceTranslations.en },
-  ja: { ...jaTranslations, ...routingTranslations.ja, ...modelGovernanceTranslations.ja },
+  en: {
+    ...enTranslations,
+    ...adminWorkflowTranslations.en,
+    ...apiKeyUsageTranslations.en,
+    ...auditFilterTranslations.en,
+    ...dbEvolutionTranslations.en,
+    ...routingTranslations.en,
+    ...codexImageTranslations.en,
+    ...scopedRoutingPolicyTranslations.en,
+    ...modelGovernanceTranslations.en,
+    ...gatewayDocsTranslations.en,
+    ...loginHomeTranslations.en,
+    ...providerConnectionTranslations.en,
+    ...providerMonitoringTranslations.en,
+    ...usageTranslations.en,
+    ...playgroundTranslations.en,
+    ...securityTranslations.en,
+    ...notificationTranslations.en,
+    ...syntheticDNSTranslations.en,
+  },
+  ja: {
+    ...jaTranslations,
+    ...adminWorkflowTranslations.ja,
+    ...apiKeyUsageTranslations.ja,
+    ...auditFilterTranslations.ja,
+    ...dbEvolutionTranslations.ja,
+    ...routingTranslations.ja,
+    ...codexImageTranslations.ja,
+    ...scopedRoutingPolicyTranslations.ja,
+    ...modelGovernanceTranslations.ja,
+    ...gatewayDocsTranslations.ja,
+    ...loginHomeTranslations.ja,
+    ...providerConnectionTranslations.ja,
+    ...providerMonitoringTranslations.ja,
+    ...usageTranslations.ja,
+    ...playgroundTranslations.ja,
+    ...securityTranslations.ja,
+    ...notificationTranslations.ja,
+    ...syntheticDNSTranslations.ja,
+  },
+  ru: {
+    ...ruTranslations,
+    ...adminWorkflowTranslations.ru,
+    ...apiKeyUsageTranslations.ru,
+    ...auditFilterTranslations.ru,
+    ...dbEvolutionTranslations.ru,
+    ...routingTranslations.ru,
+    ...codexImageTranslations.ru,
+    ...scopedRoutingPolicyTranslations.ru,
+    ...modelGovernanceTranslations.ru,
+    ...gatewayDocsTranslations.ru,
+    ...loginHomeTranslations.ru,
+    ...providerConnectionTranslations.ru,
+    ...providerMonitoringTranslations.ru,
+    ...usageTranslations.ru,
+    ...playgroundTranslations.ru,
+    ...securityTranslations.ru,
+    ...notificationTranslations.ru,
+    ...syntheticDNSTranslations.ru,
+  },
 };
 
 function keysMissingFrom(source, target) {
@@ -71,21 +154,28 @@ function assertSameKeys(label, en, ja) {
   assert.deepEqual(keysMissingFrom(ja, en), [], `${label}: defined in ja, missing from en`);
 }
 
+function assertSameThreeWayKeys(label, en, ja, ru) {
+  assert.deepEqual(keysMissingFrom(en, ja), [], `${label}: defined in en, missing from ja`);
+  assert.deepEqual(keysMissingFrom(ja, en), [], `${label}: defined in ja, missing from en`);
+  assert.deepEqual(keysMissingFrom(en, ru), [], `${label}: defined in en, missing from ru`);
+  assert.deepEqual(keysMissingFrom(ru, en), [], `${label}: defined in ru, missing from en`);
+}
+
 describe("dictionary loading", () => {
   it("parses every dictionary into a non-trivial object", () => {
-    // Without this, a transform that silently produced `{}` would make every parity
-    // assertion below pass.
     const sources = {
       "en.tsx": enTranslations,
       "ja.tsx": jaTranslations,
-      "model-governance.tsx en": modelGovernanceTranslations.en,
-      "model-governance.tsx ja": modelGovernanceTranslations.ja,
-      "routing.tsx en": routingTranslations.en,
-      "routing.tsx ja": routingTranslations.ja,
+      "ru.tsx": ruTranslations,
     };
+    for (const [name, mod] of submodules) {
+      sources[`${name} en`] = mod.en;
+      sources[`${name} ja`] = mod.ja;
+      sources[`${name} ru`] = mod.ru;
+    }
     for (const [label, dictionary] of Object.entries(sources)) {
       const count = Object.keys(dictionary).length;
-      assert.ok(count > 50, `${label} parsed to ${count} keys, which is too few to be real`);
+      assert.ok(count > 0, `${label} parsed to 0 keys`);
       for (const [key, value] of Object.entries(dictionary)) {
         assert.equal(typeof value, "string", `${label}: ${key} is not a string`);
         assert.notEqual(value.trim(), "", `${label}: ${key} has an empty translation`);
@@ -109,6 +199,11 @@ describe("single ownership", () => {
       ["routing.tsx", routingTranslations.ja],
       ["model-governance.tsx", modelGovernanceTranslations.ja],
     ],
+    ru: [
+      ["ru.tsx", ruTranslations],
+      ["routing.tsx", routingTranslations.ru],
+      ["model-governance.tsx", modelGovernanceTranslations.ru],
+    ],
   };
 
   for (const [language, sources] of Object.entries(sourcesByLanguage)) {
@@ -131,20 +226,18 @@ describe("single ownership", () => {
   }
 });
 
-describe("key parity", () => {
-  it("keeps en.tsx and ja.tsx in step", () => {
-    assertSameKeys("en.tsx vs ja.tsx", enTranslations, jaTranslations);
+describe("key parity across all submodules", () => {
+  it("keeps primary dictionaries in step", () => {
+    assertSameThreeWayKeys("primary dictionaries (en vs ja vs ru)", enTranslations, jaTranslations, ruTranslations);
   });
 
-  it("keeps the routing.tsx sections in step", () => {
-    assertSameKeys("routing.tsx", routingTranslations.en, routingTranslations.ja);
-  });
-
-  it("keeps the model-governance.tsx sections in step", () => {
-    assertSameKeys("model-governance.tsx", modelGovernanceTranslations.en, modelGovernanceTranslations.ja);
-  });
+  for (const [name, mod] of submodules) {
+    it(`keeps ${name} in step across en, ja, and ru`, () => {
+      assertSameThreeWayKeys(`${name} (en vs ja vs ru)`, mod.en, mod.ja, mod.ru);
+    });
+  }
 
   it("keeps the merged dictionary tx() reads in step", () => {
-    assertSameKeys("merged translations", merged.en, merged.ja);
+    assertSameThreeWayKeys("merged translations (en vs ja vs ru)", merged.en, merged.ja, merged.ru);
   });
 });

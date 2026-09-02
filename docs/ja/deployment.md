@@ -1,6 +1,6 @@
 # デプロイ
 
-Language: [English](../deployment.md) | [简体中文](../zh-CN/deployment.md) | 日本語
+Language: [English](../deployment.md) | [简体中文](../zh-CN/deployment.md) | 日本語 | [Русский](../ru/deployment.md)
 
 TokenHub は、Go バックエンド、Next.js 管理コンソール、SQLite 永続化で構成されるプライベートデプロイ向けのサービスです。
 

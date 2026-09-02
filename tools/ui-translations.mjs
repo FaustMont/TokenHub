@@ -84,7 +84,7 @@ function localeObjectSource(source, locale) {
 export function translationKeys(i18nRoot, locale) {
   const keys = new Set(literalPropertyKeys(readFileSync(join(i18nRoot, `${locale}.tsx`), "utf8")));
   for (const path of sourceFiles(i18nRoot)) {
-    if (/\/(?:en|ja|runtime|translations)\.tsx$/.test(path)) continue;
+    if (/\/(?:en|ja|ru|runtime|translations|language-switcher)\.tsx$/.test(path)) continue;
     for (const key of literalPropertyKeys(localeObjectSource(readFileSync(path, "utf8"), locale))) keys.add(key);
   }
   return keys;

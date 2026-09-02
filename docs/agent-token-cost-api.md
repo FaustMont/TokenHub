@@ -1,6 +1,6 @@
 # Agent Token Cost API
 
-Language: English | [简体中文](zh-CN/agent-token-cost-api.md) | [日本語](ja/agent-token-cost-api.md)
+Language: English | [简体中文](zh-CN/agent-token-cost-api.md) | [日本語](ja/agent-token-cost-api.md) | [Русский](ru/agent-token-cost-api.md)
 
 The versioned Agent Token Cost API lets a local reporting or monitoring agent read TokenHub usage without an administrator session, model-invocation API key, Provider credential, or manual export. The API is read-only and uses the same request, token, error, and estimated customer-cost records as the administrator usage view.
 

@@ -1,6 +1,6 @@
 # Contributing to TokenHub
 
-English | [简体中文](CONTRIBUTING.zh-CN.md) | [日本語](CONTRIBUTING.ja.md)
+English | [简体中文](CONTRIBUTING.zh-CN.md) | [日本語](CONTRIBUTING.ja.md) | [Русский](CONTRIBUTING.ru.md)
 
 TokenHub includes a Go backend, a Next.js admin console, Node.js SDK smoke tests, a YAML model catalog, and Docker Compose deployment files. This guide covers local development, validation, optional AI agent workflows, and pull request preparation.
 
@@ -13,7 +13,7 @@ TokenHub includes a Go backend, a Next.js admin console, Node.js SDK smoke tests
 | `sdk/` | Node.js smoke tests for the OpenAI-compatible API and security policy endpoints |
 | `data/model-catalog.yaml` | Tracked model catalog source |
 | `deploy/` | Docker Compose deployment and environment templates |
-| `docs/` | English, Simplified Chinese, and Japanese documentation |
+| `docs/` | English, Simplified Chinese, Japanese, and Russian documentation |
 
 ## Local Development
 
@@ -54,7 +54,7 @@ npm run test:security-policy
 - Preserve compatibility for the OpenAI-compatible `/v1` endpoints unless the change explicitly updates the contract.
 - Never commit credentials, local `.env` files, databases, generated backups, or runtime logs.
 - Keep environment variable changes synchronized across relevant examples, Compose files, `start.sh`, and deployment documentation.
-- Keep shared user-facing documentation synchronized across English, Simplified Chinese, and Japanese.
+- Keep shared user-facing documentation synchronized across English, Simplified Chinese, Japanese, and Russian.
 - Keep `data/model-catalog.yaml` tracked. Do not commit other runtime data files.
 
 ## Validation

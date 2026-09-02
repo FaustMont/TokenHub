@@ -1,6 +1,6 @@
 # 部署
 
-Language: [English](../deployment.md) | 简体中文 | [日本語](../ja/deployment.md)
+Language: [English](../deployment.md) | 简体中文 | [日本語](../ja/deployment.md) | [Русский](../ru/deployment.md)
 
 TokenHub 面向私有化部署，由 Go 后端、Next.js 管理后台和 SQLite 持久化组成。
 

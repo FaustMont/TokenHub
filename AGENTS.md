@@ -9,12 +9,12 @@ TokenHub is a private enterprise AI gateway with a Go backend, a Next.js admin c
 - `sdk/`: Node.js smoke tests for the OpenAI-compatible API and security policy endpoints.
 - `data/model-catalog.yaml`: tracked model catalog source.
 - `deploy/`: Docker Compose deployment and environment template.
-- `docs/`: English, Simplified Chinese, and Japanese documentation.
+- `docs/`: English, Simplified Chinese, Japanese, and Russian documentation.
 
 ## Repository source language
 
 - Use English for source-code identifiers, code comments, test suite and test case titles, developer-facing fixtures, logs, and configuration descriptions.
-- Localized UI copy is the exception: keep Simplified Chinese as the canonical literal passed to `tx("...")`, with matching English and Japanese catalog entries.
+- Localized UI copy is the exception: keep Simplified Chinese as the canonical literal passed to `tx("...")`, with matching English, Japanese, and Russian catalog entries.
 - Tests may use localized selectors or assertions when they intentionally exercise translated UI, but their suite names, case titles, and diagnostics must remain in English.
 
 ## Development commands
@@ -85,8 +85,8 @@ Use a workflow only when the user explicitly names it; otherwise follow the norm
 - Treat authentication, API keys, provider credentials, reset tokens, audit payloads, forwarded headers, and exported data as security-sensitive.
 - Never commit real credentials, local `.env` files, SQLite databases, generated backups, or runtime logs.
 - Keep environment variable additions synchronized across relevant `.env.example` files, `deploy/docker-compose.yml`, `start.sh`, and deployment documentation.
-- Keep user-facing documentation synchronized across English, Simplified Chinese, and Japanese when changing shared behavior.
-- Treat Simplified Chinese as the canonical UI copy passed to `tx("...")`; every literal UI key must have both English and Japanese entries. Keep protocol names, identifiers, units, and user/provider content untranslated when they are data rather than interface copy.
+- Keep user-facing documentation synchronized across English, Simplified Chinese, Japanese, and Russian when changing shared behavior.
+- Treat Simplified Chinese as the canonical UI copy passed to `tx("...")`; every literal UI key must have English, Japanese, and Russian entries. Keep protocol names, identifiers, units, and user/provider content untranslated when they are data rather than interface copy.
 - Do not hard-code user-visible prose in React views. Add it to the translation catalog in the same change; `node --test tools/ui-translations.test.mjs` enforces literal `tx("...")` coverage.
 - Build dynamic sentences with locale-aware helpers or complete translated templates rather than concatenating translated fragments. Format user-visible dates, times, numbers, and currencies with `languageLocale()` and `Intl` so they follow the selected application language.
 - A few source files are over the line-count ceiling and are frozen at their current size in the `FROZEN` table in `tools/source-lines.mjs`. Avoid broad formatting or unrelated restructuring in them when making a targeted fix; `node tools/check-source-lines.mjs` reports which files are affected.

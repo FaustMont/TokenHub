@@ -21,7 +21,7 @@ test("extracts only literal translation calls and object keys", () => {
   assert.deepEqual(newLiteralTxKeys('tx("已有")', 'tx("已有"); tx("新增"); tx("新增")'), ["新增"]);
 });
 
-for (const locale of ["en", "ja"]) {
+for (const locale of ["en", "ja", "ru"]) {
   test(`the Playground has complete ${locale} translations`, () => {
     const missing = missingKeys(literalTxKeys(playgroundSource), i18nRoot, locale);
     assert.deepEqual(missing, [], missing.map((key) => `Missing ${locale} translation for ${JSON.stringify(key)}`).join("\n"));

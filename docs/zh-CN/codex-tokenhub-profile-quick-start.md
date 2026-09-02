@@ -1,6 +1,6 @@
 # Codex 接入 TokenHub：Profile 快速配置指南
 
-Language: [English](../codex-tokenhub-profile-quick-start.md) | 简体中文 | [日本語](../ja/codex-tokenhub-profile-quick-start.md)
+Language: [English](../codex-tokenhub-profile-quick-start.md) | 简体中文 | [日本語](../ja/codex-tokenhub-profile-quick-start.md) | [Русский](../ru/codex-tokenhub-profile-quick-start.md)
 
 > 本文面向仅需通过独立 `tokenhub` Profile 接入 TokenHub 的用户，提供配置文件创建、Key 设置、启动验证和恢复默认环境的简化流程。
 >

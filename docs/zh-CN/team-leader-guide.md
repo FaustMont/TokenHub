@@ -1,6 +1,6 @@
 # 团队负责人大模型 API 接入指南
 
-Language: [English](../team-leader-guide.md) | 简体中文 | [日本語](../ja/team-leader-guide.md)
+Language: [English](../team-leader-guide.md) | 简体中文 | [日本語](../ja/team-leader-guide.md) | [Русский](../ru/team-leader-guide.md)
 
 本指南面向帮助业务应用通过项目级 TokenHub API Key 调用已批准大语言模型的团队负责人。
 

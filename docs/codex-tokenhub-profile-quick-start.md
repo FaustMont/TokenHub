@@ -1,6 +1,6 @@
 # Connect Codex to TokenHub: Profile Quick Setup
 
-Language: English | [简体中文](zh-CN/codex-tokenhub-profile-quick-start.md) | [日本語](ja/codex-tokenhub-profile-quick-start.md)
+Language: English | [简体中文](zh-CN/codex-tokenhub-profile-quick-start.md) | [日本語](ja/codex-tokenhub-profile-quick-start.md) | [Русский](ru/codex-tokenhub-profile-quick-start.md)
 
 > This guide is for users who only need to connect Codex to TokenHub through an isolated `tokenhub` profile. It covers profile creation, API key setup, validation, and recovery.
 >

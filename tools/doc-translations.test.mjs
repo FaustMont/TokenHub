@@ -33,6 +33,7 @@ describe("tracked universe", () => {
   it("does not track locale trees, which are targets rather than sources", () => {
     assert.equal(isTrackedEnglishDoc("docs/zh-CN/architecture.md"), false);
     assert.equal(isTrackedEnglishDoc("docs/ja/architecture.md"), false);
+    assert.equal(isTrackedEnglishDoc("docs/ru/architecture.md"), false);
   });
 
   it("does not track documents outside the universe", () => {
@@ -43,6 +44,7 @@ describe("tracked universe", () => {
     // source would demand a README.zh-CN.ja.md.
     assert.equal(isTrackedEnglishDoc("README.zh-CN.md"), false);
     assert.equal(isTrackedEnglishDoc("README.ja.md"), false);
+    assert.equal(isTrackedEnglishDoc("README.ru.md"), false);
     assert.equal(isTrackedEnglishDoc("backend/notes.md"), false);
     assert.equal(isTrackedEnglishDoc("docs/assets/logo.png"), false);
   });
@@ -63,10 +65,12 @@ describe("counterpart mapping", () => {
     const counterparts = counterpartsFor("README.md");
     assert.equal(counterparts.get("zh-CN"), "README.zh-CN.md");
     assert.equal(counterparts.get("ja"), "README.ja.md");
+    assert.equal(counterparts.get("ru"), "README.ru.md");
   });
 
   it("maps docs/ documents into the locale tree, preserving subdirectories", () => {
     assert.equal(counterpartsFor("docs/architecture.md").get("ja"), "docs/ja/architecture.md");
+    assert.equal(counterpartsFor("docs/architecture.md").get("ru"), "docs/ru/architecture.md");
     assert.equal(
       counterpartsFor("docs/guides/setup.md").get("zh-CN"),
       "docs/zh-CN/guides/setup.md",
@@ -75,11 +79,12 @@ describe("counterpart mapping", () => {
 });
 
 describe("existence rule", () => {
-  it("passes when both counterparts exist", () => {
+  it("passes when all counterparts exist", () => {
     const paths = new Set([
       "docs/architecture.md",
       "docs/zh-CN/architecture.md",
       "docs/ja/architecture.md",
+      "docs/ru/architecture.md",
     ]);
     assert.deepEqual(checkExistence(paths, paths), []);
   });
@@ -87,9 +92,11 @@ describe("existence rule", () => {
   it("reports each missing locale separately", () => {
     const paths = new Set(["docs/architecture.md", "docs/zh-CN/architecture.md"]);
     const failures = checkExistence(paths, paths);
-    assert.equal(failures.length, 1);
+    assert.equal(failures.length, 2);
     assert.equal(failures[0].locale, "ja");
     assert.equal(failures[0].counterpart, "docs/ja/architecture.md");
+    assert.equal(failures[1].locale, "ru");
+    assert.equal(failures[1].counterpart, "docs/ru/architecture.md");
   });
 
   it("ignores English-only and untracked documents", () => {
@@ -99,11 +106,12 @@ describe("existence rule", () => {
 });
 
 describe("co-change rule", () => {
-  it("passes when all three move together", () => {
+  it("passes when all move together", () => {
     const changes = new Map([
       ["docs/architecture.md", "M"],
       ["docs/zh-CN/architecture.md", "M"],
       ["docs/ja/architecture.md", "M"],
+      ["docs/ru/architecture.md", "M"],
     ]);
     assert.deepEqual(checkCoChange(changes), []);
   });
@@ -112,10 +120,11 @@ describe("co-change rule", () => {
     const changes = new Map([
       ["docs/architecture.md", "M"],
       ["docs/zh-CN/architecture.md", "M"],
+      ["docs/ja/architecture.md", "M"],
     ]);
     const failures = checkCoChange(changes);
     assert.equal(failures.length, 1);
-    assert.equal(failures[0].locale, "ja");
+    assert.equal(failures[0].locale, "ru");
     assert.match(failures[0].detail, /was not touched/);
   });
 
@@ -126,6 +135,7 @@ describe("co-change rule", () => {
       ["docs/architecture.md", "M"],
       ["docs/zh-CN/architecture.md", "A"],
       ["docs/ja/architecture.md", "A"],
+      ["docs/ru/architecture.md", "A"],
     ]);
     assert.deepEqual(checkCoChange(changes), []);
   });
@@ -134,24 +144,27 @@ describe("co-change rule", () => {
     const changes = new Map([
       ["docs/architecture.md", "D"],
       ["docs/zh-CN/architecture.md", "D"],
-      ["docs/ja/architecture.md", "M"],
+      ["docs/ja/architecture.md", "D"],
+      ["docs/ru/architecture.md", "M"],
     ]);
     const failures = checkCoChange(changes);
     assert.equal(failures.length, 1);
-    assert.equal(failures[0].locale, "ja");
+    assert.equal(failures[0].locale, "ru");
     assert.match(failures[0].detail, /deleted but .* was modified/);
   });
 
-  it("treats a rename as delete-plus-add on both sides", () => {
+  it("treats a rename as delete-plus-add on all sides", () => {
     // --no-renames means git reports a rename this way; the old translation paths
     // must be cleaned up and the new ones created.
     const changes = new Map([
       ["docs/old.md", "D"],
       ["docs/zh-CN/old.md", "D"],
       ["docs/ja/old.md", "D"],
+      ["docs/ru/old.md", "D"],
       ["docs/new.md", "A"],
       ["docs/zh-CN/new.md", "A"],
       ["docs/ja/new.md", "A"],
+      ["docs/ru/new.md", "A"],
     ]);
     assert.deepEqual(checkCoChange(changes), []);
   });
@@ -162,13 +175,14 @@ describe("co-change rule", () => {
       ["docs/new.md", "A"],
       ["docs/zh-CN/new.md", "A"],
       ["docs/ja/new.md", "A"],
+      ["docs/ru/new.md", "A"],
     ]);
     const failures = checkCoChange(changes);
-    assert.equal(failures.length, 2);
+    assert.equal(failures.length, 3);
     assert.ok(failures.every((failure) => failure.source === "docs/old.md"));
   });
 
-  it("accepts any non-delete status when all three move together", () => {
+  it("accepts any non-delete status when all move together", () => {
     // git reports T for a typechange, such as all three files becoming symlinks.
     // Accepting only A and M would reject a correctly mirrored change, and a gate
     // that fails correct PRs gets switched off.
@@ -176,6 +190,7 @@ describe("co-change rule", () => {
       ["docs/architecture.md", "T"],
       ["docs/zh-CN/architecture.md", "T"],
       ["docs/ja/architecture.md", "T"],
+      ["docs/ru/architecture.md", "T"],
     ]);
     assert.deepEqual(checkCoChange(changes), []);
   });
@@ -184,7 +199,8 @@ describe("co-change rule", () => {
     const changes = new Map([
       ["docs/architecture.md", "T"],
       ["docs/zh-CN/architecture.md", "T"],
-      ["docs/ja/architecture.md", "D"],
+      ["docs/ja/architecture.md", "T"],
+      ["docs/ru/architecture.md", "D"],
     ]);
     assert.equal(checkCoChange(changes).length, 1);
   });
@@ -303,23 +319,25 @@ describe("checker end to end", () => {
       "docs/architecture.md",
       "docs/zh-CN/architecture.md",
       "docs/ja/architecture.md",
+      "docs/ru/architecture.md",
     ]) {
       write(repo, path, "v1\n");
     }
     return commit(repo, "seed");
   }
 
-  it("passes when all three documents change together", () => {
+  it("passes when all documents change together", () => {
     const repo = newRepo();
     const base = seed(repo);
     for (const path of [
       "docs/architecture.md",
       "docs/zh-CN/architecture.md",
       "docs/ja/architecture.md",
+      "docs/ru/architecture.md",
     ]) {
       write(repo, path, "v2\n");
     }
-    const head = commit(repo, "update all three");
+    const head = commit(repo, "update all");
 
     const result = run(repo, ["--base", base, "--head", head]);
     assert.equal(result.code, 0, result.output);
@@ -335,6 +353,7 @@ describe("checker end to end", () => {
     assert.equal(result.code, 1);
     assert.match(result.output, /docs\/zh-CN\/architecture\.md was not touched/);
     assert.match(result.output, /docs\/ja\/architecture\.md was not touched/);
+    assert.match(result.output, /docs\/ru\/architecture\.md was not touched/);
   });
 
   it("fails on a new English document with no translations", () => {

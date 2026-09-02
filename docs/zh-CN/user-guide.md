@@ -1,6 +1,6 @@
 # 普通用户大模型 API 指南
 
-Language: [English](../user-guide.md) | 简体中文 | [日本語](../ja/user-guide.md)
+Language: [English](../user-guide.md) | 简体中文 | [日本語](../ja/user-guide.md) | [Русский](../ru/user-guide.md)
 
 本指南面向通过 TokenHub 调用企业已批准大语言模型的员工和应用开发者。
 

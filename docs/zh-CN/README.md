@@ -1,6 +1,6 @@
 # TokenHub 文档
 
-Language: [English](../README.md) | 简体中文 | [日本語](../ja/README.md)
+Language: [English](../README.md) | 简体中文 | [日本語](../ja/README.md) | [Русский](../ru/README.md)
 
 TokenHub 文档现在按企业 Token Governance 里的三种角色组织。默认文档语言是英文；中文和日文版本复用同一套英文截图和英文样例数据，避免多语言截图不一致。
 

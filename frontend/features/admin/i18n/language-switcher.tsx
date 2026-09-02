@@ -82,7 +82,7 @@ export function LanguageSelect({
     if (!open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const menuWidth = 176;
-      const menuHeight = 132;
+      const menuHeight = languageOptions.length * 40 + 12;
       const openBelow = window.innerHeight - rect.bottom >= menuHeight + 12;
       setPosition({
         left: Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8),

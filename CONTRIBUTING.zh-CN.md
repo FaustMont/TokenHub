@@ -1,6 +1,6 @@
 # 为 TokenHub 贡献代码
 
-[English](CONTRIBUTING.md) | 简体中文 | [日本語](CONTRIBUTING.ja.md)
+[English](CONTRIBUTING.md) | 简体中文 | [日本語](CONTRIBUTING.ja.md) | [Русский](CONTRIBUTING.ru.md)
 
 TokenHub 包含 Go 后端、Next.js 管理后台、Node.js SDK 冒烟测试、YAML 模型目录和 Docker Compose 部署文件。本指南说明本地开发、修改验证、可选的 AI Agent 工作流和 Pull Request 准备要求。
 
@@ -13,7 +13,7 @@ TokenHub 包含 Go 后端、Next.js 管理后台、Node.js SDK 冒烟测试、YA
 | `sdk/` | OpenAI-Compatible API 和安全策略接口的 Node.js 冒烟测试 |
 | `data/model-catalog.yaml` | 纳入版本控制的模型目录源文件 |
 | `deploy/` | Docker Compose 部署和环境变量模板 |
-| `docs/` | 英文、简体中文和日文文档 |
+| `docs/` | 英文、简体中文、日文和俄文文档 |
 
 ## 本地开发
 
@@ -54,7 +54,7 @@ npm run test:security-policy
 - 除非修改明确更新接口契约，否则保持 OpenAI-Compatible `/v1` 接口兼容。
 - 不要提交凭证、本地 `.env` 文件、数据库、生成的备份或运行日志。
 - 环境变量发生变化时，同步更新相关示例、Compose 文件、`start.sh` 和部署文档。
-- 面向使用者的共享文档需要同步维护英文、简体中文和日文版本。
+- 面向使用者的共享文档需要同步维护英文、简体中文、日文和俄文版本。
 - 保持 `data/model-catalog.yaml` 纳入版本控制，不要提交其他运行时数据文件。
 
 ## 验证

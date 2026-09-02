@@ -1,6 +1,6 @@
 # Connect Codex to TokenHub: Four Configuration Methods and Recovery
 
-Language: English | [简体中文](zh-CN/codex-tokenhub-configuration.md) | [日本語](ja/codex-tokenhub-configuration.md)
+Language: English | [简体中文](zh-CN/codex-tokenhub-configuration.md) | [日本語](ja/codex-tokenhub-configuration.md) | [Русский](ru/codex-tokenhub-configuration.md)
 
 > This guide connects local Codex CLI, the Codex desktop app, and the IDE extension to TokenHub. It covers an isolated profile, process-local overrides, global CLI configuration, and desktop configuration.
 >

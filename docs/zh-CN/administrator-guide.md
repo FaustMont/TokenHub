@@ -1,6 +1,6 @@
 # 管理员指南
 
-Language: [English](../administrator-guide.md) | 简体中文 | [日本語](../ja/administrator-guide.md)
+Language: [English](../administrator-guide.md) | 简体中文 | [日本語](../ja/administrator-guide.md) | [Русский](../ru/administrator-guide.md)
 
 本指南面向将 TokenHub 作为企业 AI 网关运行的平台管理员、安全运维和基础设施负责人。
 

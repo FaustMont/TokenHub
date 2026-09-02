@@ -1,6 +1,6 @@
 # 利用者 LLM API ガイド
 
-Language: [English](../user-guide.md) | [简体中文](../zh-CN/user-guide.md) | 日本語
+Language: [English](../user-guide.md) | [简体中文](../zh-CN/user-guide.md) | 日本語 | [Русский](../ru/user-guide.md)
 
 このガイドは、TokenHub 経由で承認済み大規模言語モデルを呼び出す社員とアプリケーション開発者向けです。
 

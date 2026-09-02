@@ -1,13 +1,13 @@
 // Translation co-change rules for TokenHub documentation.
 //
 // AGENTS.md requires user-facing documentation to stay synchronized across English,
-// Simplified Chinese and Japanese. This module holds the pure decision logic; the
+// Simplified Chinese, Japanese, and Russian. This module holds the pure decision logic; the
 // git and filesystem access lives in check-doc-translations.mjs so the rules can be
 // unit tested without a repository.
 //
 // Two independent rules are enforced. Neither subsumes the other:
 //
-//   existence  every tracked English document has both counterparts on disk. Catches
+//   existence  every tracked English document has all counterparts on disk. Catches
 //              a new document added with no translations.
 //   co-change  a tracked English document touched in the diff requires its
 //              counterparts to be touched the same way. Catches an English edit whose
@@ -17,7 +17,7 @@
 // Neither rule can judge translation quality. That stays a reviewer's job; the gate
 // only guarantees the files moved together.
 
-export const LOCALES = ["zh-CN", "ja"];
+export const LOCALES = ["zh-CN", "ja", "ru"];
 
 // Documents that are deliberately English-only. These are inside the tracked universe
 // and are skipped on purpose, which is different from a path simply not being tracked.

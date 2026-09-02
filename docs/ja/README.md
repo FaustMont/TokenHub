@@ -1,6 +1,6 @@
 # TokenHub ドキュメント
 
-Language: [English](../README.md) | [简体中文](../zh-CN/README.md) | 日本語
+Language: [English](../README.md) | [简体中文](../zh-CN/README.md) | 日本語 | [Русский](../ru/README.md)
 
 TokenHub のドキュメントは、エンタープライズ Token Governance で使う 3 つのロールを中心に再編成されています。既定言語は英語です。中国語版と日本語版も、同じ英語スクリーンショットと英語サンプルデータを利用します。
 

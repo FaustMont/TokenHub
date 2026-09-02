@@ -1,6 +1,6 @@
 # Agent Token コスト API
 
-Language: [English](../agent-token-cost-api.md) | [简体中文](../zh-CN/agent-token-cost-api.md) | 日本語
+Language: [English](../agent-token-cost-api.md) | [简体中文](../zh-CN/agent-token-cost-api.md) | 日本語 | [Русский](../ru/agent-token-cost-api.md)
 
 バージョン化された Agent Token コスト API を使うと、ローカルのレポート/監視 Agent は、管理者セッション、モデル呼び出し用 API Key、Provider 認証情報、手動エクスポートなしで TokenHub の利用量を読み取れます。この API は読み取り専用で、管理者の利用量画面と同じリクエスト数、Token 数、エラー数、推定顧客コストを使用します。
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 //
-// Fails when English documentation moves without its Simplified Chinese and Japanese
-// counterparts. See tools/doc-translations.mjs for the rules themselves.
+// Fails when English documentation moves without its Simplified Chinese, Japanese,
+// and Russian counterparts. See tools/doc-translations.mjs for the rules themselves.
 //
 //   node tools/check-doc-translations.mjs
 //   node tools/check-doc-translations.mjs --base <sha> --head <sha>
@@ -119,7 +119,7 @@ function report(failures) {
     [
       "",
       "Every English document under docs/ (plus README.md and CONTRIBUTING.md) must be",
-      `accompanied by its zh-CN and ja counterparts, and must be added, modified or`,
+      `accompanied by its zh-CN, ja, and ru counterparts, and must be added, modified or`,
       "deleted together with them.",
       "",
       "Deliberately English-only documents are listed in ENGLISH_ONLY in",

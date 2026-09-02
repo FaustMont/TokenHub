@@ -8,17 +8,22 @@ describe("admin language preference", () => {
     assert.equal(languageFromLocales(["zh-CN"]), "zh-CN");
     assert.equal(languageFromLocales(["zh-Hant-TW"]), "zh-CN");
     assert.equal(languageFromLocales(["ja-JP"]), "ja");
+    assert.equal(languageFromLocales(["ru-RU"]), "ru");
+    assert.equal(languageFromLocales(["ru"]), "ru");
     assert.equal(languageFromLocales(["en-GB"]), "en");
   });
 
   it("uses the first supported browser language and otherwise falls back to English", () => {
     assert.equal(languageFromLocales(["fr-FR", "ja-JP", "en-US"]), "ja");
+    assert.equal(languageFromLocales(["fr-FR", "ru-RU", "en-US"]), "ru");
     assert.equal(languageFromLocales(["fr-FR", "de-DE"]), "en");
   });
 
   it("keeps a saved choice ahead of browser detection", () => {
     assert.equal(preferredLanguage("en", ["zh-CN"]), "en");
     assert.equal(preferredLanguage("zh-CN", ["en-US"]), "zh-CN");
+    assert.equal(preferredLanguage("ru", ["en-US"]), "ru");
     assert.equal(preferredLanguage("unsupported", ["ja-JP"]), "ja");
+    assert.equal(preferredLanguage("unsupported", ["ru-RU"]), "ru");
   });
 });

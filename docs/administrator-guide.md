@@ -1,6 +1,6 @@
 # Administrator Guide
 
-Language: English | [简体中文](zh-CN/administrator-guide.md) | [日本語](ja/administrator-guide.md)
+Language: English | [简体中文](zh-CN/administrator-guide.md) | [日本語](ja/administrator-guide.md) | [Русский](ru/administrator-guide.md)
 
 This guide is for platform administrators, security operators, and infrastructure owners who run TokenHub as an enterprise AI gateway.
 

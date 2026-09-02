@@ -1,6 +1,6 @@
 # TokenHub Architecture
 
-Language: English | [简体中文](zh-CN/architecture.md) | [日本語](ja/architecture.md)
+Language: English | [简体中文](zh-CN/architecture.md) | [日本語](ja/architecture.md) | [Русский](ru/architecture.md)
 
 This document describes the architecture implemented in this repository for developers, operators, and security teams. TokenHub defaults to a single-instance SQLite deployment and also supports single-instance PostgreSQL and multi-instance deployments backed by remote PostgreSQL.
 

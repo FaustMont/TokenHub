@@ -1,6 +1,6 @@
 # 管理者ガイド
 
-Language: [English](../administrator-guide.md) | [简体中文](../zh-CN/administrator-guide.md) | 日本語
+Language: [English](../administrator-guide.md) | [简体中文](../zh-CN/administrator-guide.md) | 日本語 | [Русский](../ru/administrator-guide.md)
 
 このガイドは、TokenHub を企業 AI ゲートウェイとして運用するプラットフォーム管理者、セキュリティ運用者、インフラ担当者向けです。
 

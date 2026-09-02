@@ -1,6 +1,6 @@
 # TokenHub 整体架构
 
-Language: [English](../architecture.md) | 简体中文 | [日本語](../ja/architecture.md)
+Language: [English](../architecture.md) | 简体中文 | [日本語](../ja/architecture.md) | [Русский](../ru/architecture.md)
 
 本文描述当前仓库已经实现的 TokenHub 架构，供开发、运维和安全人员理解部署形态、请求链路与数据边界。TokenHub 默认采用 SQLite 单实例部署，同时支持 PostgreSQL 单实例和基于远端 PostgreSQL 的多实例部署。
 

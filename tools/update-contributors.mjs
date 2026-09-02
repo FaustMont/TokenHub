@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 
 const START_MARKER = "<!-- readme: contributors -start -->";
 const END_MARKER = "<!-- readme: contributors -end -->";
-const README_PATHS = ["README.md", "README.zh-CN.md", "README.ja.md"];
+const README_PATHS = ["README.md", "README.zh-CN.md", "README.ja.md", "README.ru.md"];
 const COLUMNS_PER_ROW = 8;
 
 function escapeHtml(value) {

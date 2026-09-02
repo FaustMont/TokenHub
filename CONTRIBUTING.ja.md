@@ -1,6 +1,6 @@
 # TokenHub へのコントリビューション
 
-[English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING.zh-CN.md) | 日本語
+[English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING.zh-CN.md) | 日本語 | [Русский](CONTRIBUTING.ru.md)
 
 TokenHub は、Go バックエンド、Next.js 管理コンソール、Node.js SDK スモークテスト、YAML モデルカタログ、Docker Compose デプロイファイルで構成されています。このガイドでは、ローカル開発、検証、オプションの AI Agent ワークフロー、Pull Request の準備について説明します。
 
@@ -13,7 +13,7 @@ TokenHub は、Go バックエンド、Next.js 管理コンソール、Node.js S
 | `sdk/` | OpenAI-Compatible API とセキュリティポリシーエンドポイントの Node.js スモークテスト |
 | `data/model-catalog.yaml` | バージョン管理対象のモデルカタログソース |
 | `deploy/` | Docker Compose デプロイファイルと環境変数テンプレート |
-| `docs/` | 英語、簡体字中国語、日本語のドキュメント |
+| `docs/` | 英語、簡体字中国語、日本語、ロシア語のドキュメント |
 
 ## ローカル開発
 
@@ -54,7 +54,7 @@ npm run test:security-policy
 - 明示的に契約を変更する場合を除き、OpenAI-Compatible `/v1` エンドポイントとの互換性を維持します。
 - 認証情報、ローカルの `.env` ファイル、データベース、生成されたバックアップ、実行時ログをコミットしないでください。
 - 環境変数を変更する場合は、関連するサンプル、Compose ファイル、`start.sh`、デプロイドキュメントを同期して更新します。
-- ユーザー向けの共通ドキュメントは、英語、簡体字中国語、日本語で同期して更新します。
+- ユーザー向けの共通ドキュメントは、英語、簡体字中国語、日本語、ロシア語で同期して更新します。
 - `data/model-catalog.yaml` をバージョン管理対象のまま維持し、その他の実行時データファイルをコミットしないでください。
 
 ## 検証

@@ -1,6 +1,6 @@
 # Codex を TokenHub に接続する：4 つの設定方法と復旧
 
-Language: [English](../codex-tokenhub-configuration.md) | [简体中文](../zh-CN/codex-tokenhub-configuration.md) | 日本語
+Language: [English](../codex-tokenhub-configuration.md) | [简体中文](../zh-CN/codex-tokenhub-configuration.md) | 日本語 | [Русский](../ru/codex-tokenhub-configuration.md)
 
 > このガイドでは、ローカルの Codex CLI、Codex デスクトップアプリ、および IDE 拡張機能を TokenHub に接続する方法を説明します。分離 Profile、プロセス単位の一時設定、CLI グローバル設定、デスクトップ設定の 4 方式を扱います。
 >

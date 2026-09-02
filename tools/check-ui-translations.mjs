@@ -75,13 +75,13 @@ function main() {
     }
   }
   const failures = [];
-  for (const locale of ["en", "ja"]) {
+  for (const locale of ["en", "ja", "ru"]) {
     for (const key of missingKeys(additions.keys(), i18nRoot, locale)) {
       failures.push(`${locale}: ${JSON.stringify(key)} used by ${additions.get(key).join(", ")}`);
     }
   }
   if (failures.length > 0) {
-    console.error(`UI translation check failed:\n\n${failures.join("\n")}\n\nAdd both English and Japanese catalog entries for every new literal tx key.`);
+    console.error(`UI translation check failed:\n\n${failures.join("\n")}\n\nAdd English, Japanese, and Russian catalog entries for every new literal tx key.`);
     process.exitCode = 1;
     return;
   }

@@ -1,6 +1,6 @@
 # チームリーダー LLM API 導入ガイド
 
-Language: [English](../team-leader-guide.md) | [简体中文](../zh-CN/team-leader-guide.md) | 日本語
+Language: [English](../team-leader-guide.md) | [简体中文](../zh-CN/team-leader-guide.md) | 日本語 | [Русский](../ru/team-leader-guide.md)
 
 このガイドは、業務アプリケーションが Project 単位の TokenHub API Key で承認済み大規模言語モデルを呼び出せるようにするチームリーダー向けです。
 

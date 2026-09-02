@@ -1,6 +1,6 @@
 # TokenHub 全体アーキテクチャ
 
-Language: [English](../architecture.md) | [简体中文](../zh-CN/architecture.md) | 日本語
+Language: [English](../architecture.md) | [简体中文](../zh-CN/architecture.md) | 日本語 | [Русский](../ru/architecture.md)
 
 このドキュメントは、開発、運用、セキュリティ担当者向けに、リポジトリで実装されている TokenHub のデプロイ形態、リクエスト経路、データ境界を説明します。TokenHub は SQLite による単一インスタンスを既定とし、PostgreSQL による単一インスタンスおよびリモート PostgreSQL を使うマルチインスタンスもサポートします。
 
