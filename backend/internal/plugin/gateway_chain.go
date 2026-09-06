@@ -74,6 +74,9 @@ type GatewayHookDescriptor struct {
 	HookID        string                   `json:"hook_id"`
 	Stage         GatewayHookStage         `json:"stage"`
 	Priority      int                      `json:"priority"`
+	Before        []string                 `json:"before,omitempty"`
+	After         []string                 `json:"after,omitempty"`
+	PluginAPI     string                   `json:"plugin_api,omitempty"`
 	Subject       string                   `json:"subject,omitempty"`
 	Metadata      map[string]string        `json:"metadata,omitempty"`
 	Scope         GatewayHookScope         `json:"scope,omitempty"`
@@ -127,6 +130,7 @@ type GatewayHookStagePolicy struct {
 
 type GatewayStageEnvelopeContract struct {
 	Stage              GatewayHookStage           `json:"stage"`
+	ExecutionMode      GatewayStageExecutionMode  `json:"execution_mode"`
 	Reads              []GatewayDataClass         `json:"reads"`
 	Writes             []GatewayDataClass         `json:"writes"`
 	Preserves          []GatewayDataClass         `json:"preserves"`
@@ -181,8 +185,12 @@ func (r *GatewayChainRegistry) RegisterHook(descriptor GatewayHookDescriptor) er
 	if descriptor.TimeoutMillis > MaxGatewayHookTimeoutMillis {
 		return fmt.Errorf("gateway hook %s/%s timeout_millis cannot exceed %d", descriptor.PluginID, descriptor.HookID, MaxGatewayHookTimeoutMillis)
 	}
-	r.hooks[descriptor.Stage] = append(r.hooks[descriptor.Stage], descriptor)
-	sortGatewayHooks(r.hooks[descriptor.Stage])
+	candidate := append(append([]GatewayHookDescriptor(nil), r.hooks[descriptor.Stage]...), descriptor)
+	ordered, err := orderAndValidateGatewayHooks(candidate)
+	if err != nil {
+		return err
+	}
+	r.hooks[descriptor.Stage] = ordered
 	return nil
 }
 
@@ -191,7 +199,6 @@ func (r *GatewayChainRegistry) Hooks(stage GatewayHookStage) []GatewayHookDescri
 		return nil
 	}
 	hooks := append([]GatewayHookDescriptor(nil), r.hooks[stage]...)
-	sortGatewayHooks(hooks)
 	return hooks
 }
 
@@ -222,8 +229,13 @@ func GatewayStageEnvelopeContractFor(stage GatewayHookStage) (GatewayStageEnvelo
 	if !ok {
 		return GatewayStageEnvelopeContract{}, false
 	}
+	mode, ok := GatewayStageExecutionModeFor(stage)
+	if !ok {
+		return GatewayStageEnvelopeContract{}, false
+	}
 	return GatewayStageEnvelopeContract{
 		Stage:              stage,
+		ExecutionMode:      mode,
 		Reads:              append([]GatewayDataClass(nil), policy.Reads...),
 		Writes:             append([]GatewayDataClass(nil), policy.Writes...),
 		Preserves:          preservedGatewayDataClasses(policy.Reads, policy.Writes),
@@ -257,6 +269,9 @@ func NormalizeGatewayHookDescriptor(descriptor GatewayHookDescriptor) GatewayHoo
 	descriptor.HookID = strings.TrimSpace(descriptor.HookID)
 	descriptor.Subject = strings.TrimSpace(descriptor.Subject)
 	descriptor.Metadata = normalizeStringMap(descriptor.Metadata)
+	descriptor.Before = normalizeStrings(descriptor.Before)
+	descriptor.After = normalizeStrings(descriptor.After)
+	descriptor.PluginAPI = strings.TrimSpace(descriptor.PluginAPI)
 	if descriptor.FailurePolicy == "" {
 		if policy, ok := GatewayStagePolicy(descriptor.Stage); ok {
 			descriptor.FailurePolicy = policy.DefaultFailurePolicy

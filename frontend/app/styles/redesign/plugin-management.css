@@ -40,7 +40,7 @@
 .plugin-installed-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 148px 180px;
+  grid-template-columns: minmax(340px, 1fr) minmax(174px, 220px) auto;
   grid-template-areas: "main state actions";
   gap: 16px;
   align-items: center;
@@ -76,12 +76,20 @@
 }
 
 .plugin-installed-title-cell {
-  gap: 6px;
+  gap: 5px;
 }
 
-.plugin-installed-title-cell .plugin-title-link,
-.plugin-installed-title-cell .plugin-title-name {
-  width: 100%;
+.plugin-installed-title-line {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plugin-installed-title-line .plugin-title-link,
+.plugin-installed-title-line .plugin-title-name {
+  min-width: 80px;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -92,7 +100,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 1 auto;
   overflow: hidden;
+}
+
+.plugin-installed-summary {
+  min-width: 0;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plugin-installed-id {
@@ -136,13 +156,15 @@
 
 .plugin-installed-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   flex-wrap: nowrap;
 }
 
 .plugin-installed-actions .compact-button {
   width: auto;
-  min-width: 82px;
+  min-width: 80px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -154,8 +176,24 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+}
+
+.plugin-installed-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.plugin-browse-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.plugin-browse-row .plugin-installed-actions {
+  min-width: 168px;
 }
 
 .plugin-installed-state [data-plugin-manager-control="lifecycle"] .compact-button {
@@ -370,7 +408,7 @@
 
 @container (max-width: 900px) {
   .plugin-installed-row {
-    grid-template-columns: minmax(260px, 1fr) 148px;
+    grid-template-columns: minmax(260px, 1fr) minmax(174px, 220px);
     grid-template-areas: "main state" "actions actions";
   }
 

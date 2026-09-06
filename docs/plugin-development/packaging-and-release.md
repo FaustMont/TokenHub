@@ -34,9 +34,9 @@ Never reuse a release URL for different bytes. Checksums and signatures protect 
 
 ## Install and Verify
 
-From **Plugin Management > Install Plugin**, operators can select a Marketplace release, provide a direct URL, or upload a ZIP. Review the compatibility, checksum, trust information, and permission diff before installation. Direct URL installation requires the package checksum.
+From **Plugin Management > Browse Plugins**, operators can select an available release or use **Manual Install** with a direct URL or ZIP. Review compatibility, checksum, trust information, and the permission diff before installation. Direct URL installation requires the package checksum.
 
-TokenHub extracts accepted packages into `TOKENHUB_PLUGIN_DIR`. A package that adds or changes runtime capabilities can enter `pending_restart`; restart the backend before judging whether the new version is active. Then verify:
+TokenHub extracts accepted packages into `TOKENHUB_PLUGIN_DIR` and reloads the plugin runtime after install, update, enable, disable, or rollback. These operations normally take effect without restarting the TokenHub service. Lifecycle facts remain separate: Installed, Enabled, Configured, In Use, and Restart Required must not be inferred from one aggregate status. A `restart_required` marker indicates real desired/active runtime drift; a successful service startup clears it after loading the desired plugin state. Then verify:
 
 - version, compatibility, and trust state on the Details page
 - file inventory and expected package contents on the Files page

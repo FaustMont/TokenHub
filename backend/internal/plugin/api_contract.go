@@ -8,9 +8,12 @@ import (
 )
 
 const (
-	PluginManifestSchemaVersion = 1
+	PluginManifestSchemaV1      = 1
+	PluginManifestSchemaV2      = 2
+	PluginManifestSchemaVersion = PluginManifestSchemaV2
 	PluginAPIV1                 = "v1"
-	CurrentPluginAPI            = PluginAPIV1
+	PluginAPIV2                 = "v2"
+	CurrentPluginAPI            = PluginAPIV2
 	CurrentCoreVersion          = "0.7.0"
 )
 
@@ -125,10 +128,8 @@ type PluginAPICompatibility struct {
 }
 
 func SupportedPluginAPICompatibility() []PluginAPICompatibility {
-	return []PluginAPICompatibility{{
-		PluginAPI:             PluginAPIV1,
-		ManifestSchemaVersion: PluginManifestSchemaVersion,
-		MinCore:               CurrentCoreVersion,
+	base := PluginAPICompatibility{
+		MinCore: CurrentCoreVersion,
 		CapabilityKinds: []string{
 			CapabilityKindAdminUI,
 			CapabilityKindBackgroundJob,
@@ -155,7 +156,14 @@ func SupportedPluginAPICompatibility() []PluginAPICompatibility {
 			PluginFeatureMarketplaceDistribution,
 			PluginFeaturePermissionRuntime,
 		},
-	}}
+	}
+	v2 := base
+	v2.PluginAPI = PluginAPIV2
+	v2.ManifestSchemaVersion = PluginManifestSchemaV2
+	v1 := base
+	v1.PluginAPI = PluginAPIV1
+	v1.ManifestSchemaVersion = PluginManifestSchemaV1
+	return []PluginAPICompatibility{v2, v1}
 }
 
 func PluginErrorCodeOf(err error) (PluginErrorCode, bool) {
@@ -171,7 +179,7 @@ func ValidateManifestCompatibility(compat ManifestCompatibility) error {
 	if pluginAPI == "" {
 		return pluginContractErrorf(PluginErrorAPIRequired, "tokenhub.plugin_api is required")
 	}
-	if pluginAPI != CurrentPluginAPI {
+	if pluginAPI != PluginAPIV1 && pluginAPI != PluginAPIV2 {
 		return pluginContractErrorf(PluginErrorAPIUnsupported, "unsupported tokenhub.plugin_api %q", compat.PluginAPI)
 	}
 	if err := validateCoreVersionRange(compat.MinCore, compat.MaxCore); err != nil {

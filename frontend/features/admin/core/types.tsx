@@ -406,6 +406,7 @@ export type PluginMarketplaceMetadata = {
 
 export type PluginLifecycle = {
   status: "enabled" | "disabled" | "pending_restart" | "failed_validation" | "failed_startup" | "rollback_available" | "mandatory" | string;
+  available?: boolean; installed?: boolean; enabled?: boolean; configured?: boolean; in_use?: boolean; setup_required?: boolean; desired_version?: string; active_version?: string; desired_enabled?: boolean; active_enabled?: boolean;
   reason?: string;
   restart_required: boolean;
   health: "healthy" | "unhealthy" | "unknown" | string;
@@ -443,6 +444,7 @@ export type PluginDescriptor = {
   name: string;
   version: string;
   description?: string;
+  summary?: string; category?: "provider_integration" | "request_pipeline" | "ui_template" | "automation" | string; host_adapter?: string; dependencies?: Array<{ id: string; version?: string }>; settings?: { scopes?: string[] }; permissions?: Array<{ kind: string; name: string; access: string; sensitivity: string }>; has_settings?: boolean; legacy?: boolean; available?: boolean; installed?: boolean; enabled?: boolean; configured?: boolean; in_use?: boolean; setup_required?: boolean; desired_version?: string; active_version?: string; desired_enabled?: boolean; active_enabled?: boolean;
   localizations?: Record<string, PluginLocalization>;
   source: "built_in" | "marketplace" | "local_file" | string;
   status?: "enabled" | "disabled" | string;
@@ -465,14 +467,12 @@ export type PluginDescriptor = {
   compatibility?: PluginCompatibility;
   trust?: PluginTrustSummary;
 };
-
 export type PluginMarketplacePlugin = {
   plugin: PluginDescriptor;
   installed: boolean;
   installed_version?: string;
   update_available?: boolean;
 };
-
 export type GatewayHookDescriptor = {
   plugin_id: string;
   hook_id: string;

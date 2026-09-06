@@ -2,7 +2,7 @@
 
 Language: [English](../../plugin-development/getting-started.md) | [简体中文](../../zh-CN/plugin-development/getting-started.md) | 日本語
 
-[`plugin-devkit`](../../../plugin-devkit/README.md) を使って Plugin API v1 を学び、検証します。`examples/` は contract fixture であり、本番 integration ではありません。
+[`plugin-devkit`](../../../plugin-devkit/README.md) を使って Plugin API v2 を学び、検証します。Devkit は互換性のため v1 manifest も認識します。`examples/` は contract fixture であり、本番 integration ではありません。
 
 ## 1. Devkit を検証する
 
@@ -46,6 +46,6 @@ go run ./cmd/tokenhub-plugin-test action --package /path/to/your-plugin
 
 ## 4. package を導入する
 
-実行ファイルを build し、`plugin.yaml` を 1 つだけ含む ZIP と SHA-256 checksum を作成し、TokenHub の **Install Plugin** 画面から導入します。TokenHub は package を `TOKENHUB_PLUGIN_DIR` に書き込みます。`plugin-devkit/examples/` にあるだけでは runtime に読み込まれません。
+実行ファイルを build し、`plugin.yaml` を 1 つだけ含む ZIP と SHA-256 checksum を作成し、**Plugin Management > Browse Plugins > Manual Install** から導入します。成功すると TokenHub は package を `TOKENHUB_PLUGIN_DIR` に書き込み、plugin runtime を再読み込みします。`plugin-devkit/examples/` にあるだけでは読み込まれません。
 
 次に [Manifest リファレンス](manifest-reference.md) と[パッケージと公開](packaging-and-release.md) を参照してください。

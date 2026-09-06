@@ -156,12 +156,15 @@ func registerBuiltinProviderCatalogEntryPlugin(registry *pluginmeta.Registry, en
 		return fmt.Errorf("encode provider catalog plugin %s: %w", pluginID, err)
 	}
 	return registry.Register(pluginmeta.Descriptor{
-		ID:      pluginID,
-		Name:    firstNonEmpty(entry.DisplayName, entry.Name, entry.ID),
-		Version: "built-in",
-		Source:  pluginmeta.SourceBuiltIn,
-		Status:  state.Status,
-		Kinds:   []pluginmeta.Kind{pluginmeta.KindProvider},
+		ID:          pluginID,
+		Name:        firstNonEmpty(entry.DisplayName, entry.Name, entry.ID),
+		Version:     pluginmeta.BuiltInVersion,
+		Summary:     "Connect TokenHub to " + firstNonEmpty(entry.DisplayName, entry.Name, entry.ID) + ".",
+		Category:    pluginmeta.CategoryProviderIntegration,
+		HostAdapter: entry.Type,
+		Source:      pluginmeta.SourceBuiltIn,
+		Status:      state.Status,
+		Kinds:       []pluginmeta.Kind{pluginmeta.KindProvider},
 		Placements: []pluginmeta.Placement{
 			pluginmeta.PlacementGatewayChain,
 		},

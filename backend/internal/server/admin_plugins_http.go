@@ -22,6 +22,10 @@ const (
 type adminPluginDescriptorResponse struct {
 	pluginmeta.Descriptor
 
+	Category          pluginmeta.Category              `json:"category"`
+	Summary           string                           `json:"summary"`
+	HasSettings       bool                             `json:"has_settings"`
+	Legacy            bool                             `json:"legacy"`
 	Reason            string                           `json:"reason,omitempty"`
 	RestartRequired   bool                             `json:"restart_required"`
 	Health            pluginmeta.PackageHealthStatus   `json:"health,omitempty"`
@@ -39,6 +43,16 @@ type adminPluginDescriptorResponse struct {
 
 type adminPluginLifecycleResponse struct {
 	Status            pluginmeta.Status                `json:"status"`
+	Available         bool                             `json:"available"`
+	Installed         bool                             `json:"installed"`
+	Enabled           bool                             `json:"enabled"`
+	Configured        bool                             `json:"configured"`
+	InUse             bool                             `json:"in_use"`
+	SetupRequired     bool                             `json:"setup_required"`
+	DesiredVersion    string                           `json:"desired_version,omitempty"`
+	ActiveVersion     string                           `json:"active_version,omitempty"`
+	DesiredEnabled    bool                             `json:"desired_enabled"`
+	ActiveEnabled     bool                             `json:"active_enabled"`
 	Reason            string                           `json:"reason,omitempty"`
 	RestartRequired   bool                             `json:"restart_required"`
 	Health            pluginmeta.PackageHealthStatus   `json:"health"`
@@ -137,19 +151,40 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 	descriptors := s.pluginRegistry.List()
 	response := make([]adminPluginDescriptorResponse, 0, len(descriptors))
 	seen := map[string]bool{}
+	providerUsage := s.providerPluginUsageFacts()
 	for _, descriptor := range descriptors {
+		activeStatus := descriptor.Status
+		activeVersion := descriptor.Version
 		pkg, ok := installed[descriptor.ID]
+		stateFound := false
 		if !ok && descriptor.Source == pluginmeta.SourceBuiltIn && strings.TrimSpace(s.config.PluginDir) != "" {
 			state, found, err := pluginmeta.NewRuntime(s.config.PluginDir).ReadBuiltInPackageState(descriptor.ID)
 			if err != nil {
 				return nil, err
 			}
 			if found {
+				stateFound = true
 				pkg.State = state
 				descriptor.Status = state.Status
 			}
 		}
-		response = append(response, adminPluginDescriptorForPackage(descriptor, pkg, ok))
+		usage := providerUsage[descriptor.ID]
+		logicallyInstalled := ok || (descriptor.Source == pluginmeta.SourceBuiltIn && !pluginmeta.CatalogOnlyProvider(descriptor)) || stateFound || usage.configured
+		if !logicallyInstalled {
+			descriptor.Status = pluginmeta.StatusDisabled
+			pkg.State = pluginmeta.PackageState{Status: pluginmeta.StatusDisabled}
+		}
+		facts := pluginmeta.DeriveLifecycleFacts(pluginmeta.LifecycleFactsInput{
+			Available:      true,
+			Installed:      logicallyInstalled,
+			Configured:     usage.configured || !pluginDescriptorRequiresConfiguration(descriptor),
+			InUse:          usage.inUse,
+			DesiredState:   pkg.State,
+			ActiveStatus:   activeStatus,
+			DesiredVersion: descriptor.Version,
+			ActiveVersion:  activeVersion,
+		})
+		response = append(response, adminPluginDescriptorForPackageWithFacts(descriptor, pkg, ok, facts))
 		seen[descriptor.ID] = true
 	}
 	for _, pkg := range installed {
@@ -164,12 +199,26 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 }
 
 func adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, installed bool) adminPluginDescriptorResponse {
+	facts := pluginmeta.DeriveLifecycleFacts(pluginmeta.LifecycleFactsInput{
+		Available:      true,
+		Installed:      installed,
+		Configured:     installed,
+		InUse:          false,
+		DesiredState:   pkg.State,
+		ActiveStatus:   descriptor.Status,
+		DesiredVersion: descriptor.Version,
+		ActiveVersion:  descriptor.Version,
+	})
+	return adminPluginDescriptorForPackageWithFacts(descriptor, pkg, installed, facts)
+}
+
+func adminPluginDescriptorForPackageWithFacts(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, packageInstalled bool, facts pluginmeta.LifecycleFacts) adminPluginDescriptorResponse {
 	state := pluginmeta.PackageState{Status: descriptor.Status}
 	compatibility := pluginmeta.ManifestCompatibility{
 		PluginAPI: pluginmeta.CurrentPluginAPI,
 	}
 	manifestSchemaVersion := pluginmeta.PluginManifestSchemaVersion
-	if installed {
+	if packageInstalled {
 		state = pkg.State
 		compatibility = pkg.Manifest.TokenHub
 		manifestSchemaVersion = pkg.Manifest.SchemaVersion
@@ -183,9 +232,13 @@ func adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg plugi
 	trust := adminPluginTrustSummaryForDescriptor(descriptor)
 	descriptor.Distribution = sanitizeAdminPluginDistribution(descriptor.Distribution)
 	descriptor.Marketplace = sanitizeAdminPluginMarketplaceMetadata(descriptor.Marketplace)
-	lifecycle := adminPluginLifecycleForState(state)
+	lifecycle := adminPluginLifecycleForStateAndFacts(state, facts)
 	return adminPluginDescriptorResponse{
 		Descriptor:        descriptor,
+		Category:          pluginmeta.PrimaryCategory(descriptor),
+		Summary:           pluginDescriptorSummary(descriptor),
+		HasSettings:       pluginDescriptorHasSettings(descriptor),
+		Legacy:            compatibility.PluginAPI == pluginmeta.PluginAPIV1,
 		Reason:            lifecycle.Reason,
 		RestartRequired:   lifecycle.RestartRequired,
 		Health:            lifecycle.Health,
@@ -203,14 +256,35 @@ func adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg plugi
 }
 
 func adminPluginLifecycleForState(state pluginmeta.PackageState) adminPluginLifecycleResponse {
+	facts := pluginmeta.DeriveLifecycleFacts(pluginmeta.LifecycleFactsInput{
+		Available:    true,
+		Installed:    true,
+		Configured:   true,
+		DesiredState: state,
+		ActiveStatus: state.Status,
+	})
+	return adminPluginLifecycleForStateAndFacts(state, facts)
+}
+
+func adminPluginLifecycleForStateAndFacts(state pluginmeta.PackageState, facts pluginmeta.LifecycleFacts) adminPluginLifecycleResponse {
 	normalized, err := pluginmeta.NormalizePackageState(state)
 	if err == nil {
 		state = normalized
 	}
 	return adminPluginLifecycleResponse{
 		Status:            state.Status,
+		Available:         facts.Available,
+		Installed:         facts.Installed,
+		Enabled:           facts.Enabled,
+		Configured:        facts.Configured,
+		InUse:             facts.InUse,
+		SetupRequired:     facts.SetupRequired,
+		DesiredVersion:    facts.DesiredVersion,
+		ActiveVersion:     facts.ActiveVersion,
+		DesiredEnabled:    facts.DesiredEnabled,
+		ActiveEnabled:     facts.ActiveEnabled,
 		Reason:            state.Reason,
-		RestartRequired:   state.PendingRestart(),
+		RestartRequired:   facts.RestartRequired,
 		Health:            state.Health,
 		Mandatory:         state.Mandatory,
 		RollbackAvailable: state.RollbackAvailable(),
@@ -652,7 +726,7 @@ func (s *Server) handleAdminPluginBuiltInFallbackRollback(w http.ResponseWriter,
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginRollbackResponse{
 		Plugin:          plugin,
 		RestartRequired: false,
-		RollbackVersion: "built-in",
+		RollbackVersion: pluginmeta.BuiltInVersion,
 		RollbackTarget:  pluginmeta.PackageRollbackTargetBuiltIn,
 	}})
 	return true

@@ -6,7 +6,7 @@ Language: [English](../../plugin-development/guide.md) | 简体中文 | [日本�
 
 本文采用“先做出最小插件，再解释完整契约”的顺序。和 WordPress 通过插件主文件头发现插件类似，TokenHub 通过包根目录的 `plugin.yaml` 发现、校验和加载插件；区别是 TokenHub 插件必须显式声明运行位置、能力和最小权限。
 
-> **当前实现边界：** 本文只描述仓库中已经实现的 Plugin API v1。界面模板是声明式主题和布局能力，并不是任意 React/JavaScript 扩展机制。已安装插件都有详情和文件清单路由；只有声明了可编辑主题 Token 的插件才有设置路由。源码仍只供只读预览，管理后台不能修改插件代码。
+> **当前实现边界：** Plugin API v2 是当前 Manifest 契约；现有插件仍可通过 v1 适配器运行。界面模板是声明式主题和布局能力，并不是任意 React/JavaScript 扩展机制。每个内置插件都有可检查的包文件。只有 Manifest 声明了真实可编辑设置时才显示设置路由；源码仍只供只读预览，管理后台不能修改插件代码。
 
 TokenHub 会把 core 保持得很小：
 
@@ -17,7 +17,7 @@ TokenHub 会把 core 保持得很小：
 
 ## 管理已安装插件
 
-TokenHub 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件管理交互参考，同时将管理动作和插件类型分开。插件管理只有三个一级入口：“已安装插件”负责搜索、状态筛选、版本、更新和生命周期操作；“安装插件”集中提供市场入口、URL 安装、ZIP 上传、checksum 与权限差异预览；“扩展类型”再以二级导航展示 Provider、链路注入、界面模板和后台任务。
+TokenHub 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件管理交互参考。插件管理有两个一级入口：“已安装插件”负责搜索、状态筛选、版本、更新和生命周期操作；“浏览插件”列出可用插件，并集中提供市场入口、URL 安装、ZIP 上传、checksum 与权限差异预览。“已安装插件”左侧直接提供四个分类筛选：Provider 集成、请求链路、UI 模板和自动化，不再保留单独的“扩展类型”表格。
 
 已安装列表中的插件名称和“详情”进入概览页。只有插件确实有可编辑设置时才显示“设置”并直接进入设置页。界面模板有可编辑主题 Token 时，点击模板主体进入“设置”；否则进入“详情”。“设为默认模板”是独立操作，因此打开设置不会意外切换当前生效界面。这个层级参考了 WordPress 的[安装、更新和管理模式](https://www.waimaob2c.com/wordpress-plugins)，但不会照搬在线代码编辑和不适合企业网关的自动更新行为。
 
@@ -37,7 +37,7 @@ TokenHub 以 Office Add-ins 作为企业治理参考，以 Obsidian 作为插件
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={包内相对路径}`
 
-内置插件有实现元数据，但没有独立安装包文件清单。外部插件包可展示文件数、总大小、文件类型，以及符合安全条件的源码、配置和 Schema 内容。整体交互参考 WordPress 的[插件开发文档](https://codex.wordpress.org/zh-cn:%E5%BC%80%E5%8F%91%E4%B8%80%E4%B8%AA%E6%8F%92%E4%BB%B6)，但 TokenHub 保留自己的 manifest、权限和安全模型。
+内置插件与外部插件都会展示可检查的包文件清单，包括文件数、总大小、文件类型，以及符合安全条件的 Manifest、README、许可证、源码、配置和 Schema 内容。整体交互参考 WordPress 的[插件开发文档](https://codex.wordpress.org/zh-cn:%E5%BC%80%E5%8F%91%E4%B8%80%E4%B8%AA%E6%8F%92%E4%BB%B6)，但 TokenHub 保留自己的 Manifest、权限和安全模型。
 
 ## 1. 插件家族
 
@@ -45,10 +45,10 @@ TokenHub 现在把插件分成几个清晰的家族。
 
 | 家族 | 负责什么 | 示例 |
 | --- | --- | --- |
-| 界面模板 | 整体外观、布局和模板包 | shell 主题、页面模板、仪表盘组合 |
-| Provider | 上游模型接入、鉴权、发现和配额 | Codex、Kimi、Gemini、Anthropic、OpenAI-compatible Provider |
-| 链路注入 | 用户请求到上游响应的整条链路 | 隐私控制、路由、缓存、上下文优化、trace 导出 |
-| 后台任务 | 定时或运维触发的任务 | 配额刷新、同步、清理、报表 |
+| Provider 集成 | 上游模型接入、鉴权、发现和配额 | Codex、Kimi、Gemini、Anthropic、OpenAI-compatible Provider |
+| 请求链路 | 用户请求到上游响应的整条链路 | 隐私控制、路由、缓存、上下文优化、trace 导出 |
+| UI 模板 | 整体外观、布局和模板包 | shell 主题、页面模板、仪表盘组合 |
+| 自动化 | 定时或运维触发的任务 | 配额刷新、同步、清理、报表 |
 
 Admin UI 贡献是一个能力面，不是顶层家族。它通常挂在 Provider、链路注入或后台任务插件上。
 
@@ -66,13 +66,16 @@ Admin UI 贡献是一个能力面，不是顶层家族。它通常挂在 Provide
 每个插件包都由 `plugin.yaml` 描述。
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-description: Reference Go provider plugin for the TokenHub stdio-json-v1 contract kit.
+summary: Connect TokenHub to a Kimi subscription account.
+description: Reference Go Provider plugin using the stdio-json-v1 transport.
+category: provider_integration
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - provider
 placement:
@@ -261,13 +264,16 @@ go run ./cmd/tokenhub-plugin-test background \
 这个样例的 manifest 把“插件是什么”和“TokenHub 可以怎样调用它”写在一起：
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.background.heartbeat-go
 name: Heartbeat Go Background Job
 version: 1.0.0
+summary: Run a supervised heartbeat job in the background.
 description: Reference background job plugin.
+category: automation
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - extension
 placement:
@@ -416,13 +422,16 @@ Provider 插件把 TokenHub 接到某个模型服务或订阅账户上。
 界面模板插件负责视觉识别和有限的声明式布局。它不需要执行二进制文件，最小包可以只包含 `plugin.yaml`：
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
 description: A compact operations template for TokenHub.
+summary: Apply a compact operations layout to TokenHub.
+category: ui_template
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - sim
 placement:
@@ -460,7 +469,7 @@ capabilities:
             order: 100
 ```
 
-Plugin API v1 当前支持四类界面模板能力：
+Plugin API v2 当前支持四类界面模板能力：
 
 | 能力 | 当前可声明内容 |
 | --- | --- |
@@ -562,7 +571,7 @@ TokenHub 对 built-in 和 external 插件使用同一种包形态。
 - 许可证
 - 兼容性元数据
 
-插件市场地址默认是 `https://plugins.betokenhub.com`。运维可以从这个 marketplace 或直接 ZIP URL 安装插件包，校验 checksum，然后重启后端使其生效。
+插件市场地址默认是 `https://plugins.betokenhub.com`。运维可以从 Marketplace 或直接 ZIP URL 安装插件包并校验 checksum，TokenHub 会立即重新加载插件运行时。
 
 ZIP 可以把 `plugin.yaml` 放在归档根目录，也可以只包一层插件目录；归档中必须且只能发现一个 `plugin.yaml`。不要包含 symlink。运行入口必须保留可执行权限，并且 `entry.backend.command` 必须是插件目录内的相对路径。
 
@@ -578,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-在管理后台打开“插件扩展”，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装完成后状态为 `pending_restart`；重启 TokenHub 后端后，再检查插件状态、能力清单和后台任务/页面贡献是否出现。
+在管理后台打开“插件管理 > 浏览插件 > 手动安装”，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装成功后 TokenHub 会重新加载运行时。已安装、已启用、已配置、使用中和需要重启是相互独立的生命周期事实；只有期望状态与实际运行状态存在差异时才显示重启标记，服务成功启动并加载期望状态后会清除标记。
 
 ## 7. 版本与兼容性
 
@@ -617,7 +626,7 @@ shasum -a 256 background-heartbeat-go.zip
 4. 包级测试
 5. TokenHub 集成测试
 6. marketplace 和兼容性检查
-7. 安装与重启验证
+7. 安装、运行时重载与生命周期验证
 
 各家族重点关注：
 
@@ -627,17 +636,16 @@ shasum -a 256 background-heartbeat-go.zip
 - 后台任务插件：调度、重试规则、并发、结果脱敏
 - Admin UI 贡献：schema 解析、动作绑定、payload 脱敏、不能任意调用 admin API
 
-## 9. 从当前内置实现迁移
+## 9. 内置兼容与后续迁移
 
-实际迁移顺序建议如下：
+当前包边界已经把所有内置模块（包括全部 Provider 目录条目）映射成可检查的插件包。后续迁移顺序如下：
 
-1. 把当前内置描述和注册表统一到插件视角
-2. 把 provider adapter、quota、OAuth 和模型发现移动到 provider 插件
-3. 把 gateway 增强拆成显式链路 Hook
-4. 把周期性任务移动到后台任务插件
-5. 把 admin 页面、面板和按钮改成声明式贡献
-6. 旧的动作面只保留成兼容桥，等 request path 全部拆出来再收口
-7. 扩大 marketplace，支持外部作者
+1. 保持 Provider 适配、额度、OAuth 和模型发现位于专注的 Provider 集成背后
+2. 保持网关增强拆分为显式请求链路 Hook
+3. 保持周期工作位于自动化插件
+4. 保持管理页面、面板和按钮为声明式贡献
+5. 仅将 v1 Action Surface 保留为兼容桥梁
+6. 为外部开发者扩展 Marketplace
 
 这样做的好处是每一步都可以独立发布，并且能通过 contract tests 验证。
 
@@ -670,7 +678,7 @@ shasum -a 256 background-heartbeat-go.zip
 
 ## 11. 迁移清单
 
-- [ ] 把当前内置模块映射成 Provider、链路注入、界面模板和后台任务包
+- [x] 把内置模块映射成 Provider 集成、请求链路、UI 模板和自动化插件包
 - [ ] 把 provider 特有的模型发现和配额逻辑抽进 provider 插件
 - [ ] 把请求路径逻辑抽成显式链路 Hook
 - [ ] 让 Admin UI 贡献保持声明式和权限收敛

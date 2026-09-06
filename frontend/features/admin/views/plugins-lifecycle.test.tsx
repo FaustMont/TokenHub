@@ -38,7 +38,7 @@ describe("PluginsView lifecycle controls", () => {
     expect(screen.getByRole("button", { name: "更新" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "卸载" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "启用" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "禁用" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "禁用" })).toBeInTheDocument();
   });
 
   it("renders failed startup lifecycle state with built-in fallback rollback target", () => {

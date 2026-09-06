@@ -950,6 +950,13 @@
   line-height: 1.6;
 }
 
+.plugin-overview-provider-link {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .plugin-overview-publisher {
   min-width: 150px;
   display: grid;
@@ -970,7 +977,7 @@
 
 .plugin-overview-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
   border-block: 1px solid var(--border);
 }
 

@@ -2,17 +2,21 @@ package plugin
 
 import "testing"
 
-func TestSupportedPluginAPICompatibilityDescribesV1Contract(t *testing.T) {
+func TestSupportedPluginAPICompatibilityDescribesV2AndV1Contracts(t *testing.T) {
 	compatibility := SupportedPluginAPICompatibility()
-	if len(compatibility) != 1 {
-		t.Fatalf("compatibility entries = %d, want 1", len(compatibility))
+	if len(compatibility) != 2 {
+		t.Fatalf("compatibility entries = %d, want 2", len(compatibility))
 	}
-	v1 := compatibility[0]
+	v2 := compatibility[0]
+	if v2.PluginAPI != PluginAPIV2 || v2.ManifestSchemaVersion != PluginManifestSchemaV2 {
+		t.Fatalf("v2 compatibility = %+v", v2)
+	}
+	v1 := compatibility[1]
 	if v1.PluginAPI != PluginAPIV1 {
 		t.Fatalf("plugin API = %q, want %q", v1.PluginAPI, PluginAPIV1)
 	}
-	if v1.ManifestSchemaVersion != PluginManifestSchemaVersion {
-		t.Fatalf("manifest schema version = %d, want %d", v1.ManifestSchemaVersion, PluginManifestSchemaVersion)
+	if v1.ManifestSchemaVersion != PluginManifestSchemaV1 {
+		t.Fatalf("manifest schema version = %d, want %d", v1.ManifestSchemaVersion, PluginManifestSchemaV1)
 	}
 	if v1.MinCore != CurrentCoreVersion {
 		t.Fatalf("minimum core version = %q, want %q", v1.MinCore, CurrentCoreVersion)
@@ -92,7 +96,7 @@ id: tokenhub.unsupported-api
 name: Unsupported API
 version: 1.0.0
 tokenhub:
-  plugin_api: v2
+  plugin_api: v3
 kinds:
   - extension
 `,

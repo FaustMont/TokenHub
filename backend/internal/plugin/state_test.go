@@ -28,7 +28,7 @@ func TestNormalizePackageStateSupportsLifecycleContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("normalize pending restart state: %v", err)
 	}
-	if !pending.PendingRestart() || pending.Loadable() {
+	if !pending.PendingRestart() || !pending.Loadable() || pending.Status != StatusEnabled {
 		t.Fatalf("pending restart state = %+v", pending)
 	}
 
@@ -156,7 +156,7 @@ func TestRuntimeCompleteRuntimeRestartClearsAppliedRestartFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read pending package state: %v", err)
 	}
-	if !pending.RestartRequired || pending.Status != StatusPendingRestart {
-		t.Fatalf("pending package state = %+v, want unresolved pending restart", pending)
+	if pending.RestartRequired || pending.Status != StatusEnabled {
+		t.Fatalf("pending package state = %+v, want migrated enabled state", pending)
 	}
 }

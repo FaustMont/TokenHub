@@ -35,6 +35,8 @@ backend/tokenhub
 # Local runtime data
 data/*
 !data/
+!data/builtin-plugins/
+!data/builtin-plugins/**
 !data/model-catalog.yaml
 !data/provider-catalog.json
 backend/data/

@@ -36,7 +36,6 @@ func bootstrapServerPlugins(store Store, config Config, adapters map[string]any)
 	if err := registerBuiltinProviderCatalogFilePlugins(pluginRegistry, adapterRegistry, config.ProviderCatalogFile, pluginRuntime); err != nil {
 		return serverPluginBootstrap{}, fmt.Errorf("register provider catalog plugins: %w", err)
 	}
-	registerBuiltinGatewayChainPlugins(pluginRegistry, gatewayChain, gatewayHooks)
 	registerBuiltinAdminUIContributions(pluginRegistry, adminUI)
 	packages, err := pluginRuntime.LoadIntoWithActionsAndBackground(pluginRegistry, gatewayChain, adminUI, pluginActions, pluginBackgroundJobs, gatewayHooks)
 	if err != nil {

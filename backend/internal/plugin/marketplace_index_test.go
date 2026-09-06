@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -95,9 +96,9 @@ func TestValidateMarketplaceIndexRejectsAdversarialRecords(t *testing.T) {
 		{
 			name: "unsupported manifest schema",
 			mutate: func(index *MarketplaceChannelIndex) {
-				index.Plugins[0].Releases[0].Compatibility.ManifestSchemaVersion = 2
+				index.Plugins[0].Releases[0].Compatibility.ManifestSchemaVersion = 99
 			},
-			want: "unsupported manifest_schema_version 2",
+			want: "unsupported manifest_schema_version 99",
 		},
 		{
 			name: "invalid semver",
@@ -404,10 +405,12 @@ func validMarketplacePluginForTest(id string, origin MarketplaceOrigin, verifica
 func parseMarketplaceManifestForTest(t *testing.T, id string, release MarketplaceIndexRelease, artifact MarketplaceArtifact) Manifest {
 	t.Helper()
 	manifest, err := ParseManifest([]byte(`
-schema_version: 1
+schema_version: ` + fmt.Sprintf("%d", release.Compatibility.ManifestSchemaVersion) + `
 id: ` + id + `
 name: Marketplace Test Plugin
 version: 1.0.0
+summary: Marketplace test plugin.
+category: automation
 tokenhub:
   plugin_api: ` + release.Compatibility.PluginAPI + `
   min_core: ` + release.Compatibility.MinCore + `

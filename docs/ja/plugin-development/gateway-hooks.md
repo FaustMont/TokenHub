@@ -6,6 +6,8 @@ Gateway Hook は API Key 認証から最終 response までの指定 stage に�
 
 `privacy_pre`、`guardrail_pre`、`cache_lookup`、`route_candidates`、`route_rank`、`request_transform`、`provider_call`、`guardrail_post`、`usage_attribution`、`cache_write`、`settlement`、`trace_export` など、境界の狭い stage を 1 つ選びます。Hook が read/write する data class を正確に宣言します。TokenHub は stage contract 外の write を拒否し、model identity など Core-owned field を保護します。
 
+Plugin API v2 は同じ stage 内の Hook を明示的な `before` / `after` reference で順序付けし、数値 `priority` は受け付けません。2 つの v2 Hook が同じ data class に write する場合は順序を宣言する必要があり、cycle と曖昧な shared write は拒否されます。exclusive stage は v2 Hook を 1 つだけ受け付けます。
+
 security/admission には `fail_closed`、任意 cache には `fail_open`、Provider attempt には `skip_route`、settlement/trace には `observe_only` を意図的に選びます。handler は deterministic、timeout 制限付き、cancellation-aware とし、raw credential を log に残しません。
 
 `tokenhub-plugin-test hook` の後、TokenHub integration test で順序と失敗動作を検証します。完全な stage/envelope contract は[ガイド](guide.md) を参照してください。

@@ -1,10 +1,10 @@
 # TokenHub Plugin Devkit
 
-This directory contains executable development support for external TokenHub plugins. It is not the runtime plugin directory and it is not the hosted plugin marketplace.
+This directory contains executable development support for external TokenHub plugins. The examples use Plugin API v2 manifests; the Devkit also validates legacy Plugin API v1 manifests through the compatibility adapter. This is not the runtime plugin directory or the hosted plugin marketplace.
 
 ## Contents
 
-- `sdk/go/tokenhubplugin/`: Go helpers for the `stdio-json-v1` protocol.
+- `sdk/go/tokenhubplugin/`: Go helpers for the `stdio-json-v1` process transport used by both manifest API versions.
 - `cmd/tokenhub-plugin-test/`: local contract-test command.
 - `contract-tests/`: protocol fixtures and contract coverage.
 - `examples/`: reference packages for Providers, gateway hooks, background jobs, and transitional management actions.

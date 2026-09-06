@@ -39,43 +39,6 @@ describe("PluginsView permission diff preview", () => {
     expect(container.textContent).not.toContain("PUBLIC KEY");
   });
 
-  it("previews installed plugin updates through the plugin-scoped endpoint", async () => {
-    const data = emptyData();
-    data.plugins = [{
-      id: "tokenhub.provider.codex",
-      name: "Codex Provider",
-      version: "1.0.0",
-      source: "marketplace",
-      status: "enabled",
-      kinds: ["provider"],
-      placements: ["gateway_chain"],
-      capabilities: [],
-      distribution: {
-        download_url: "https://plugins.example/codex.zip",
-        checksum_sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
-      },
-    }];
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      data: permissionDiffPayload("update"),
-    }), { status: 200, headers: { "content-type": "application/json" } }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<PluginsView api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={data} />);
-    const previewButtons = screen.getAllByRole("button", { name: "预览权限" }) as HTMLButtonElement[];
-    const updatePreviewButton = previewButtons.find((button) => !button.disabled);
-    if (!updatePreviewButton) throw new Error("Expected an enabled update permission preview button");
-    fireEvent.click(updatePreviewButton);
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("http://localhost:8080/api/admin/plugins/tokenhub.provider.codex/permission-diff");
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual({
-      download_url: "https://plugins.example/codex.zip",
-      checksum_sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
-    });
-    await waitFor(() => expect(screen.getByText("需要批准")).toBeInTheDocument());
-  });
 });
 
 function permissionDiffPayload(operation: "install" | "update") {

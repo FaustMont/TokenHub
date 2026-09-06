@@ -67,7 +67,7 @@ func registerBuiltinAdminUIContributions(registry *pluginmeta.Registry, adminUI 
 	mustRegisterPlugin(registry, builtinAdminUIDescriptor(pluginmeta.Descriptor{
 		ID:         "tokenhub.admin.plugin-ecosystem",
 		Name:       "TokenHub Plugin Ecosystem Dashboard",
-		Version:    "built-in",
+		Version:    pluginmeta.BuiltInVersion,
 		Source:     pluginmeta.SourceBuiltIn,
 		Kinds:      []pluginmeta.Kind{pluginmeta.KindAdminUI},
 		Placements: []pluginmeta.Placement{pluginmeta.PlacementPresentation},
@@ -115,7 +115,7 @@ func registerBuiltinAdminUIContributions(registry *pluginmeta.Registry, adminUI 
 	mustRegisterPlugin(registry, builtinAdminUIDescriptor(pluginmeta.Descriptor{
 		ID:         "tokenhub.admin.core-provider",
 		Name:       "TokenHub Core Provider Settings",
-		Version:    "built-in",
+		Version:    pluginmeta.BuiltInVersion,
 		Source:     pluginmeta.SourceBuiltIn,
 		Kinds:      []pluginmeta.Kind{pluginmeta.KindAdminUI},
 		Placements: []pluginmeta.Placement{pluginmeta.PlacementPresentation},
@@ -194,7 +194,7 @@ func registerBuiltinAdminUIContributions(registry *pluginmeta.Registry, adminUI 
 	mustRegisterPlugin(registry, builtinAdminUIDescriptor(pluginmeta.Descriptor{
 		ID:         "tokenhub.provider.openai-codex",
 		Name:       "OpenAI Codex Subscription",
-		Version:    "built-in",
+		Version:    pluginmeta.BuiltInVersion,
 		Source:     pluginmeta.SourceBuiltIn,
 		Kinds:      []pluginmeta.Kind{pluginmeta.KindAdminUI},
 		Placements: []pluginmeta.Placement{pluginmeta.PlacementPresentation},

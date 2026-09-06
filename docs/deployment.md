@@ -376,7 +376,7 @@ Options: `--rebuild`, `--reset` to drop the local database, `--backend-port N`, 
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | Backup output directory |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | Standard model catalog file in managed deployments |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | Provider templates and candidate-model catalog file in managed deployments |
-| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | Persistent plugin package directory scanned at startup; installed marketplace packages become active after a backend restart |
+| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | Persistent plugin package directory scanned at startup and reloaded after plugin lifecycle operations; multi-instance deployments must coordinate the same package version across replicas |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | empty | HTTPS plugin-marketplace index URL used by the admin console to browse installable plugins |
 | `TOKENHUB_SEED_DEMO` | `false` | Whether to seed demo data |
 | `TOKENHUB_RESOURCE_FAILURE_THRESHOLD` | `3` | Provider resource failure threshold before cooldown |

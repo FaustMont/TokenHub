@@ -6,10 +6,14 @@ Language: [English](../../plugin-development/manifest-reference.md) | [简体中
 
 | フィールド | 目的 |
 | --- | --- |
-| `schema_version` | Manifest Schema version。Plugin API v1 では `1` |
+| `schema_version` | Manifest Schema version。Plugin API v2 は `2`、v1 adapter は `1` を受け付ける |
 | `id` | 安定したグローバル一意 plugin ID |
 | `version` | plugin package version |
-| `tokenhub.plugin_api` | runtime contract major。現在は `v1` |
+| `summary` | v2 で必須の、利用者向け価値説明 |
+| `category` | `provider_integration`、`request_pipeline`、`ui_template`、`automation` の主分類 1 つ |
+| `tokenhub.plugin_api` | Manifest/runtime contract major。現在は `v2`、adapter 経由で `v1` もサポート |
+| `dependencies` | 任意の plugin ID と version 制約 |
+| `settings.scopes` | 実在する編集可能設定を宣言する。設定がなければ省略する |
 | `kinds` | `provider`、`extension`、`admin_ui`、`sim` |
 | `placement` | `gateway_chain`、`background`、`presentation`、過渡的 `management_action` |
 | `entry` | backend command/protocol または frontend Schema path |
@@ -19,6 +23,6 @@ Language: [English](../../plugin-development/manifest-reference.md) | [简体中
 
 capability ID と plugin ID は互換性契約です。既存の Provider、route、resource、configuration reference を移行で保持しない限り、update で名前を変更しないでください。
 
-backend command は package-relative path と `stdio-json-v1` を使います。package 外への path、symlink、曖昧な Manifest、非互換の宣言は拒否されます。
+backend command は supervised isolated process として実行され、package-relative path と `stdio-json-v1` transport を使います。transport 名は Plugin API v2 とは独立しています。package 外への path、symlink、曖昧な Manifest、非互換の宣言は拒否されます。
 
 Schema、stage policy、互換性の詳細は[完全なガイド](guide.md) を参照してください。

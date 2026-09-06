@@ -1,10 +1,13 @@
-schema_version: 1
+schema_version: 2
 id: tokenhub.background.heartbeat-go
 name: Heartbeat Go Background Job
 version: 1.0.0
-description: Reference background job plugin for the TokenHub stdio-json-v1 contract kit.
+summary: Run a supervised heartbeat job in the background.
+description: Reference background job plugin using the TokenHub stdio-json-v1 transport.
+category: automation
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - extension
 placement:

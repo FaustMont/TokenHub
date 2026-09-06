@@ -122,6 +122,29 @@ func TestRunProviderRejectsMissingGatewayCapability(t *testing.T) {
 	}
 }
 
+func TestValidateManifestAPIAcceptsCurrentAndLegacyPairs(t *testing.T) {
+	current := manifest{SchemaVersion: 2, Summary: "Current plugin", Category: "automation"}
+	current.TokenHub.PluginAPI = "v2"
+	legacy := manifest{SchemaVersion: 1}
+	legacy.TokenHub.PluginAPI = "v1"
+
+	if err := validateManifestAPI(current); err != nil {
+		t.Fatalf("validate current manifest: %v", err)
+	}
+	if err := validateManifestAPI(legacy); err != nil {
+		t.Fatalf("validate legacy manifest: %v", err)
+	}
+}
+
+func TestValidateManifestAPIRejectsMismatchedVersions(t *testing.T) {
+	value := manifest{SchemaVersion: 2, Summary: "Mismatched plugin", Category: "automation"}
+	value.TokenHub.PluginAPI = "v1"
+
+	if err := validateManifestAPI(value); err == nil || !strings.Contains(err.Error(), "unsupported manifest schema/plugin API pair") {
+		t.Fatalf("error = %v, want schema/API mismatch", err)
+	}
+}
+
 func moduleRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

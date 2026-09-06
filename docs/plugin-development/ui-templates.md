@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](../zh-CN/plugin-development/ui-templates.md) | [日本語](../ja/plugin-development/ui-templates.md)
 
-UI template plugins are declarative presentation packages. Plugin API v1 supports `theme_tokens`, `shell_layouts`, `page_templates`, and `dashboard_compositions`. Admin UI contributions add schema-driven panels, tabs, cards, fields, and actions to approved slots.
+UI template plugins are declarative presentation packages. Plugin API v2 supports `theme_tokens`, `shell_layouts`, `page_templates`, and `dashboard_compositions`. Admin UI contributions add schema-driven panels, tabs, cards, fields, and actions to approved slots.
 
 The settings page appears only when a template declares editable theme tokens. It presents those values with human-readable labels, short descriptions, grouped setting rows, theme-variant tabs, and a restore-default action. Layout declarations and raw schemas remain implementation details rather than settings.
 

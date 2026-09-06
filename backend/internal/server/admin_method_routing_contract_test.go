@@ -183,7 +183,7 @@ func TestAdminMethodRoutePluginChainReachesHandler(t *testing.T) {
 	}
 	body := response.Body.String()
 	if !strings.Contains(body, `"data"`) || !strings.Contains(body, `"decode_normalize"`) {
-		t.Fatalf("GET /api/admin/plugin-chain: response does not include core chain hooks: %s", body)
+		t.Fatalf("GET /api/admin/plugin-chain: response does not include host stage contracts: %s", body)
 	}
 	var payload struct {
 		Data pluginmeta.GatewayChainPlan `json:"data"`
@@ -194,16 +194,13 @@ func TestAdminMethodRoutePluginChainReachesHandler(t *testing.T) {
 	if !slices.Equal(payload.Data.Stages, pluginmeta.OrderedGatewayStages()) {
 		t.Fatalf("plugin chain stages = %v, want canonical stages", payload.Data.Stages)
 	}
-	positions := map[pluginmeta.GatewayHookStage]int{}
-	for index, hook := range payload.Data.Hooks {
-		if hook.PluginID == tokenHubCoreGatewayChainPluginID {
-			positions[hook.Stage] = index
-		}
+	if len(payload.Data.Hooks) != 0 {
+		t.Fatalf("plugin chain exposes host internals as plugin hooks: %+v", payload.Data.Hooks)
 	}
-	if !(positions[pluginmeta.StageUsageAttribution] < positions[pluginmeta.StageCacheWrite] &&
-		positions[pluginmeta.StageCacheWrite] < positions[pluginmeta.StageSettlement] &&
-		positions[pluginmeta.StageSettlement] < positions[pluginmeta.StageTraceExport]) {
-		t.Fatalf("plugin chain hook positions = %v, want usage -> cache_write -> settlement -> trace_export", positions)
+	for _, envelope := range payload.Data.Envelopes {
+		if envelope.ExecutionMode == "" {
+			t.Fatalf("stage %q has no execution mode", envelope.Stage)
+		}
 	}
 }
 

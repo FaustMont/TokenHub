@@ -376,7 +376,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml down -v
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | バックアップ出力ディレクトリ |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | 管理対象デプロイの標準モデルカタログファイル |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 管理対象デプロイの Provider テンプレートと候補モデルのカタログファイル |
-| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 起動時にスキャンされる永続的なプラグインパッケージディレクトリ。市場からインストールしたパッケージはバックエンド再起動後に有効になります |
+| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 起動時にスキャンされ、プラグインのライフサイクル操作後にホットリロードされる永続的なパッケージディレクトリ。複数インスタンス構成では全レプリカで同じプラグインバージョンを調整する必要があります |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | 管理画面がインストール可能なプラグインを閲覧するための HTTPS プラグイン市場インデックス URL |
 | `TOKENHUB_SEED_DEMO` | `false` | デモデータを投入するか |
 | `TOKENHUB_RESOURCE_FAILURE_THRESHOLD` | `3` | Provider リソースをクールダウンするまでの失敗しきい値 |

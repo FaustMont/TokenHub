@@ -4,7 +4,9 @@ Language: English | [简体中文](../zh-CN/plugin-development/provider-plugins.
 
 A Provider plugin connects TokenHub to an upstream model service or subscription account. Start from [`examples/provider-mock-go`](../../plugin-devkit/examples/provider-mock-go) for the smallest contract, then inspect the Kimi and GLM examples for larger operation sets.
 
-TokenHub represents every entry in the configured `provider-catalog.json` as a built-in Provider plugin. Catalog plugins own the vendor identity, setup metadata, detail page, and lifecycle state, while protocol plugins own executable adapters such as `OpenAI-Compatible`. Multiple catalog plugins can therefore share one protocol adapter without duplicating runtime code. Disabling a catalog plugin removes that vendor from Provider setup; enabling it restores the vendor immediately.
+TokenHub represents all 158 entries in the configured `provider-catalog.json` as built-in Provider plugin packages. Each package has an inspectable manifest, README, license, and catalog metadata. Catalog plugins own vendor identity, setup metadata, detail pages, and lifecycle state, while host adapters own executable protocols such as `OpenAI-Compatible`. Multiple catalog plugins can share one adapter without duplicating runtime code. Disabling a catalog plugin removes that vendor from Provider setup; enabling it restores the vendor immediately.
+
+Provider credentials and connections belong on Provider Management pages, not on a synthetic plugin Settings page. A Provider plugin detail page links to Provider Management. Model categories remain catalog metadata and are not separate plugins.
 
 Declare the provider type, resource types, supported operations, protocol policies, model discovery, credential scope, and any required Admin UI contribution. `ServeProvider` receives projected Provider, resource, model, request, and credential data through `stdio-json-v1`; it does not receive Core storage access.
 

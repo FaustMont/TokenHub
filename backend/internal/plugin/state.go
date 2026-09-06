@@ -98,6 +98,9 @@ func NormalizePackageState(state PackageState) (PackageState, error) {
 		return PackageState{}, fmt.Errorf("unsupported plugin package rollback target %q", state.RollbackTarget)
 	}
 	if state.Status == StatusPendingRestart {
+		// pending_restart was a v1 aggregate state. Preserve its activation
+		// signal while migrating the desired lifecycle back to enabled.
+		state.Status = StatusEnabled
 		state.RestartRequired = true
 	}
 	if state.Status == StatusMandatory {
@@ -181,7 +184,7 @@ func (r Runtime) CompleteRuntimeRestart() error {
 		if err != nil {
 			return fmt.Errorf("read %s: %w", filepath.Join(dir, packageStateFileName), err)
 		}
-		if !state.RestartRequired || state.Status == StatusPendingRestart {
+		if !state.RestartRequired {
 			continue
 		}
 		state.RestartRequired = false

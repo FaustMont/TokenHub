@@ -6,7 +6,7 @@ Language: [English](../../plugin-development/guide.md) | [简体中文](../../zh
 
 このガイドは、まず最小のプラグインを動かし、その後で完全な契約を説明する順序で構成しています。WordPress がメインファイルのヘッダーからプラグインを検出するのと同様に、TokenHub はパッケージルートの `plugin.yaml` からプラグインを検出、検証、読み込みます。TokenHub ではさらに、配置先、capability、最小権限を明示的に宣言する必要があります。
 
-> **現在の実装範囲:** このガイドは、このリポジトリで実装済みの Plugin API v1 だけを説明します。UI テンプレートは宣言的なテーマとレイアウトの capability であり、任意の React / JavaScript 拡張機構ではありません。インストール済みプラグインには詳細とファイル一覧のルートがあります。編集可能な theme token を宣言したプラグインにだけ設定ルートがあります。ソースファイルは引き続き読み取り専用プレビューで、管理画面からプラグインコードを編集することはできません。
+> **現在の実装範囲:** Plugin API v2 が現在の Manifest contract であり、既存 package は v1 adapter 経由で引き続き動作します。UI template は宣言的な theme/layout capability で、任意の React / JavaScript 拡張機構ではありません。すべての built-in plugin に検査可能な package file があります。Manifest が実在する編集可能設定を宣言した場合だけ Settings route を表示し、source file は read-only preview のままで管理画面から編集できません。
 
 TokenHub は core を小さく保ちます。
 
@@ -17,7 +17,7 @@ TokenHub は core を小さく保ちます。
 
 ## インストール済みプラグインの管理
 
-TokenHub は Office Add-ins を企業ガバナンスの参考にし、Obsidian をプラグイン管理操作の参考にしながら、管理タスクとプラグイン種類を分離します。プラグイン管理の第 1 階層は 3 つです。**インストール済みプラグイン**では検索、状態フィルター、バージョン、更新、ライフサイクル操作を扱い、**プラグインをインストール**ではマーケットプレイス、URL インストール、ZIP アップロード、checksum、権限差分プレビューを扱います。**拡張タイプ**では Provider、チェーン注入、UI テンプレート、バックグラウンドジョブを第 2 階層のナビゲーションにまとめます。
+TokenHub は Office Add-ins を企業ガバナンスの参考にし、Obsidian を plugin management interaction の参考にします。Plugin Management の第 1 階層は 2 つです。**インストール済みプラグイン**は検索、status filter、version、update、lifecycle action を扱い、**プラグインを探す**は利用可能な plugin と Marketplace、URL install、ZIP upload、checksum、permission diff preview を扱います。Installed view の統一リスト左側に Provider Integration、Request Pipeline、UI Template、Automation の 4 category filter を直接配置し、独立した Extension Types table は置きません。
 
 インストール済み一覧では、プラグイン名と **詳細** が概要を開きます。**設定** は編集可能な項目があるプラグインだけに表示され、設定ページを直接開きます。UI テンプレート一覧では、編集可能な theme token があるテンプレートは設定を、それ以外は詳細を開きます。デフォルトの変更は別の操作なので、設定を開くだけで現在の UI が意図せず切り替わることはありません。この階層は WordPress の[インストール、更新、管理パターン](https://www.waimaob2c.com/wordpress-plugins)を参考にしていますが、企業ゲートウェイに適さないオンラインコード編集や自動更新はコピーしません。
 
@@ -37,7 +37,7 @@ TokenHub は Office Add-ins を企業ガバナンスの参考にし、Obsidian �
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={package-relative-path}`
 
-組み込みプラグインには実装メタデータがありますが、独立パッケージのファイル一覧はありません。外部パッケージでは、ファイル数、合計サイズ、種類、および安全条件を満たすソース、設定、Schema を表示できます。概念上の参考は WordPress の[プラグイン管理ドキュメント](https://wordpress.org/documentation/article/manage-plugins/)ですが、TokenHub は独自の manifest、権限、セキュリティモデルを維持します。
+built-in と external plugin はどちらも、file count、total size、kind、および安全条件を満たす Manifest、README、license、source、configuration、Schema を含む検査可能な package inventory を表示します。概念上の参考は WordPress の[プラグイン管理ドキュメント](https://wordpress.org/documentation/article/manage-plugins/)ですが、TokenHub は独自の Manifest、permission、security model を維持します。
 
 ## 1. プラグイン家族
 
@@ -45,10 +45,10 @@ TokenHub はプラグインをいくつかの明確な家族に分けます。
 
 | 家族 | 担当するもの | 例 |
 | --- | --- | --- |
-| UI テンプレート | シェル全体の見た目、レイアウト、テンプレートパッケージ | shell theme、page template、dashboard composition |
-| Provider | 上流モデル接続、認証、探索、quota | Codex、Kimi、Gemini、Anthropic、OpenAI-compatible Provider |
-| チェーン注入 | ユーザー要求から upstream 応答までの経路 | privacy control、routing、cache、context optimization、trace export |
-| バックグラウンドジョブ | 定期実行または運用者トリガーの作業 | quota refresh、sync、cleanup、reporting |
+| Provider Integration | 上流モデル接続、認証、探索、quota | Codex、Kimi、Gemini、Anthropic、OpenAI-compatible Provider |
+| Request Pipeline | ユーザー要求から upstream 応答までの経路 | privacy control、routing、cache、context optimization、trace export |
+| UI Template | シェル全体の見た目、layout、template package | shell theme、page template、dashboard composition |
+| Automation | 定期実行または operator-triggered work | quota refresh、sync、cleanup、reporting |
 
 Admin UI 貢献は top-level family ではなく、能力面です。通常は Provider、チェーン注入、バックグラウンドジョブのどれかに付属します。
 
@@ -66,13 +66,16 @@ Admin UI 貢献は top-level family ではなく、能力面です。通常は P
 各 plugin package は `plugin.yaml` で記述します。
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-description: Reference Go provider plugin for the TokenHub stdio-json-v1 contract kit.
+summary: Connect TokenHub to a Kimi subscription account.
+description: Reference Go Provider plugin using the stdio-json-v1 transport.
+category: provider_integration
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - provider
 placement:
@@ -261,13 +264,16 @@ go run ./cmd/tokenhub-plugin-test background \
 サンプルの manifest は、プラグインの識別情報と TokenHub から呼び出せる契約を一緒に定義します。
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.background.heartbeat-go
 name: Heartbeat Go Background Job
 version: 1.0.0
+summary: Run a supervised heartbeat job in the background.
 description: Reference background job plugin.
+category: automation
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - extension
 placement:
@@ -416,13 +422,16 @@ subscription 型 Provider では、quota refresh と account sync を background
 UI テンプレート plugin は、視覚的アイデンティティと限定的な宣言レイアウトを提供します。実行ファイルは不要で、最小パッケージは `plugin.yaml` だけで構成できます。
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
 description: A compact operations template for TokenHub.
+summary: Apply a compact operations layout to TokenHub.
+category: ui_template
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - sim
 placement:
@@ -460,7 +469,7 @@ capabilities:
             order: 100
 ```
 
-Plugin API v1 は現在、4 種類の UI テンプレート capability をサポートします。
+Plugin API v2 は現在、4 種類の UI template capability をサポートします。
 
 | Capability | 現在宣言できる内容 |
 | --- | --- |
@@ -562,7 +571,7 @@ distribution metadata には少なくとも次を含めます。
 - license
 - compatibility metadata
 
-plugin marketplace の URL は既定で `https://plugins.betokenhub.com` です。運用者は marketplace あるいは直接の ZIP URL から package を導入し、checksum を確認し、backend を再起動して有効化します。
+plugin marketplace の URL は既定で `https://plugins.betokenhub.com` です。運用者は Marketplace または直接の ZIP URL から package を導入して checksum を確認し、TokenHub は plugin runtime を直ちに再読み込みします。
 
 ZIP では `plugin.yaml` をアーカイブルート、または 1 階層だけの plugin directory に置けます。検出される manifest は必ず 1 つだけにしてください。symlink は含めないでください。runtime entrypoint の実行権限を保持し、`entry.backend.command` は plugin directory からの相対パスにします。
 
@@ -578,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-Admin console の **Plugin Extensions** を開いて ZIP をアップロードするか、HTTPS `download_url` と小文字の SHA-256 checksum を指定します。新規インストール直後の状態は `pending_restart` です。TokenHub backend を再起動した後、plugin status、capability inventory、background job または page contribution が表示されることを確認します。
+Admin console の **Plugin Management > Browse Plugins > Manual Install** で ZIP を upload するか、HTTPS `download_url` と小文字の SHA-256 checksum を指定します。install 成功後、TokenHub は runtime を再読み込みします。Installed、Enabled、Configured、In Use、Restart Required は独立した lifecycle fact です。desired state と active runtime がずれた場合だけ restart marker を表示し、service が desired state を正常に読み込むと marker を消去します。
 
 ## 7. バージョンと互換性
 
@@ -617,7 +626,7 @@ versioning は 3 つに分けて考えます。
 4. package-level tests
 5. TokenHub integration tests
 6. marketplace / compatibility checks
-7. install と restart の検証
+7. install、runtime reload、lifecycle の検証
 
 家族ごとの重点:
 
@@ -627,17 +636,16 @@ versioning は 3 つに分けて考えます。
 - バックグラウンドジョブ plugin: schedule、retry ルール、concurrency、result sanitization
 - Admin UI 貢献: schema parsing、action binding、payload redaction、任意の admin API を呼ばないこと
 
-## 9. 現在の built-in からの移行
+## 9. Built-In Compatibility と残りの移行
 
-実際の移行順序は次のとおりです。
+現在の package boundary は、全 Provider catalog entry を含む built-in module を検査可能な plugin package に割り当て済みです。残りの移行順序は次のとおりです。
 
-1. 現在の built-in descriptor と registry を plugin 視点にそろえる
-2. provider adapter、quota、OAuth、model discovery を provider plugin の下へ移す
-3. gateway の拡張を明示的な chain hook に分解する
-4. 定期処理を background plugin にする
-5. admin page、panel、button を declarative contribution にする
-6. 旧 action 面は、request path を切り出すまでの互換 bridge としてだけ残す
-7. marketplace を広げて外部作者を受け入れる
+1. provider adapter、quota、OAuth、model discovery を focused Provider Integration の下に保つ
+2. gateway enhancement を明示的な Request Pipeline hook に分けて保つ
+3. recurring work を Automation plugin に保つ
+4. admin page、panel、button を declarative に保つ
+5. v1 action surface は compatibility bridge としてだけ残す
+6. marketplace を拡張して external author を受け入れる
 
 このやり方なら、各段階を独立に出せて、contract tests でも検証できます。
 
@@ -670,7 +678,7 @@ versioning は 3 つに分けて考えます。
 
 ## 11. 移行チェックリスト
 
-- [ ] 現在の built-in module を Provider、チェーン注入、UI テンプレート、バックグラウンドジョブ package に割り当てる
+- [x] built-in module を Provider Integration、Request Pipeline、UI Template、Automation package に割り当てる
 - [ ] provider 固有の model discovery と quota ロジックを provider plugin に切り出す
 - [ ] request-path ロジックを明示的な chain hook に移す
 - [ ] Admin UI 貢献を declarative かつ permission-scoped に保つ

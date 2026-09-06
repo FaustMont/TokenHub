@@ -2,7 +2,7 @@
 
 Language: [English](../../plugin-development/getting-started.md) | 简体中文 | [日本語](../../ja/plugin-development/getting-started.md)
 
-使用 [`plugin-devkit`](../../../plugin-devkit/README.md) 学习并验证 Plugin API v1。其中的 `examples/` 是契约 fixture，不是生产集成。
+使用 [`plugin-devkit`](../../../plugin-devkit/README.md) 学习并验证 Plugin API v2。Devkit 仍可识别 v1 manifest 以保持兼容；其中的 `examples/` 是契约 fixture，不是生产集成。
 
 ## 1. 验证 Devkit
 
@@ -46,6 +46,6 @@ go run ./cmd/tokenhub-plugin-test action --package /path/to/your-plugin
 
 ## 4. 打包并安装
 
-构建可执行文件，创建只包含一个 `plugin.yaml` 的 ZIP，计算 SHA-256，再从 TokenHub 的“安装插件”页面安装。TokenHub 会把包写入 `TOKENHUB_PLUGIN_DIR`；仅仅放在 `plugin-devkit/examples/` 下不会被运行时加载。
+构建可执行文件，创建只包含一个 `plugin.yaml` 的 ZIP，计算 SHA-256，再从“插件管理 > 浏览插件 > 手动安装”进行安装。操作成功后，TokenHub 会把包写入 `TOKENHUB_PLUGIN_DIR` 并重新加载插件运行时；仅仅放在 `plugin-devkit/examples/` 下不会被加载。
 
 继续阅读 [Manifest 参考](manifest-reference.md) 和[打包与发布](packaging-and-release.md)。

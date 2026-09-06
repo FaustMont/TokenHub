@@ -69,6 +69,7 @@ COPY --chown=node:node deploy/native/tokenhub-run /usr/local/lib/tokenhub-image/
 COPY --chown=node:node deploy/native/tokenhub.service /usr/local/lib/tokenhub-image/deploy/tokenhub.service
 COPY --chown=node:node data/model-catalog.yaml /usr/local/lib/tokenhub-image/catalog/model-catalog.yaml
 COPY --chown=node:node data/provider-catalog.json /usr/local/lib/tokenhub-image/catalog/provider-catalog.json
+COPY --chown=node:node data/builtin-plugins /usr/local/lib/tokenhub-image/catalog/builtin-plugins
 COPY deploy/container/tokenhub-build-id /usr/local/bin/tokenhub-build-id
 COPY deploy/container/tokenhub-entrypoint /usr/local/bin/tokenhub-entrypoint
 

@@ -235,7 +235,7 @@ func ValidateMarketplaceReleaseManifest(pluginID string, release MarketplaceInde
 }
 
 func validateMarketplaceReleaseCompatibility(compat MarketplaceReleaseCompatibility) error {
-	if compat.ManifestSchemaVersion != PluginManifestSchemaVersion {
+	if !supportedManifestSchemaPair(compat.ManifestSchemaVersion, compat.PluginAPI) {
 		return pluginContractErrorf(PluginErrorManifestSchemaUnsupported, "unsupported manifest_schema_version %d", compat.ManifestSchemaVersion)
 	}
 	if err := ValidateManifestCompatibility(ManifestCompatibility{
