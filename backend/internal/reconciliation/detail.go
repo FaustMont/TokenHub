@@ -61,9 +61,6 @@ func calculateDetail(
 			continue
 		}
 		localCost := record.ProviderCostUSD
-		if localCost == 0 {
-			localCost = record.CostUSD
-		}
 		amount, err := moneyFromFloat(localCost)
 		if err != nil {
 			return run, nil, fmt.Errorf("usage record %s: %w", record.ID, err)
