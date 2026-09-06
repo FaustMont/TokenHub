@@ -3,15 +3,11 @@ package server
 import (
 	"net/http"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
 
-func TestExternalPrivacyHookFixtureMasksRequestBodyBeforeCompletion(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("external privacy hook fixture uses POSIX sh")
-	}
+func TestExternalPrivacyHookWithoutIsolationFailsBeforeExecution(t *testing.T) {
 	store := NewMemoryStore()
 	project := store.CreateProject(Project{Name: "External Privacy Hook", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -36,28 +32,14 @@ func TestExternalPrivacyHookFixtureMasksRequestBodyBeforeCompletion(t *testing.T
 			{"role": "user", "content": "raw prompt sentinel"},
 		},
 	}, secret)
-	if response.Code != http.StatusOK {
-		t.Fatalf("privacy response = %d %s, want 200", response.Code, response.Body)
+	if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body, "gateway_hook_failed") {
+		t.Fatalf("privacy response = %d %s, want 500 gateway_hook_failed", response.Code, response.Body)
 	}
-	if strings.Contains(response.Body, "raw prompt sentinel") {
-		t.Fatalf("privacy response leaked raw prompt: %s", response.Body)
-	}
-	if !strings.Contains(response.Body, "[masked-by-privacy]") {
-		t.Fatalf("privacy response = %s, want masked output", response.Body)
-	}
-	var traceAudit string
 	for _, event := range store.ListAuditEvents() {
-		if event.Action == "plugin.gateway.privacy_pre" {
-			traceAudit = event.AfterSnapshot
-			break
-		}
-	}
-	if traceAudit == "" {
-		t.Fatalf("external privacy hook audit event was not recorded: %+v", store.ListAuditEvents())
-	}
-	for _, forbidden := range []string{"raw prompt sentinel", "provider-secret"} {
-		if strings.Contains(traceAudit, forbidden) {
-			t.Fatalf("privacy audit leaked %q: %s", forbidden, traceAudit)
+		for _, forbidden := range []string{"raw prompt sentinel", "provider-secret"} {
+			if strings.Contains(event.AfterSnapshot, forbidden) {
+				t.Fatalf("privacy failure audit leaked %q: %s", forbidden, event.AfterSnapshot)
+			}
 		}
 	}
 }

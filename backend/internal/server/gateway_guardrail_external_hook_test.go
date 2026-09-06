@@ -3,15 +3,11 @@ package server
 import (
 	"net/http"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
 
-func TestExternalGuardrailHookFixtureDeniesUnsafeCompletionOutput(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("external guardrail hook fixture uses POSIX sh")
-	}
+func TestExternalGuardrailHookWithoutIsolationFailsBeforeExecution(t *testing.T) {
 	store := NewMemoryStore()
 	project := store.CreateProject(Project{Name: "External Guardrail Hook", Status: StatusActive})
 	_, secret, err := store.CreateAPIKey(project.ID, APIKey{
@@ -36,22 +32,14 @@ func TestExternalGuardrailHookFixtureDeniesUnsafeCompletionOutput(t *testing.T) 
 			{"role": "user", "content": "unsafe prompt sentinel"},
 		},
 	}, secret)
-	if response.Code != http.StatusForbidden || !strings.Contains(response.Body, "gateway_hook_denied") {
-		t.Fatalf("guardrail response = %d %s, want 403 gateway_hook_denied", response.Code, response.Body)
+	if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body, "gateway_hook_failed") {
+		t.Fatalf("guardrail response = %d %s, want 500 gateway_hook_failed", response.Code, response.Body)
 	}
-	var guardrailAudit string
 	for _, event := range store.ListAuditEvents() {
-		if event.Action == "plugin.gateway.guardrail_post" {
-			guardrailAudit = event.AfterSnapshot
-			break
-		}
-	}
-	if guardrailAudit == "" {
-		t.Fatalf("external guardrail hook audit event was not recorded: %+v", store.ListAuditEvents())
-	}
-	for _, forbidden := range []string{"unsafe prompt sentinel", "provider-secret"} {
-		if strings.Contains(guardrailAudit, forbidden) {
-			t.Fatalf("guardrail audit leaked %q: %s", forbidden, guardrailAudit)
+		for _, forbidden := range []string{"unsafe prompt sentinel", "provider-secret"} {
+			if strings.Contains(event.AfterSnapshot, forbidden) {
+				t.Fatalf("guardrail failure audit leaked %q: %s", forbidden, event.AfterSnapshot)
+			}
 		}
 	}
 }

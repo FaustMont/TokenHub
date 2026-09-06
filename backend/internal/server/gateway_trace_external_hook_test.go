@@ -3,15 +3,11 @@ package server
 import (
 	"net/http"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
 
-func TestExternalTraceHookFixtureRunsFromGatewayCompletion(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("external trace hook fixture uses POSIX sh")
-	}
+func TestExternalTraceHookWithoutIsolationIsSkippedByObserveOnlyPolicy(t *testing.T) {
 	store := NewMemoryStore()
 	app := NewWithConfig(store, Config{
 		AdminToken: "external-trace-admin",
@@ -46,41 +42,14 @@ func TestExternalTraceHookFixtureRunsFromGatewayCompletion(t *testing.T) {
 		t.Fatalf("trace hook affected settlement logs: %+v", logs)
 	}
 
-	var traceAudit string
 	for _, event := range store.ListAuditEvents() {
 		if event.Action == "plugin.gateway.trace_export" && event.ResourceID == "req_external_trace_hook" {
-			traceAudit = event.AfterSnapshot
-			break
-		}
-	}
-	if traceAudit == "" {
-		t.Fatalf("external trace hook audit event was not recorded: %+v", store.ListAuditEvents())
-	}
-	for _, want := range []string{
-		`"event":"external_trace_hook"`,
-		`"saw_audit":true`,
-		`"saw_usage":true`,
-		`"leaked_request_body":false`,
-		`"leaked_credentials":false`,
-		`"leaked_prompt":false`,
-		`"decision":"continue"`,
-		`"status":"succeeded"`,
-	} {
-		if !strings.Contains(traceAudit, want) {
-			t.Fatalf("trace audit missing %q: %s", want, traceAudit)
-		}
-	}
-	for _, forbidden := range []string{"raw prompt sentinel", "provider-secret"} {
-		if strings.Contains(traceAudit, forbidden) {
-			t.Fatalf("trace audit leaked %q: %s", forbidden, traceAudit)
+			t.Fatalf("external trace hook executed without isolation: %s", event.AfterSnapshot)
 		}
 	}
 }
 
 func TestExternalTraceHookFixtureFailureDoesNotAffectGatewayCompletion(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("external trace hook fixture uses POSIX sh")
-	}
 	store := NewMemoryStore()
 	app := NewWithConfig(store, Config{
 		AdminToken: "external-trace-admin",

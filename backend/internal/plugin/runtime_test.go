@@ -642,7 +642,7 @@ printf '{"data":{"refreshed":true}}'
 	}
 }
 
-func TestRuntimeLoadIntoWithActionsBindsGatewayHookCommand(t *testing.T) {
+func TestRuntimeLoadedGatewayHookCommandFailsClosedWithoutIsolation(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "hook")
 	writeManifest(t, pluginDir, `
@@ -662,16 +662,16 @@ entry:
     command: hook.sh
 capabilities:
   hooks:
-    - id: trace
-      stage: trace_export
+    - id: guardrail
+      stage: guardrail_post
       priority: 2300
-      failure_policy: observe_only
+      failure_policy: fail_closed
       reads:
-        - audit
+        - provider_response
 permissions:
  data:
     read:
-      - audit
+      - provider_response
 `)
 	if err := os.WriteFile(filepath.Join(pluginDir, "hook.sh"), []byte(`#!/bin/sh
 cat >/dev/null
@@ -685,17 +685,20 @@ printf '{"decision":"continue"}'
 	if _, err := NewRuntime(root).LoadIntoWithActions(NewRegistry(), chain, nil, nil, runner); err != nil {
 		t.Fatalf("load runtime: %v", err)
 	}
-	report, err := runner.RunStage(t.Context(), StageTraceExport, GatewayHookInput{
+	report, err := runner.RunStage(t.Context(), StageGuardrailPost, GatewayHookInput{
 		RequestID: "req_1",
-		Stage:     StageTraceExport,
+		Stage:     StageGuardrailPost,
 		Data: GatewayHookData{
-			DataAudit: json.RawMessage(`{"request_id":"req_1"}`),
+			DataProviderResponse: json.RawMessage(`{"id":"resp_1"}`),
 		},
 	})
-	if err != nil {
-		t.Fatalf("run trace export: %v", err)
+	if err == nil {
+		t.Fatal("runtime-loaded gateway hook ran without enforced isolation")
 	}
-	if len(report.Results) != 1 || report.Results[0].Status != HookRunSucceeded {
+	if code, ok := PluginErrorCodeOf(err); !ok || code != PluginErrorPermissionUnsupported {
+		t.Fatalf("error code = %q, %t; want %q for error %v", code, ok, PluginErrorPermissionUnsupported, err)
+	}
+	if len(report.Results) != 1 || report.Results[0].Status != HookRunFailed {
 		t.Fatalf("run report = %+v", report)
 	}
 }
