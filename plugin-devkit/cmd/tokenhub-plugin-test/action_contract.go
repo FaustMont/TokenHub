@@ -132,14 +132,11 @@ func defaultActionFixturePath() (string, error) {
 }
 
 func validateActionManifest(manifest manifest, fixture actionFixture) error {
-	if manifest.SchemaVersion != 1 {
-		return fmt.Errorf("manifest schema_version = %d, want 1", manifest.SchemaVersion)
+	if err := validateManifestAPI(manifest); err != nil {
+		return err
 	}
 	if manifest.ID != fixture.PluginID {
 		return fmt.Errorf("manifest id = %q, want %q", manifest.ID, fixture.PluginID)
-	}
-	if manifest.TokenHub.PluginAPI != "v1" {
-		return fmt.Errorf("manifest tokenhub.plugin_api = %q, want v1", manifest.TokenHub.PluginAPI)
 	}
 	if !contains(manifest.Placement, "management_action") {
 		return errors.New("manifest must declare management_action placement")

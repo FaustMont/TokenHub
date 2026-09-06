@@ -56,6 +56,6 @@ go run ./cmd/tokenhub-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-将示例复制到独立的插件工作区，再同步修改 manifest、处理器校验、Schema 和测试。安装并重启后端后，可以在插件的**详情**页面检查已注册任务，并从后台任务扩展类型页面手动运行。
+将示例复制到独立的插件工作区，再同步修改 Manifest、处理器校验、Schema 和测试。安装后，可在插件**详情**页折叠的**开发者信息**中检查已注册任务。定时任务按声明的计划运行；需要管理员触发的控件应放在插件声明的目标页面，而不是单独的扩展类型表格。
 
 分发前请继续阅读[完整指南](guide.md)中的调用示例，以及[打包与发布](packaging-and-release.md)。

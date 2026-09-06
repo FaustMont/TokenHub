@@ -21,6 +21,16 @@ export type PluginManagerActionState = {
 
 export type PluginManagerLifecyclePayload = {
   status?: string;
+  available?: boolean;
+  installed?: boolean;
+  enabled?: boolean;
+  configured?: boolean;
+  in_use?: boolean;
+  setup_required?: boolean;
+  desired_version?: string;
+  active_version?: string;
+  desired_enabled?: boolean;
+  active_enabled?: boolean;
   reason?: string;
   restart_required?: boolean;
   health?: string;
@@ -84,6 +94,16 @@ export type PluginManagerLifecycleDisplayState = {
   lastErrorCode: string;
   auditEvent: string;
   unknownStatus: boolean;
+  available: boolean;
+  installed: boolean;
+  enabled: boolean;
+  configured: boolean;
+  inUse: boolean;
+  setupRequired: boolean;
+  desiredVersion: string;
+  activeVersion: string;
+  desiredEnabled: boolean;
+  activeEnabled: boolean;
 };
 
 export type PluginManagerDisplayState = PluginManagerLifecycleDisplayState & {
@@ -118,8 +138,12 @@ export function pluginManagerLifecycleState(plugin?: PluginManagerPluginPayload 
     rollbackTarget === "built_in";
   const health = firstNonEmpty(lifecycle.health, plugin?.health, "unknown");
   const explicitLoadable = lifecycle.loadable ?? plugin?.loadable;
-  const status = displayLifecycleStatus(normalizedStatus, { mandatory, restartRequired, rollbackAvailable });
-  const loadable = typeof explicitLoadable === "boolean" ? explicitLoadable : defaultLifecycleLoadable(status);
+  const installed = lifecycle.installed ?? plugin?.installed ?? Boolean(plugin);
+  const enabled = lifecycle.enabled ?? plugin?.enabled ?? normalizedStatus !== "disabled";
+  const desiredEnabled = lifecycle.desired_enabled ?? plugin?.desired_enabled ?? enabled;
+  const activeEnabled = lifecycle.active_enabled ?? plugin?.active_enabled ?? enabled;
+  const status = displayLifecycleStatus(normalizedStatus, { mandatory, rollbackAvailable });
+  const loadable = typeof explicitLoadable === "boolean" ? explicitLoadable : activeEnabled && defaultLifecycleLoadable(status);
 
   return {
     status,
@@ -140,6 +164,16 @@ export function pluginManagerLifecycleState(plugin?: PluginManagerPluginPayload 
     lastErrorCode: firstNonEmpty(lifecycle.last_error_code, plugin?.last_error_code),
     auditEvent: firstNonEmpty(lifecycle.audit_event, plugin?.audit_event),
     unknownStatus: status === "unknown",
+    available: lifecycle.available ?? plugin?.available ?? Boolean(plugin),
+    installed,
+    enabled,
+    configured: lifecycle.configured ?? plugin?.configured ?? installed,
+    inUse: lifecycle.in_use ?? plugin?.in_use ?? false,
+    setupRequired: lifecycle.setup_required ?? plugin?.setup_required ?? false,
+    desiredVersion: firstNonEmpty(lifecycle.desired_version, plugin?.desired_version, plugin?.version),
+    activeVersion: firstNonEmpty(lifecycle.active_version, plugin?.active_version, plugin?.version),
+    desiredEnabled,
+    activeEnabled,
   };
 }
 
@@ -149,11 +183,14 @@ export function pluginManagerDisplayState(input: PluginManagerDisplayInput): Plu
   const lifecycle = pluginManagerLifecycleState(plugin);
   const builtIn = plugin?.source === "built_in";
   const pluginPresent = Boolean(plugin);
-  const installed = pluginPresent ? (marketplace ? Boolean(marketplace.installed) : true) : false;
+  const installed = pluginPresent
+    ? (marketplace ? Boolean(marketplace.installed) : lifecycle.installed)
+    : false;
   const distributionReady = pluginManagerDistributionReady(plugin);
-  const mutable = installed && !builtIn && !lifecycle.mandatory;
+  const toggleable = installed && !lifecycle.mandatory;
+  const mutable = toggleable && !builtIn;
   const updateAvailable = Boolean(marketplace?.update_available) || (!marketplace && distributionReady && !builtIn);
-  const nextStatus = mutable ? pluginManagerNextStatus(lifecycle.status) : undefined;
+  const nextStatus = toggleable ? pluginManagerNextStatus(lifecycle.status) : undefined;
   const operationAvailable = installed && lifecycle.loadable && lifecycle.status !== "pending_restart" && lifecycle.status !== "failed_validation";
 
   return {
@@ -165,14 +202,20 @@ export function pluginManagerDisplayState(input: PluginManagerDisplayInput): Plu
     nextStatus,
     actions: {
       install: actionState(!installed && distributionReady, "安装插件", "安装中", installed ? "already_installed" : "missing_distribution"),
-      enable: actionState(mutable && lifecycle.status === "disabled", "启用", "更新中", actionDisabledReason({ builtIn, mandatory: lifecycle.mandatory, installed })),
-      disable: actionState(mutable && nextStatus === "disabled", "禁用", "更新中", actionDisabledReason({ builtIn, mandatory: lifecycle.mandatory, installed })),
+      enable: actionState(toggleable && lifecycle.status === "disabled", "启用", "更新中", toggleDisabledReason({ mandatory: lifecycle.mandatory, installed })),
+      disable: actionState(toggleable && nextStatus === "disabled", "禁用", "更新中", toggleDisabledReason({ mandatory: lifecycle.mandatory, installed })),
       update: actionState(installed && !builtIn && updateAvailable && distributionReady, "更新", "更新中", builtIn ? "built_in" : distributionReady ? "not_applicable" : "missing_distribution"),
       uninstall: actionState(mutable, "卸载", "卸载中", actionDisabledReason({ builtIn, mandatory: lifecycle.mandatory, installed })),
       rollback: actionState(mutable && lifecycle.rollbackAvailable, "回滚", "回滚中", lifecycle.rollbackAvailable ? actionDisabledReason({ builtIn, mandatory: lifecycle.mandatory, installed }) : "not_applicable"),
       operation: actionState(operationAvailable, "执行", "执行中", installed ? "not_applicable" : "not_installed"),
     },
   };
+}
+
+function toggleDisabledReason(flags: { mandatory: boolean; installed: boolean }): PluginManagerActionState["disabledReason"] {
+  if (!flags.installed) return "not_installed";
+  if (flags.mandatory) return "mandatory";
+  return "not_applicable";
 }
 
 export function pluginManagerDistributionReady(plugin?: PluginManagerPluginPayload | null): boolean {
@@ -213,7 +256,7 @@ export function pluginManagerLifecycleTone(status: PluginManagerLifecycleStatus,
   if (status === "failed_startup") return "error";
   if (status === "pending_restart" || status === "rollback_available") return "warn";
   if (status === "enabled" || status === "mandatory" || health === "healthy") return "ok";
-  if (status === "disabled") return "error";
+  if (status === "disabled") return "neutral";
   return "neutral";
 }
 
@@ -227,11 +270,10 @@ export function pluginManagerLifecyclePillStatus(status: PluginManagerLifecycleS
 
 function displayLifecycleStatus(
   status: PluginManagerLifecycleStatus,
-  flags: { mandatory: boolean; restartRequired: boolean; rollbackAvailable: boolean },
+  flags: { mandatory: boolean; rollbackAvailable: boolean },
 ): PluginManagerLifecycleStatus {
   if (status === "unknown") return "unknown";
   if (flags.mandatory) return "mandatory";
-  if (flags.restartRequired) return "pending_restart";
   if (status === "failed_validation" || status === "failed_startup") return status;
   if (flags.rollbackAvailable && (status === "enabled" || status === "disabled" || status === "rollback_available")) return "rollback_available";
   return status;

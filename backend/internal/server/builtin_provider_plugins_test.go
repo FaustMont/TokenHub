@@ -132,24 +132,19 @@ func TestBuiltinProviderPluginPackagesMirrorRegisteredBackgroundJobs(t *testing.
 	}
 }
 
-func TestBuiltinProviderCatalogCategoryPluginExposesModelCategories(t *testing.T) {
+func TestBuiltinProviderModelCategoriesRemainInternalMetadata(t *testing.T) {
 	server := New(NewMemoryStore())
-	descriptor, ok := server.pluginRegistry.Describe("tokenhub.provider-catalog.model-categories")
-	if !ok {
-		t.Fatal("built-in provider model category plugin descriptor is missing")
+	if _, ok := server.pluginRegistry.Describe("tokenhub.provider-catalog.model-categories"); ok {
+		t.Fatal("model categories must not be exposed as a synthetic plugin")
 	}
-	if descriptor.Source != pluginmeta.SourceBuiltIn {
-		t.Fatalf("category plugin source = %q, want built_in", descriptor.Source)
-	}
-
-	categories := providerModelCategoryDefinitionsFromPlugin(descriptor)
+	categories := builtinProviderModelCategoryDefinitions()
 	byKey := map[string]providerModelCategoryDefinition{}
 	for _, category := range categories {
 		byKey[category.Key] = category
 	}
 	for _, key := range []string{"openai", "claude", "gemini", "kimi", "qwen", "mistral", "custom"} {
 		if _, ok := byKey[key]; !ok {
-			t.Fatalf("built-in category %q is missing from plugin descriptor: %+v", key, categories)
+			t.Fatalf("built-in category %q is missing from internal metadata: %+v", key, categories)
 		}
 	}
 	if byKey["openai"].CanonicalPrefixes[0] != "gpt" {

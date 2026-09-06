@@ -155,7 +155,7 @@ test("Plugin Manager lifecycle requires a rollback version before enabling rollb
   assert.equal(state.actions.rollback.disabledReason, "not_applicable");
 });
 
-test("Plugin Manager lifecycle prevents mutable operations for built-in and mandatory plugins", () => {
+test("Plugin Manager lifecycle lets built-ins toggle but prevents package mutation", () => {
   const builtIn = pluginManagerDisplayState({
     plugin: { id: "tokenhub.provider.openai", source: "built_in", status: "enabled" },
   });
@@ -163,10 +163,11 @@ test("Plugin Manager lifecycle prevents mutable operations for built-in and mand
     plugin: { id: "tokenhub.local-required", source: "local_file", status: "mandatory", mandatory: true },
   });
 
-  assert.equal(builtIn.actions.disable.available, false);
-  assert.equal(builtIn.actions.disable.disabledReason, "built_in");
+  assert.equal(builtIn.actions.disable.available, true);
+  assert.equal(builtIn.actions.disable.disabledReason, "");
   assert.equal(builtIn.actions.uninstall.available, false);
-  assert.equal(builtIn.nextStatus, undefined);
+  assert.equal(builtIn.actions.uninstall.disabledReason, "built_in");
+  assert.equal(builtIn.nextStatus, "disabled");
   assert.equal(mandatory.status, "mandatory");
   assert.equal(mandatory.actions.disable.available, false);
   assert.equal(mandatory.actions.disable.disabledReason, "mandatory");

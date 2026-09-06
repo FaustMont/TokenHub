@@ -108,14 +108,17 @@ test("admin can inspect plugin details and files without fake settings", async (
   await pluginSearch.fill("");
   await page.getByRole("button", { name: "查看插件详情 TokenHub Core Provider Settings" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider$/);
-  await expect(page.getByRole("tab", { name: "文件" })).toHaveCount(0);
+  await expect(page.getByText("兼容", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "文件" }).click();
+  await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider\/files$/);
+  await expect(page.getByRole("button", { name: /plugin\.yaml/ })).toBeVisible();
   await expect(page.getByText("该内置插件没有独立安装包。")).toHaveCount(0);
   await page.getByRole("button", { name: "返回插件列表" }).click();
 
   await page.getByRole("button", { name: "查看插件详情 External Trace Hook" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.extension\.external-trace$/);
   await expect(page.getByRole("heading", { name: "External Trace Hook" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "主要功能" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "这个插件做什么" })).toBeVisible();
   await expect(page.getByText("Contract fixture for an external trace export gateway hook.", { exact: true })).toBeVisible();
   await expect(page.getByText("请求处理", { exact: true })).toBeVisible();
   await expect(page.getByText("export", { exact: true })).not.toBeVisible();
@@ -148,8 +151,9 @@ test("admin can inspect plugin details and files without fake settings", async (
 test("admin can adjust UI template settings", async ({ page }) => {
   await login(page);
   await sidebar(page).getByRole("button", { name: "插件管理", exact: true }).click();
-  await page.getByRole("tab", { name: "界面模板" }).click();
-  await page.getByRole("button", { name: "配置界面模板 TokenHub Default Interface Template" }).click();
+  await page.getByRole("tab", { name: "UI 模板" }).click();
+  const templateRow = page.locator(".plugin-installed-row").filter({ hasText: "TokenHub Default Interface Template" });
+  await templateRow.getByRole("button", { name: "设置", exact: true }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.sim\.default\/settings$/);
   await expect(page.getByRole("heading", { name: "TokenHub Default Interface Template" })).toBeVisible();
   await page.reload();

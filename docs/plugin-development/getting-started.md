@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](../zh-CN/plugin-development/getting-started.md) | [日本語](../ja/plugin-development/getting-started.md)
 
-Use [`plugin-devkit`](../../plugin-devkit/README.md) to learn and verify Plugin API v1. Its `examples/` are fixtures, not production integrations.
+Use [`plugin-devkit`](../../plugin-devkit/README.md) to learn and verify Plugin API v2. The Devkit also recognizes v1 manifests for compatibility; its `examples/` are fixtures, not production integrations.
 
 ## 1. Verify the Devkit
 
@@ -50,6 +50,6 @@ go run ./cmd/tokenhub-plugin-test action --package /path/to/your-plugin
 
 ## 4. Package and Install
 
-Build the executable, create a ZIP containing exactly one `plugin.yaml`, calculate its SHA-256 checksum, and install it from TokenHub's **Install Plugin** page. TokenHub writes installed packages to `TOKENHUB_PLUGIN_DIR`; it never loads a package merely because it exists under `plugin-devkit/examples/`.
+Build the executable, create a ZIP containing exactly one `plugin.yaml`, calculate its SHA-256 checksum, and install it from **Plugin Management > Browse Plugins > Manual Install**. TokenHub writes installed packages to `TOKENHUB_PLUGIN_DIR` and reloads the plugin runtime after a successful operation; it never loads a package merely because it exists under `plugin-devkit/examples/`.
 
 Continue with the [Manifest Reference](manifest-reference.md) and [Packaging and Release](packaging-and-release.md).

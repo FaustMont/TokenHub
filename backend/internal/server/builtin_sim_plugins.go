@@ -289,7 +289,7 @@ func builtinSIMDescriptor(options builtinSIMDescriptorOptions) pluginmeta.Descri
 	return pluginmeta.NormalizeDescriptor(pluginmeta.Descriptor{
 		ID:      options.id,
 		Name:    options.name,
-		Version: "built-in",
+		Version: pluginmeta.BuiltInVersion,
 		Source:  pluginmeta.SourceBuiltIn,
 		Status:  pluginmeta.StatusEnabled,
 		Kinds:   []pluginmeta.Kind{pluginmeta.KindSIM},

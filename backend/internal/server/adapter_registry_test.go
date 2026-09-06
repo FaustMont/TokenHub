@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -664,54 +663,23 @@ func descriptorHasPluginCapability(descriptor pluginmeta.Descriptor, capability 
 	return false
 }
 
-func TestBuiltinGatewayChainPluginPlansCoreHooks(t *testing.T) {
+func TestGatewayStagesRemainHostInternal(t *testing.T) {
 	server := New(NewMemoryStore())
 
-	descriptor, ok := server.pluginRegistry.Describe("tokenhub.chain.core")
-	if !ok {
-		t.Fatal("core gateway chain plugin is missing")
-	}
-	if len(descriptor.Capabilities) == 0 {
-		t.Fatal("core gateway chain plugin exposes no capabilities")
-	}
-	capabilities := map[string]bool{}
-	for _, capability := range descriptor.Capabilities {
-		if capability.Kind == "gateway_chain" {
-			capabilities[capability.Name] = true
-		}
-	}
-	for _, stage := range []pluginmeta.GatewayHookStage{
-		pluginmeta.StageAuthContext,
-		pluginmeta.StageContextOptimize,
-		pluginmeta.StageRequestTransform,
-		pluginmeta.StageStreamTransform,
-		pluginmeta.StageResponsePost,
-	} {
-		if !capabilities[string(stage)] {
-			t.Fatalf("core gateway chain plugin does not expose stage %q", stage)
-		}
+	if _, ok := server.pluginRegistry.Describe(tokenHubCoreGatewayChainPluginID); ok {
+		t.Fatal("host gateway stages were exposed as a plugin")
 	}
 	plan := server.gatewayChain.Plan()
-	if len(plan.Hooks) == 0 {
-		t.Fatal("core gateway chain plan has no hooks")
+	if len(plan.Stages) != len(pluginmeta.OrderedGatewayStages()) || len(plan.Envelopes) != len(plan.Stages) {
+		t.Fatalf("host gateway plan = %+v", plan)
 	}
-	if plan.Hooks[0].HookID != "decode_normalize" {
-		t.Fatalf("first hook = %q, want decode_normalize", plan.Hooks[0].HookID)
+	if len(plan.Hooks) != 0 {
+		t.Fatalf("host gateway plan exposes synthetic hooks: %+v", plan.Hooks)
 	}
-	for _, hook := range plan.Hooks {
-		if !hook.Mandatory {
-			t.Fatalf("builtin core hook %q is not marked mandatory", hook.HookID)
+	for _, envelope := range plan.Envelopes {
+		if envelope.ExecutionMode == "" {
+			t.Fatalf("stage %q has no execution mode", envelope.Stage)
 		}
-		if hook.PluginID != "tokenhub.chain.core" {
-			t.Fatalf("hook %q plugin id = %q, want tokenhub.chain.core", hook.HookID, hook.PluginID)
-		}
-	}
-	report, err := server.gatewayHooks.RunStage(context.Background(), pluginmeta.StageDecodeNormalize, pluginmeta.GatewayHookInput{RequestID: "req_builtin_chain"})
-	if err != nil {
-		t.Fatalf("run builtin decode_normalize hook: %v", err)
-	}
-	if len(report.Results) != 1 || report.Results[0].Status != pluginmeta.HookRunSucceeded {
-		t.Fatalf("builtin hook report = %+v", report)
 	}
 }
 

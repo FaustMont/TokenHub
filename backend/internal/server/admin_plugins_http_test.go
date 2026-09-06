@@ -923,8 +923,8 @@ func TestAdminPluginsGetExposesLifecycleTrustAndCompatibilitySummaries(t *testin
 		plugins[plugin.ID] = plugin
 	}
 	pending := plugins["tokenhub.local-pending"]
-	if pending.Status != pluginmeta.StatusPendingRestart || !pending.RestartRequired || pending.Loadable {
-		t.Fatalf("pending plugin = %+v, want pending restart and non-loadable", pending)
+	if pending.Status != pluginmeta.StatusEnabled || pending.RestartRequired || !pending.Loadable {
+		t.Fatalf("pending plugin = %+v, want restart-applied enabled state", pending)
 	}
 	failed := plugins["tokenhub.local-failed"]
 	if failed.Health != pluginmeta.PackageHealthUnhealthy || failed.LastErrorCode != string(pluginmeta.PluginErrorAPIUnsupported) || failed.Loadable {
@@ -946,8 +946,8 @@ func TestAdminPluginsGetExposesLifecycleTrustAndCompatibilitySummaries(t *testin
 		t.Fatalf("mandatory plugin = %+v, want mandatory healthy loadable", mandatory)
 	}
 	for _, plugin := range []adminPluginDescriptorResponse{pending, failed, startupFailed, rollback, mandatory} {
-		if plugin.Compatibility.Verdict != "compatible" || plugin.Compatibility.PluginAPI != pluginmeta.CurrentPluginAPI {
-			t.Fatalf("plugin compatibility = %+v, want compatible current API", plugin.Compatibility)
+		if plugin.Compatibility.Verdict != "compatible" || plugin.Compatibility.PluginAPI != pluginmeta.PluginAPIV1 || !plugin.Legacy {
+			t.Fatalf("plugin compatibility = %+v legacy=%t, want compatible v1 adapter", plugin.Compatibility, plugin.Legacy)
 		}
 		if plugin.Trust.Verdict != pluginmeta.TrustVerdictUnverified || !plugin.Trust.ChecksumPresent || !plugin.Trust.SignaturePresent {
 			t.Fatalf("plugin trust = %+v, want unverified package with checksum/signature summary", plugin.Trust)
@@ -989,7 +989,7 @@ kinds:
 	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
 		t.Fatalf("decode rollback response: %v", err)
 	}
-	if body.Data.RestartRequired || body.Data.RollbackVersion != "built-in" ||
+	if body.Data.RestartRequired || body.Data.RollbackVersion != pluginmeta.BuiltInVersion ||
 		body.Data.RollbackTarget != pluginmeta.PackageRollbackTargetBuiltIn ||
 		body.Data.Plugin.Source != pluginmeta.SourceBuiltIn ||
 		body.Data.Plugin.Status != pluginmeta.StatusEnabled {

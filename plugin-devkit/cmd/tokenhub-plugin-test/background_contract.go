@@ -138,14 +138,11 @@ func defaultBackgroundFixturePath() (string, error) {
 }
 
 func validateBackgroundManifest(manifest manifest, fixture backgroundFixture) error {
-	if manifest.SchemaVersion != 1 {
-		return fmt.Errorf("manifest schema_version = %d, want 1", manifest.SchemaVersion)
+	if err := validateManifestAPI(manifest); err != nil {
+		return err
 	}
 	if manifest.ID != fixture.PluginID {
 		return fmt.Errorf("manifest id = %q, want %q", manifest.ID, fixture.PluginID)
-	}
-	if manifest.TokenHub.PluginAPI != "v1" {
-		return fmt.Errorf("manifest tokenhub.plugin_api = %q, want v1", manifest.TokenHub.PluginAPI)
 	}
 	if !contains(manifest.Placement, "background") {
 		return errors.New("manifest must declare background placement")

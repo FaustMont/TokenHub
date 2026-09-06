@@ -6,7 +6,7 @@ This guide describes the current TokenHub plugin direction and how to build agai
 
 The guide starts with the smallest working plugin and then explains the complete contract. In the same way that WordPress discovers a plugin from its main-file header, TokenHub discovers, validates, and loads a package from `plugin.yaml` at the package root. TokenHub additionally requires every plugin to declare its placement, capabilities, and least-privilege permissions.
 
-> **Current implementation boundary:** This guide only documents behavior implemented by Plugin API v1 in this repository. UI templates are declarative theme and layout capabilities, not an arbitrary React or JavaScript extension mechanism. Installed plugins have detail and file-inventory routes. Plugins that declare editable theme tokens also have a settings route; source files remain read-only previews and plugin code cannot be edited in the admin console.
+> **Current implementation boundary:** Plugin API v2 is the current manifest contract; the v1 adapter remains available for existing packages. UI templates are declarative theme and layout capabilities, not an arbitrary React or JavaScript extension mechanism. Every built-in plugin has inspectable package files. A Settings route appears only when the manifest declares real editable settings; source files remain read-only previews and plugin code cannot be edited in the admin console.
 
 TokenHub keeps the core small:
 
@@ -17,7 +17,7 @@ TokenHub keeps the core small:
 
 ## Managing Installed Plugins
 
-TokenHub uses Office Add-ins as the reference for enterprise governance and Obsidian as the reference for plugin-management interaction, while separating management tasks from plugin types. Plugin Management has three primary destinations: **Installed Plugins** owns search, status filters, versions, updates, and lifecycle actions; **Install Plugin** contains marketplace access, URL installation, ZIP upload, checksum verification, and permission-diff preview; **Extension Types** uses secondary navigation for Provider, chain injection, UI template, and background-job plugins.
+TokenHub uses Office Add-ins as the reference for enterprise governance and Obsidian as the reference for plugin-management interaction. Plugin Management has two primary destinations: **Installed Plugins** owns search, status filters, versions, updates, and lifecycle actions; **Browse Plugins** lists available plugins and contains marketplace access, URL installation, ZIP upload, checksum verification, and permission-diff preview. The Installed view places four category filters directly beside the unified list: Provider Integrations, Request Pipeline, UI Templates, and Automation. There is no separate Extension Types table.
 
 In the installed list, the plugin name and **Details** open the overview. **Settings** appears only when the plugin has editable settings and opens them directly. In the UI-template list, clicking a template with editable theme tokens opens Settings; other templates open Details. Changing the active default remains a separate action, so opening configuration never changes the live interface by accident. This hierarchy follows the WordPress [installation, update, and management pattern](https://www.waimaob2c.com/wordpress-plugins), without copying online code editing or automatic-update behavior that does not fit an enterprise gateway.
 
@@ -37,7 +37,7 @@ The authenticated inspection API is read-only:
 - `GET /api/admin/plugins/{plugin_id}/detail`
 - `GET /api/admin/plugins/{plugin_id}/file?path={package-relative-path}`
 
-Built-in plugins have implementation metadata but no standalone package inventory. External packages can show their file count, total size, file kinds, and eligible source, configuration, and schema content. The conceptual reference is WordPress's [plugin management documentation](https://wordpress.org/documentation/article/manage-plugins/); TokenHub retains its own manifest, permissions, and security model.
+Built-in and external plugins both expose an inspectable package inventory with file count, total size, file kinds, and eligible manifest, README, license, source, configuration, and schema content. The conceptual reference is WordPress's [plugin management documentation](https://wordpress.org/documentation/article/manage-plugins/); TokenHub retains its own manifest, permissions, and security model.
 
 ## 1. Plugin Families
 
@@ -45,10 +45,10 @@ TokenHub now organizes plugins into a few clear families.
 
 | Family | What it owns | Examples |
 | --- | --- | --- |
-| UI template | Whole-shell look, layout, and template package | shell theme, page template, dashboard composition |
-| Provider | Upstream model access, auth, discovery, and quotas | Codex, Kimi, Gemini, Anthropic, OpenAI-compatible providers |
-| Chain injection | Request-to-upstream pipeline behavior | privacy filters, routing, cache, context optimization, trace export |
-| Background job | Scheduled or operator-triggered work | quota refresh, sync, cleanup, reporting |
+| Provider Integration | Upstream model access, auth, discovery, and quotas | Codex, Kimi, Gemini, Anthropic, OpenAI-compatible providers |
+| Request Pipeline | Request-to-upstream pipeline behavior | privacy filters, routing, cache, context optimization, trace export |
+| UI Template | Whole-shell look, layout, and template package | shell theme, page template, dashboard composition |
+| Automation | Scheduled or operator-triggered work | quota refresh, sync, cleanup, reporting |
 
 Admin UI contributions are a capability surface, not a top-level family. They are usually attached to Provider, Chain injection, or Background job plugins.
 
@@ -66,13 +66,16 @@ A single plugin may span more than one family, but each family should stay focus
 Every plugin package is described by `plugin.yaml`.
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.provider.kimi-go
 name: Kimi Subscription Go Provider
 version: 1.0.0
-description: Reference Go provider plugin for the TokenHub stdio-json-v1 contract kit.
+summary: Connect TokenHub to a Kimi subscription account.
+description: Reference Go Provider plugin using the stdio-json-v1 transport.
+category: provider_integration
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - provider
 placement:
@@ -261,13 +264,16 @@ go run ./cmd/tokenhub-plugin-test background \
 The sample manifest keeps the plugin identity and its callable TokenHub contract together:
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: tokenhub.background.heartbeat-go
 name: Heartbeat Go Background Job
 version: 1.0.0
+summary: Run a supervised heartbeat job in the background.
 description: Reference background job plugin.
+category: automation
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - extension
 placement:
@@ -416,13 +422,16 @@ Good chain plugins are deterministic, narrow, and explicit about what they read 
 UI template plugins provide visual identity and limited declarative layout. They do not need an executable; the smallest package contains only `plugin.yaml`:
 
 ```yaml
-schema_version: 1
+schema_version: 2
 id: example.sim.operations
 name: Operations UI Template
 version: 1.0.0
 description: A compact operations template for TokenHub.
+summary: Apply a compact operations layout to TokenHub.
+category: ui_template
 tokenhub:
-  plugin_api: v1
+  plugin_api: v2
+  min_core: 0.7.0
 kinds:
   - sim
 placement:
@@ -460,7 +469,7 @@ capabilities:
             order: 100
 ```
 
-Plugin API v1 currently supports four UI-template capabilities:
+Plugin API v2 currently supports four UI-template capabilities:
 
 | Capability | Currently declarable content |
 | --- | --- |
@@ -562,7 +571,7 @@ Distribution metadata should include:
 - license
 - compatibility metadata
 
-The plugin marketplace URL defaults to `https://plugins.betokenhub.com`. Operators can install a package from that marketplace or from a direct ZIP URL, validate the checksum, and restart the backend to activate it.
+The plugin marketplace URL defaults to `https://plugins.betokenhub.com`. Operators can install a package from that marketplace or from a direct ZIP URL, validate the checksum, and let TokenHub reload the plugin runtime immediately.
 
 The ZIP may place `plugin.yaml` at the archive root or inside one top-level plugin directory; exactly one manifest must be discoverable. Do not include symlinks. Preserve executable permissions on the runtime entry, and keep `entry.backend.command` relative to the plugin directory.
 
@@ -578,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-In the admin console, open **Plugin Extensions** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. A newly installed package is `pending_restart`. Restart the TokenHub backend, then verify the plugin status, capability inventory, and any background-job or page contribution.
+In the admin console, open **Plugin Management > Browse Plugins > Manual Install** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. TokenHub reloads the runtime after a successful install. Installed, Enabled, Configured, In Use, and Restart Required are independent lifecycle facts. A restart marker appears only for real desired/active drift and is cleared after successful startup loading.
 
 ## 7. Versioning and Compatibility
 
@@ -617,7 +626,7 @@ Recommended order:
 4. Package-level tests
 5. TokenHub integration tests
 6. Marketplace and compatibility checks
-7. Install and restart validation
+7. Install, runtime reload, and lifecycle validation
 
 What to emphasize by family:
 
@@ -627,17 +636,16 @@ What to emphasize by family:
 - Background job plugin: schedules, retry rules, concurrency, result sanitization
 - Admin UI contribution: schema parsing, action binding, payload redaction, no arbitrary admin API calls
 
-## 9. Migration From the Current Built-Ins
+## 9. Built-In Compatibility and Remaining Migration
 
-The practical migration order is:
+The package boundary now maps every built-in module, including all Provider catalog entries, to an inspectable plugin package. The remaining migration order is:
 
-1. Normalize current built-in descriptors and registries to the plugin worldview.
-2. Move provider adapters, quota, OAuth, and model discovery behind provider plugins.
-3. Split gateway enhancements into explicit chain hooks.
-4. Turn recurring jobs into background plugins.
-5. Turn admin pages, panels, and buttons into declarative contributions.
-6. Keep the old action surface only as a compatibility bridge while the request path is extracted.
-7. Expand the marketplace for external authors.
+1. Keep provider adapters, quota, OAuth, and model discovery behind focused Provider integrations.
+2. Keep gateway enhancements split into explicit Request Pipeline hooks.
+3. Keep recurring work in Automation plugins.
+4. Keep admin pages, panels, and buttons declarative.
+5. Retain the v1 action surface only as a compatibility bridge.
+6. Expand the marketplace for external authors.
 
 This approach keeps upgrades safe because each step can ship independently and be validated with contract tests.
 
@@ -670,7 +678,7 @@ If you cannot answer that, shrink the plugin boundary again.
 
 ## 11. Migration Checklist
 
-- [ ] Map the current built-in modules to Provider, chain, UI template, and Background job packages.
+- [x] Map built-in modules to Provider Integration, Request Pipeline, UI Template, and Automation packages.
 - [ ] Extract provider-specific model discovery and quota logic into provider plugins.
 - [ ] Move request-path logic into explicit chain hooks.
 - [ ] Keep admin UI contributions declarative and permission-scoped.

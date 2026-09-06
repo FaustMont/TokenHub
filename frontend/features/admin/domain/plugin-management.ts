@@ -4,26 +4,27 @@ export type PluginManagerTabKey = "installed" | "install";
 
 export type PluginExtensionCategoryKey = "provider" | "chain" | "ui" | "jobs";
 
-export type PluginStatusFilterKey = "all" | "enabled" | "disabled" | "updates";
+export type PluginStatusFilterKey = "all" | "enabled" | "disabled" | "setup" | "updates";
 
 export const defaultPluginMarketplaceWebsiteURL = "https://plugins.betokenhub.com";
 
 export const pluginManagerTabs: Array<{ key: PluginManagerTabKey; label: string }> = [
   { key: "installed", label: "已安装插件" },
-  { key: "install", label: "安装插件" },
+  { key: "install", label: "浏览插件" },
 ];
 
 export const pluginExtensionCategories: Array<{ key: PluginExtensionCategoryKey; label: string }> = [
-  { key: "provider", label: "Provider 插件" },
-  { key: "chain", label: "链路注入" },
-  { key: "ui", label: "界面模板" },
-  { key: "jobs", label: "后台任务" },
+  { key: "provider", label: "Provider 集成" },
+  { key: "chain", label: "请求链路" },
+  { key: "ui", label: "UI 模板" },
+  { key: "jobs", label: "自动化" },
 ];
 
 export const pluginStatusFilters: Array<{ key: PluginStatusFilterKey; label: string }> = [
   { key: "all", label: "全部插件" },
   { key: "enabled", label: "已启用" },
   { key: "disabled", label: "已禁用" },
+  { key: "setup", label: "待配置" },
   { key: "updates", label: "可更新" },
 ];
 

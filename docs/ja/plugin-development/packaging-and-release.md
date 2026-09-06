@@ -34,9 +34,9 @@ TokenHub Marketplace はリモートの HTTPS JSON インデックスです。�
 
 ## インストールと検証
 
-管理者は**プラグイン管理 > プラグインをインストール**から Marketplace リリース、直接 URL、または ZIP アップロードを選択できます。インストール前に互換性、チェックサム、信頼情報、権限差分を確認します。直接 URL からのインストールにはパッケージのチェックサムが必要です。
+管理者は**プラグイン管理 > プラグインを探す**から利用可能なリリースを選ぶか、**手動インストール**で直接 URL または ZIP を指定できます。導入前に互換性、チェックサム、信頼情報、権限差分を確認します。直接 URL にはパッケージのチェックサムが必要です。
 
-TokenHub は検証済みパッケージを `TOKENHUB_PLUGIN_DIR` に展開します。ランタイム capability を追加または変更したパッケージは `pending_restart` になる場合があります。新しいバージョンが有効か確認する前にバックエンドを再起動してください。その後、次を検証します。
+TokenHub は検証済みパッケージを `TOKENHUB_PLUGIN_DIR` に展開し、install、update、enable、disable、rollback の後に plugin runtime を再読み込みします。通常は TokenHub service の再起動は不要です。Installed、Enabled、Configured、In Use、Restart Required は独立した lifecycle fact であり、1 つの集約 status から推測しません。desired state と active runtime が実際にずれた場合だけ `restart_required` を表示し、service 起動時に desired state を正常に読み込むと marker を消去します。その後、次を検証します。
 
 - 詳細ページでバージョン、互換性、信頼状態を確認する
 - ファイルページでファイル一覧と想定したパッケージ内容を照合する

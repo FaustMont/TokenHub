@@ -56,6 +56,6 @@ go run ./cmd/tokenhub-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-フィクスチャを別のプラグインワークスペースへコピーし、manifest、ハンドラーの検証、Schema、テストを一緒に更新します。インストールとバックエンド再起動の後、プラグインの**詳細**ページで登録済みジョブを確認し、バックグラウンドジョブの拡張タイプページから実行します。
+フィクスチャを別のプラグインワークスペースへコピーし、Manifest、ハンドラー検証、Schema、テストを一緒に更新します。インストール後、plugin の**詳細**ページにある折りたたみ済み**開発者情報**で登録済み job を確認します。scheduled job は宣言した schedule で動作し、operator-triggered control は別の extension-type table ではなく、plugin が宣言した対象ページに置きます。
 
 配布前に、呼び出し例を含む[完全ガイド](guide.md)と[パッケージングとリリース](packaging-and-release.md)を参照してください。

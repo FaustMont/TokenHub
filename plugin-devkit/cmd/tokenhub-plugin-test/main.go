@@ -192,11 +192,8 @@ func defaultFixturePath() (string, error) {
 }
 
 func validateProviderManifest(manifest manifest, fixture providerFixture) error {
-	if manifest.SchemaVersion != 1 {
-		return fmt.Errorf("manifest schema_version = %d, want 1", manifest.SchemaVersion)
-	}
-	if manifest.TokenHub.PluginAPI != "v1" {
-		return fmt.Errorf("manifest tokenhub.plugin_api = %q, want v1", manifest.TokenHub.PluginAPI)
+	if err := validateManifestAPI(manifest); err != nil {
+		return err
 	}
 	if !contains(manifest.Kinds, "provider") {
 		return errors.New("manifest must declare provider kind")

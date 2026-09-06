@@ -311,7 +311,6 @@ func registerBuiltinProviderCatalogPlugins(registry *pluginmeta.Registry) {
 	if registry == nil {
 		return
 	}
-	registerBuiltinProviderCatalogCategoryPlugin(registry)
 	registerBuiltinProviderCatalogPlugin(registry, "tokenhub.provider-catalog.siliconflow", "SiliconFlow", builtinProviderPluginCatalogEntry(
 		"siliconflow",
 		"SiliconFlow",
@@ -321,32 +320,6 @@ func registerBuiltinProviderCatalogPlugins(registry *pluginmeta.Registry) {
 		[]string{"custom"},
 		nil,
 	))
-}
-
-func registerBuiltinProviderCatalogCategoryPlugin(registry *pluginmeta.Registry) {
-	capabilities := make([]pluginmeta.CapabilityDescriptor, 0, len(builtinProviderModelCategoryDefinitionSeed()))
-	for _, category := range builtinProviderModelCategoryDefinitionSeed() {
-		data, err := json.Marshal(category)
-		if err != nil {
-			panic(err)
-		}
-		capabilities = append(capabilities, pluginmeta.CapabilityDescriptor{
-			Kind:  pluginmeta.CapabilityKindProviderCatalog,
-			Name:  pluginmeta.ProviderCatalogModelCategory,
-			Value: string(data),
-		})
-	}
-	if err := registry.Register(pluginmeta.Descriptor{
-		ID:           "tokenhub.provider-catalog.model-categories",
-		Name:         "Built-in Provider Model Categories",
-		Version:      "built-in",
-		Source:       pluginmeta.SourceBuiltIn,
-		Kinds:        []pluginmeta.Kind{pluginmeta.KindProvider},
-		Placements:   []pluginmeta.Placement{pluginmeta.PlacementGatewayChain},
-		Capabilities: capabilities,
-	}); err != nil {
-		panic(err)
-	}
 }
 
 func registerBuiltinProviderCatalogPlugin(registry *pluginmeta.Registry, pluginID string, name string, entry *pluginProviderCatalogEntry) {
@@ -360,7 +333,7 @@ func registerBuiltinProviderCatalogPlugin(registry *pluginmeta.Registry, pluginI
 	if err := registry.Register(pluginmeta.Descriptor{
 		ID:      pluginID,
 		Name:    name,
-		Version: "built-in",
+		Version: pluginmeta.BuiltInVersion,
 		Source:  pluginmeta.SourceBuiltIn,
 		Kinds:   []pluginmeta.Kind{pluginmeta.KindProvider},
 		Placements: []pluginmeta.Placement{

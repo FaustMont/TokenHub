@@ -38,16 +38,17 @@ func (s *Server) handleAdminPluginDetailGet(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	response := adminPluginDetailResponse{Plugin: descriptor}
-	if strings.TrimSpace(s.config.PluginDir) != "" {
-		inspection, inspectErr := pluginmeta.NewRuntime(s.config.PluginDir).InspectPackage(pluginID)
-		switch {
-		case inspectErr == nil:
-			response.Package = &inspection
-		case errors.Is(inspectErr, pluginmeta.ErrPackageNotFound):
-		default:
-			writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_package_inspection_failed", "Plugin package files could not be inspected"))
-			return
-		}
+	inspection, inspectErr := pluginmeta.NewRuntime(s.config.PluginDir).InspectPackage(pluginID)
+	if errors.Is(inspectErr, pluginmeta.ErrPackageNotFound) {
+		inspection, inspectErr = inspectBuiltInPluginPackage(s.config.ProviderCatalogFile, pluginID)
+	}
+	switch {
+	case inspectErr == nil:
+		response.Package = &inspection
+	case errors.Is(inspectErr, pluginmeta.ErrPackageNotFound):
+	default:
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_package_inspection_failed", "Plugin package files could not be inspected"))
+		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": response})
 }
@@ -56,10 +57,12 @@ func (s *Server) handleAdminPluginFileGet(w http.ResponseWriter, r *http.Request
 	if _, ok := s.requireAdmin(w, r, "providers", r.Method); !ok {
 		return
 	}
-	content, err := pluginmeta.NewRuntime(s.config.PluginDir).ReadPackageFile(
-		strings.TrimSpace(r.PathValue("plugin_id")),
-		strings.TrimSpace(r.URL.Query().Get("path")),
-	)
+	pluginID := strings.TrimSpace(r.PathValue("plugin_id"))
+	path := strings.TrimSpace(r.URL.Query().Get("path"))
+	content, err := pluginmeta.NewRuntime(s.config.PluginDir).ReadPackageFile(pluginID, path)
+	if errors.Is(err, pluginmeta.ErrPackageNotFound) {
+		content, err = readBuiltInPluginPackageFile(s.config.ProviderCatalogFile, pluginID, path)
+	}
 	switch {
 	case err == nil:
 		writeJSON(w, http.StatusOK, map[string]any{"data": content})

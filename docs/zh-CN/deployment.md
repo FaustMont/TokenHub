@@ -376,7 +376,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml down -v
 | `TOKENHUB_SQLITE_BACKUP_DIR` | `/app/data/backups` | 备份目录 |
 | `TOKENHUB_MODEL_CATALOG_FILE` | `/opt/tokenhub/current/catalog/model-catalog.yaml` | 托管部署中的标准模型目录文件 |
 | `TOKENHUB_PROVIDER_CATALOG_FILE` | `/opt/tokenhub/current/catalog/provider-catalog.json` | 托管部署中的 Provider 模板与候选模型目录文件 |
-| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 持久化插件包目录，后端启动时扫描；从插件市场安装的包在后端重启后生效 |
+| `TOKENHUB_PLUGIN_DIR` | `/app/plugins` | 持久化插件包目录，后端启动时扫描，并在插件生命周期操作后热加载；多实例部署必须协调所有副本使用相同插件版本 |
 | `TOKENHUB_PLUGIN_MARKETPLACE_URL` | 空 | HTTPS 插件市场索引 URL，供管理后台浏览可安装插件 |
 | `TOKENHUB_SEED_DEMO` | `false` | 是否写入演示数据 |
 | `TOKENHUB_RESOURCE_FAILURE_THRESHOLD` | `3` | Provider 资源进入冷却前的失败阈值 |

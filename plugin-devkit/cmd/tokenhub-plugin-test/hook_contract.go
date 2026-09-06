@@ -138,14 +138,11 @@ func defaultHookFixturePath() (string, error) {
 }
 
 func validateHookManifest(manifest manifest, fixture hookFixture) error {
-	if manifest.SchemaVersion != 1 {
-		return fmt.Errorf("manifest schema_version = %d, want 1", manifest.SchemaVersion)
+	if err := validateManifestAPI(manifest); err != nil {
+		return err
 	}
 	if manifest.ID != fixture.PluginID {
 		return fmt.Errorf("manifest id = %q, want %q", manifest.ID, fixture.PluginID)
-	}
-	if manifest.TokenHub.PluginAPI != "v1" {
-		return fmt.Errorf("manifest tokenhub.plugin_api = %q, want v1", manifest.TokenHub.PluginAPI)
 	}
 	if !contains(manifest.Kinds, "extension") || !contains(manifest.Placement, "gateway_chain") {
 		return errors.New("manifest must declare extension kind and gateway_chain placement")
@@ -158,15 +155,18 @@ func validateHookManifest(manifest manifest, fixture hookFixture) error {
 	}
 	for _, hook := range manifest.Capabilities.Hooks {
 		if hook.ID == fixture.HookID {
-			return validateHookDescriptor(hook, fixture)
+			return validateHookDescriptor(hook, fixture, manifest.TokenHub.PluginAPI)
 		}
 	}
 	return fmt.Errorf("manifest hooks missing %q", fixture.HookID)
 }
 
-func validateHookDescriptor(hook manifestHook, fixture hookFixture) error {
+func validateHookDescriptor(hook manifestHook, fixture hookFixture, pluginAPI string) error {
 	if hook.Stage != fixture.Stage {
 		return fmt.Errorf("hook stage = %q, want %q", hook.Stage, fixture.Stage)
+	}
+	if pluginAPI == "v2" && hook.Priority != 0 {
+		return fmt.Errorf("hook priority is not available in plugin API v2; use before/after ordering")
 	}
 	if hook.FailurePolicy != fixture.FailurePolicy {
 		return fmt.Errorf("hook failure_policy = %q, want %q", hook.FailurePolicy, fixture.FailurePolicy)

@@ -14,7 +14,12 @@ type Manifest struct {
 	ID            string                `yaml:"id"`
 	Name          string                `yaml:"name"`
 	Version       string                `yaml:"version"`
+	Summary       string                `yaml:"summary"`
 	Description   string                `yaml:"description"`
+	Category      Category              `yaml:"category"`
+	HostAdapter   string                `yaml:"host_adapter"`
+	Dependencies  []ManifestDependency  `yaml:"dependencies"`
+	Settings      ManifestSettings      `yaml:"settings"`
 	TokenHub      ManifestCompatibility `yaml:"tokenhub"`
 	Distribution  ManifestDistribution  `yaml:"distribution"`
 	Marketplace   *MarketplaceMetadata  `yaml:"marketplace"`
@@ -23,6 +28,15 @@ type Manifest struct {
 	Entry         ManifestEntry         `yaml:"entry"`
 	Capabilities  ManifestCapabilities  `yaml:"capabilities"`
 	Permissions   ManifestPermissions   `yaml:"permissions"`
+}
+
+type ManifestDependency struct {
+	ID      string `json:"id" yaml:"id"`
+	Version string `json:"version,omitempty" yaml:"version"`
+}
+
+type ManifestSettings struct {
+	Scopes []string `json:"scopes,omitempty" yaml:"scopes"`
 }
 
 type ManifestCompatibility struct {
@@ -188,6 +202,8 @@ type GatewayHookManifest struct {
 	ID            string                   `yaml:"id"`
 	Stage         GatewayHookStage         `yaml:"stage"`
 	Priority      int                      `yaml:"priority"`
+	Before        []string                 `yaml:"before"`
+	After         []string                 `yaml:"after"`
 	Subject       string                   `yaml:"subject"`
 	Metadata      map[string]string        `yaml:"metadata"`
 	Scope         GatewayHookScope         `yaml:"scope"`
@@ -252,7 +268,7 @@ func parseManifestDocument(data []byte) (Manifest, error) {
 }
 
 func (m Manifest) Validate() error {
-	if m.SchemaVersion != PluginManifestSchemaVersion {
+	if !supportedManifestSchemaPair(m.SchemaVersion, m.TokenHub.PluginAPI) {
 		return pluginContractErrorf(PluginErrorManifestSchemaUnsupported, "unsupported plugin manifest schema_version %d", m.SchemaVersion)
 	}
 	if strings.TrimSpace(m.ID) == "" {
@@ -265,6 +281,9 @@ func (m Manifest) Validate() error {
 		return fmt.Errorf("plugin version is required")
 	}
 	if err := ValidateManifestCompatibility(m.TokenHub); err != nil {
+		return err
+	}
+	if err := validateManifestV2Metadata(m); err != nil {
 		return err
 	}
 	if err := m.Distribution.Validate(); err != nil {
@@ -333,6 +352,9 @@ func (m Manifest) Validate() error {
 		}
 		if hook.TimeoutMillis > MaxGatewayHookTimeoutMillis {
 			return fmt.Errorf("gateway hook %s timeout_millis cannot exceed %d", hook.ID, MaxGatewayHookTimeoutMillis)
+		}
+		if m.TokenHub.PluginAPI == PluginAPIV2 && hook.Priority != 0 {
+			return fmt.Errorf("gateway hook %s uses priority, which is not available in plugin API v2; use before/after", hook.ID)
 		}
 		if err := validateGatewayDataClasses(hook.Reads); err != nil {
 			return fmt.Errorf("gateway hook %s reads: %w", hook.ID, err)
@@ -582,6 +604,11 @@ func (m Manifest) Descriptor() Descriptor {
 		Name:         m.Name,
 		Version:      m.Version,
 		Description:  strings.TrimSpace(m.Description),
+		Summary:      strings.TrimSpace(m.Summary),
+		Category:     m.Category,
+		HostAdapter:  strings.TrimSpace(m.HostAdapter),
+		Dependencies: append([]ManifestDependency(nil), m.Dependencies...),
+		Settings:     m.Settings,
 		Source:       SourceLocalFile,
 		Status:       StatusEnabled,
 		Distribution: m.Distribution.Descriptor(),
@@ -1092,6 +1119,9 @@ func (m Manifest) GatewayHooks() []GatewayHookDescriptor {
 			HookID:        hook.ID,
 			Stage:         hook.Stage,
 			Priority:      hook.Priority,
+			Before:        hook.Before,
+			After:         hook.After,
+			PluginAPI:     m.TokenHub.PluginAPI,
 			Subject:       hook.Subject,
 			Metadata:      hook.Metadata,
 			Scope:         hook.Scope,

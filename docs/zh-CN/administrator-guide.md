@@ -31,7 +31,7 @@ Anthropic Provider 默认使用 `x-api-key` 认证。如果 Anthropic 兼容上�
 
 ## 插件管理
 
-打开「插件扩展」可以查看内置与已安装插件、链路 Hook、Admin UI 贡献、管理动作和后台任务。从插件市场或本地包安装时，系统会校验 checksum，将包写入 `TOKENHUB_PLUGIN_DIR`，并在后端重启后生效。非内置插件可以在同一页面启用、禁用、更新或卸载。
+打开「插件管理」，可以按 Provider 集成、请求链路、UI 模板或自动化分类浏览统一的内置与已安装插件列表。每个详情页都会说明插件用途并展示插件包文件；只有插件确实声明设置时才显示设置页。从插件市场或本地包安装时，系统会校验 checksum，将包写入 `TOKENHUB_PLUGIN_DIR`，并通过运行时热加载生效。内置插件可以启用或禁用，但不能卸载；外部插件还可以更新或卸载。
 
 Provider 插件可以在 manifest 中声明路由和凭据策略。对上游密钥必须放在 Provider Resource、而不是 Provider 自身上的订阅/账号型 Provider，设置 `capabilities.provider.credentials_scope: resource`。如果每次路由尝试都必须选中可用的 Provider Resource，则设置 `capabilities.provider.route_requires_resource: true`；Core 会在创建 Provider 时持久化这些策略，并应用与内置订阅 Provider 一致的缺失、禁用、不健康、冷却和资源组检查。设置 `capabilities.provider.reasoning_configurable` 可以显式显示或隐藏 Admin 推理参数控制；没有该字段的旧插件仍会回退到路由协议推断。
 

@@ -35,7 +35,13 @@ export function pluginWithLifecycleDraft(plugin: PluginDescriptor, draft: Plugin
     ...plugin,
     status: draft.status,
     lifecycle: plugin.lifecycle
-      ? { ...plugin.lifecycle, status: draft.status, restart_required: Boolean(draft.restartRequired) }
+      ? {
+        ...plugin.lifecycle,
+        status: draft.status,
+        enabled: draft.status === "enabled",
+        desired_enabled: draft.status === "enabled",
+        restart_required: Boolean(draft.restartRequired),
+      }
       : undefined,
   };
 }
@@ -58,9 +64,8 @@ export function PluginLifecycleControl({
   onUpdate: (plugin: PluginDescriptor, status: string) => void;
 }) {
   const effectiveLifecycle = draft.status ? pluginManagerDisplayState({ plugin: pluginWithLifecycleDraft(plugin, draft) }) : lifecycle;
-  const status = effectiveLifecycle.status;
-  const nextStatus = status === "disabled" ? "enabled" : "disabled";
-  const canUpdate = (allowBuiltInUpdates || plugin.source !== "built_in") && !effectiveLifecycle.mandatory && (status === "enabled" || status === "disabled");
+  const nextStatus = effectiveLifecycle.nextStatus;
+  const canUpdate = Boolean(nextStatus) && (allowBuiltInUpdates || plugin.source !== "built_in");
   return (
     <div className="stacked-cell" data-plugin-manager-control="lifecycle">
       <StatusPill status={effectiveLifecycle.pillStatus} label={tx(effectiveLifecycle.labelKey)} />
@@ -70,7 +75,7 @@ export function PluginLifecycleControl({
         <button
           className="secondary-button compact-button"
           disabled={Boolean(draft.busy)}
-          onClick={() => onUpdate(plugin, nextStatus)}
+          onClick={() => onUpdate(plugin, nextStatus!)}
           title={tx(nextStatus === "enabled" ? "启用插件" : "禁用插件")}
           type="button"
         >

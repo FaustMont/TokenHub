@@ -49,6 +49,39 @@ func TestGatewayStagePolicySupportsEveryCanonicalStage(t *testing.T) {
 	}
 }
 
+func TestGatewayStageExecutionModesMatchStageSemantics(t *testing.T) {
+	want := map[GatewayHookStage]GatewayStageExecutionMode{
+		StageAuthContext:      GatewayExecutionPipeline,
+		StageDecodeNormalize:  GatewayExecutionFirstMatch,
+		StageAdmission:        GatewayExecutionPipeline,
+		StagePrivacyPre:       GatewayExecutionPipeline,
+		StageGuardrailPre:     GatewayExecutionPipeline,
+		StageContextOptimize:  GatewayExecutionPipeline,
+		StageCacheLookup:      GatewayExecutionFirstMatch,
+		StageRouteCandidates:  GatewayExecutionPipeline,
+		StageRouteRank:        GatewayExecutionExclusive,
+		StageRequestTransform: GatewayExecutionPipeline,
+		StageProviderCall:     GatewayExecutionFirstMatch,
+		StageStreamTransform:  GatewayExecutionPipeline,
+		StageResponsePost:     GatewayExecutionPipeline,
+		StageGuardrailPost:    GatewayExecutionPipeline,
+		StageUsageAttribution: GatewayExecutionPipeline,
+		StageCacheWrite:       GatewayExecutionPipeline,
+		StageSettlement:       GatewayExecutionObserver,
+		StageTraceExport:      GatewayExecutionObserver,
+	}
+	for stage, expected := range want {
+		mode, ok := GatewayStageExecutionModeFor(stage)
+		if !ok || mode != expected {
+			t.Fatalf("stage %q mode = %q found=%t, want %q", stage, mode, ok, expected)
+		}
+		contract, ok := GatewayStageEnvelopeContractFor(stage)
+		if !ok || contract.ExecutionMode != expected {
+			t.Fatalf("stage %q contract = %+v found=%t", stage, contract, ok)
+		}
+	}
+}
+
 func TestGatewayStageEnvelopeContractsExposeMutationLimits(t *testing.T) {
 	contracts := GatewayStageEnvelopeContracts()
 	if len(contracts) != len(OrderedGatewayStages()) {

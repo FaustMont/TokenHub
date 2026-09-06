@@ -1,4 +1,4 @@
-import { Braces, ChevronDown, CircleGauge, LayoutPanelTop, Play, Puzzle, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, Braces, ChevronDown, CircleGauge, LayoutPanelTop, Play, Puzzle, RefreshCw, ShieldCheck } from "lucide-react";
 import { type ReactNode } from "react";
 import {
   type AdminUIContribution,
@@ -10,6 +10,7 @@ import {
 import { formatBytes } from "../domain/formatting";
 import { localizedContributionTitle } from "../domain/plugin-localization";
 import { pluginMarketplaceDisplay } from "../domain/plugin-marketplace";
+import { pluginManagerDisplayState } from "../domain/plugin-manager";
 import { languageLocale, tx } from "../i18n/runtime";
 
 export type PluginPackageInspection = {
@@ -38,6 +39,7 @@ export function PluginOverview({
   hooks,
   jobs,
   marketplaceEntry,
+  onOpenProviders,
   packageInspection,
   plugin,
 }: {
@@ -46,6 +48,7 @@ export function PluginOverview({
   hooks: AppData["pluginChain"]["hooks"];
   jobs: AppData["pluginBackgroundJobs"];
   marketplaceEntry?: PluginMarketplacePlugin;
+  onOpenProviders?: () => void;
   packageInspection?: PluginPackageInspection;
   plugin: PluginDescriptor;
 }) {
@@ -64,13 +67,14 @@ export function PluginOverview({
     ? ""
     : marketplace.publisher.name;
   const features = pluginFeatures(plugin, { actions, contributions, hooks, jobs });
+  const lifecycle = pluginManagerDisplayState({ plugin, marketplace: marketplaceEntry });
 
   return (
     <div className="plugin-detail-content">
       {description || features.length > 0 ? (
         <section className="plugin-overview-section plugin-overview-purpose" aria-labelledby="plugin-features-title">
           <div className="plugin-overview-purpose-header">
-            <SectionTitle icon={<Puzzle size={18} />} title={tx("主要功能")} id="plugin-features-title" />
+            <SectionTitle icon={<Puzzle size={18} />} title={tx("这个插件做什么")} id="plugin-features-title" />
             {publisher ? <div className="plugin-overview-publisher"><span>{tx("开发者")}</span><strong>{publisher}</strong></div> : null}
           </div>
           {description ? <p className="plugin-overview-description">{description}</p> : null}
@@ -88,10 +92,27 @@ export function PluginOverview({
       ) : null}
 
       <section className="plugin-overview-facts" aria-label={tx("安装与运行")}>
-        <OverviewFact label={tx("状态")} value={tx(marketplace.lifecycle.labelKey)} tone={marketplace.lifecycle.tone} />
-        <OverviewFact label={tx("版本")} value={marketplace.installedVersion || plugin.version || "-"} />
-        <OverviewFact label={tx("安装来源")} value={pluginSourceLabel(plugin.source)} />
-        <OverviewFact label={tx("更新")} value={pluginUpdateLabel(plugin, marketplace.updateAvailable)} tone={marketplace.updateAvailable ? "warn" : "neutral"} />
+        <OverviewFact label={tx("状态")} value={tx(lifecycle.labelKey)} tone={lifecycle.tone} />
+        <OverviewFact label={tx("配置")} value={tx(lifecycle.setupRequired ? "待配置" : lifecycle.configured ? "已配置" : "无需配置")} tone={lifecycle.setupRequired ? "warn" : "neutral"} />
+        <OverviewFact label={tx("使用状态")} value={tx(lifecycle.inUse ? "使用中" : "未使用")} tone={lifecycle.inUse ? "ok" : "neutral"} />
+        <OverviewFact label={tx("版本")} value={lifecycle.installedVersion || plugin.version || "-"} />
+        <OverviewFact label={tx("更新")} value={tx(lifecycle.updateAvailable ? "有新版本可用" : plugin.source === "built_in" ? "随 TokenHub 更新" : "暂无可用更新")} tone={lifecycle.updateAvailable ? "warn" : "neutral"} />
+      </section>
+
+      <section className="plugin-overview-section" aria-labelledby="plugin-location-title">
+        <SectionTitle icon={<CircleGauge size={18} />} title={tx("在哪里使用")} id="plugin-location-title" />
+        <p className="plugin-overview-description">{pluginUsageLocation(plugin, contributions)}</p>
+        {plugin.kinds.includes("provider") && onOpenProviders ? (
+          <button className="secondary-button plugin-overview-provider-link" onClick={onOpenProviders} type="button">
+            <span>{tx("前往 Provider 管理")}</span>
+            <ArrowRight size={15} aria-hidden="true" />
+          </button>
+        ) : null}
+      </section>
+
+      <section className="plugin-overview-section" aria-labelledby="plugin-permissions-title">
+        <SectionTitle icon={<ShieldCheck size={18} />} title={tx("权限")} id="plugin-permissions-title" />
+        <p className="plugin-overview-description">{permissionSummary(plugin.permissions ?? [])}</p>
       </section>
 
       <section className="plugin-overview-section" aria-labelledby="plugin-safety-title">
@@ -176,6 +197,23 @@ export function PluginOverview({
   );
 }
 
+function pluginUsageLocation(plugin: PluginDescriptor, contributions: AdminUIContribution[]) {
+  if (plugin.kinds.includes("provider")) return tx("在 Provider 管理中添加账号或连接，然后在模型路由中使用。");
+  if (plugin.placements.includes("gateway_chain")) return tx("启用后自动在匹配的模型请求处理阶段运行。");
+  if (plugin.kinds.includes("sim") || contributions.length > 0) return tx("在管理后台的相关页面或插件设置中使用。");
+  if (plugin.placements.includes("background")) return tx("启用后由 TokenHub 按计划在后台运行。");
+  return tx("启用后由 TokenHub 在插件声明的位置运行。");
+}
+
+function permissionSummary(permissions: NonNullable<PluginDescriptor["permissions"]>) {
+  if (permissions.length === 0) return tx("此插件没有申请额外的数据或网络权限。");
+  const dataReads = permissions.filter((item) => item.kind === "data" && item.access === "read").length;
+  const dataWrites = permissions.filter((item) => item.kind === "data" && item.access === "write").length;
+  const networks = permissions.filter((item) => item.kind === "network").length;
+  return tx("此插件申请读取 {{reads}} 类数据、写入 {{writes}} 类数据，并连接 {{networks}} 个网络目标。")
+    .replace("{{reads}}", String(dataReads)).replace("{{writes}}", String(dataWrites)).replace("{{networks}}", String(networks));
+}
+
 function OverviewFact({ label, tone = "neutral", value }: { label: string; tone?: string; value: string }) {
   return <div><span>{label}</span><strong data-tone={tone}>{value}</strong></div>;
 }
@@ -226,7 +264,7 @@ function pluginDescription(description: string, name: string, plugin: PluginDesc
   if (plugin.placements.includes("background")) return tx("在后台执行自动化维护或同步任务。");
   if (plugin.placements.includes("management_action")) return tx("提供可由管理员按需执行的插件操作。");
   if (contributions.length > 0) return tx("在 TokenHub 管理后台中增加相关页面、面板或操作入口。");
-  return "";
+  return tx("为 TokenHub 提供此插件声明的扩展功能。");
 }
 
 function pluginFeatures(plugin: PluginDescriptor, related: {
@@ -270,9 +308,9 @@ function pluginFeatures(plugin: PluginDescriptor, related: {
   return rows;
 }
 
-function capabilityRow(capability: PluginCapabilityDescriptor): TechnicalRow {
+function capabilityRow(capability: PluginCapabilityDescriptor, index: number): TechnicalRow {
   return {
-    key: `${capability.kind}:${capability.subject ?? ""}:${capability.name}`,
+    key: `${capability.kind}:${capability.subject ?? ""}:${capability.name}:${index}`,
     title: capability.name,
     description: capabilityDescription(capability),
     meta: [capability.kind, capability.subject, capability.value ? tx("含配置数据") : ""].filter(Boolean).join(" · "),
@@ -315,19 +353,6 @@ function compatibilityDescription(verdict: string) {
   if (verdict === "needs_review") return tx("此版本需要管理员确认兼容性后再使用。");
   if (verdict === "incompatible") return tx("此版本与当前 TokenHub 核心版本不兼容。");
   return tx("插件没有提供可确认的兼容性信息。");
-}
-
-function pluginSourceLabel(value: string) {
-  if (value === "built_in") return tx("内置");
-  if (value === "marketplace") return tx("插件市场");
-  if (value === "local_file") return tx("本地文件");
-  return value || tx("未声明");
-}
-
-function pluginUpdateLabel(plugin: PluginDescriptor, updateAvailable: boolean) {
-  if (updateAvailable) return tx("有新版本可用");
-  if (plugin.source === "built_in") return tx("随 TokenHub 更新");
-  return tx("暂无可用更新");
 }
 
 function packageLabel(packageInspection?: PluginPackageInspection) {

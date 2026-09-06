@@ -171,7 +171,7 @@ permissions:
 	}
 }
 
-func TestRuntimeLoadIntoSkipsNonLoadableLifecycleStates(t *testing.T) {
+func TestRuntimeLoadIntoMigratesLegacyPendingRestartAndSkipsFailedValidation(t *testing.T) {
 	root := t.TempDir()
 	for _, fixture := range []struct {
 		dir   string
@@ -217,12 +217,12 @@ func TestRuntimeLoadIntoSkipsNonLoadableLifecycleStates(t *testing.T) {
 		if descriptor.Status != pkg.State.Status {
 			t.Fatalf("descriptor status for %s = %q, want %q", pkg.Manifest.ID, descriptor.Status, pkg.State.Status)
 		}
-		if pkg.State.Loadable() {
-			t.Fatalf("package %s is unexpectedly loadable: %+v", pkg.Manifest.ID, pkg.State)
+		if !pkg.State.Loadable() || !pkg.State.RestartRequired {
+			t.Fatalf("legacy pending package did not migrate to the loadable desired state: %+v", pkg.State)
 		}
 	}
-	if hooks := chain.Hooks(StagePrivacyPre); len(hooks) != 0 {
-		t.Fatalf("non-loadable lifecycle states activated hooks: %+v", hooks)
+	if hooks := chain.Hooks(StagePrivacyPre); len(hooks) != 1 || hooks[0].PluginID != "tokenhub.pending" {
+		t.Fatalf("activated hooks = %+v, want migrated pending package only", hooks)
 	}
 }
 
@@ -849,7 +849,7 @@ capabilities:
 	if !ok {
 		t.Fatal("built-in fallback descriptor is missing")
 	}
-	if descriptor.Source != SourceBuiltIn || descriptor.Name != "OpenAI Codex Subscription" || descriptor.Version != "built-in" {
+	if descriptor.Source != SourceBuiltIn || descriptor.Name != "OpenAI Codex Subscription" || descriptor.Version != BuiltInVersion {
 		t.Fatalf("descriptor = %+v, want unchanged built-in fallback", descriptor)
 	}
 	if contributions := adminUI.List(); len(contributions) != 0 {

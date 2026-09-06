@@ -56,6 +56,6 @@ go run ./cmd/tokenhub-plugin-test background \
   --package "$PWD/examples/background-heartbeat-go"
 ```
 
-Copy the fixture into a separate plugin workspace, then update the manifest, handler checks, schemas, and tests together. After installation and backend restart, inspect the registered job on the plugin's **Details** page and run it from the Background Jobs extension-type page.
+Copy the fixture into a separate plugin workspace, then update the manifest, handler checks, schemas, and tests together. After installation, inspect the registered job in collapsed **Developer Information** on the plugin's **Details** page. Scheduled jobs run from their declared schedule; operator-triggered controls belong on the plugin's declared target page rather than a separate extension-type table.
 
 See the [complete guide](guide.md) for the invocation example and the [Packaging and Release](packaging-and-release.md) guide before distribution.

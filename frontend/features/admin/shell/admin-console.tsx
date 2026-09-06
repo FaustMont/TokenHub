@@ -1007,6 +1007,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
                 themeOverrides={themeOverrides}
                 onBack={() => router.push("/plugins")}
                 onNavigate={selectPluginDetail}
+                onOpenProviders={() => selectView("providers")}
                 onSelectManagerTab={(tab) => {
                   setPluginManagerTab(tab);
                   router.push("/plugins");
@@ -1021,9 +1022,6 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
                 onReload={() => load("plugins")}
                 onActiveTabChange={setPluginManagerTab}
                 onSelectPlugin={selectPluginDetail}
-                onSIMSelectionPreferenceChange={setSIMSelectionPreference}
-                simSelectionPreference={simSelectionPreference}
-                theme={theme}
               />
             )
           ) : activeView === "plugin-pages" ? (

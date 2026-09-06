@@ -7,6 +7,8 @@ import (
 
 type Kind string
 
+const BuiltInVersion = "1.0.0"
+
 const (
 	KindProvider  Kind = "provider"
 	KindAdminUI   Kind = "admin_ui"
@@ -143,6 +145,11 @@ type Descriptor struct {
 	Name         string                 `json:"name"`
 	Version      string                 `json:"version"`
 	Description  string                 `json:"description,omitempty"`
+	Summary      string                 `json:"summary,omitempty"`
+	Category     Category               `json:"category,omitempty"`
+	HostAdapter  string                 `json:"host_adapter,omitempty"`
+	Dependencies []ManifestDependency   `json:"dependencies,omitempty"`
+	Settings     ManifestSettings       `json:"settings,omitempty"`
 	Source       Source                 `json:"source"`
 	Status       Status                 `json:"status"`
 	Distribution *Distribution          `json:"distribution,omitempty"`
@@ -187,7 +194,7 @@ func BuiltInProviderWithResourceTypeMetadata(id string, name string, providerTyp
 	return Descriptor{
 		ID:           id,
 		Name:         name,
-		Version:      "built-in",
+		Version:      BuiltInVersion,
 		Source:       SourceBuiltIn,
 		Status:       StatusEnabled,
 		Kinds:        []Kind{KindProvider},
@@ -198,6 +205,8 @@ func BuiltInProviderWithResourceTypeMetadata(id string, name string, providerTyp
 
 func NormalizeDescriptor(descriptor Descriptor) Descriptor {
 	descriptor.Description = strings.TrimSpace(descriptor.Description)
+	descriptor.Summary = strings.TrimSpace(descriptor.Summary)
+	descriptor.HostAdapter = strings.TrimSpace(descriptor.HostAdapter)
 	if descriptor.Status == "" {
 		descriptor.Status = StatusEnabled
 	}

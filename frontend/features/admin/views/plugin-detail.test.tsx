@@ -5,7 +5,7 @@ import { PluginDetailView } from "./plugin-detail";
 
 const api = { baseURL: "http://localhost:8080", adminToken: "admin-token" };
 
-function detailPayload(withPackage = true, capabilities: Array<{ kind: string; name: string; value?: string }> = [{ kind: "gateway", name: "request.filter", value: "{\"internal\":\"raw\"}" }]) {
+function detailPayload(withPackage = true, capabilities: Array<{ kind: string; name: string; subject?: string; value?: string }> = [{ kind: "gateway", name: "request.filter", value: "{\"internal\":\"raw\"}" }]) {
   return {
     data: {
       plugin: {
@@ -86,7 +86,7 @@ describe("PluginDetailView", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Detail Example" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "主要功能" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "这个插件做什么" })).toBeInTheDocument();
     expect(screen.getByText("在模型请求经过网关时执行额外的处理逻辑。")).toBeInTheDocument();
     expect(screen.getByText("请求处理")).toBeInTheDocument();
     expect(screen.queryByText("未提供插件说明。")).not.toBeInTheDocument();
@@ -105,6 +105,22 @@ describe("PluginDetailView", () => {
     expect(screen.queryByRole("tab", { name: "设置" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /导航搜索/ })).not.toBeInTheDocument();
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("renders repeated multi-value capability declarations with unique keys", async () => {
+    const payload = detailPayload(true, [
+      { kind: "provider_policy", name: "managed_header", subject: "anthropic", value: "x-api-key" },
+      { kind: "provider_policy", name: "managed_header", subject: "anthropic", value: "anthropic-version" },
+    ]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 })));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    renderDetail("overview");
+    expect(await screen.findByRole("heading", { name: "Detail Example" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("开发者信息"));
+
+    expect(screen.getAllByText("managed_header")).toHaveLength(2);
+    expect(consoleError.mock.calls.flat().join(" ")).not.toContain("same key");
   });
 
   it("explains provider UI features instead of showing an empty description", async () => {
@@ -138,13 +154,38 @@ describe("PluginDetailView", () => {
     payload.data.plugin.kinds = ["provider"];
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 })));
 
+    const onOpenProviders = vi.fn();
     render(
-      <PluginDetailView api={api} data={appData()} pluginID={payload.data.plugin.id} section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />,
+      <PluginDetailView
+        api={api}
+        data={appData()}
+        pluginID={payload.data.plugin.id}
+        section="overview"
+        onBack={vi.fn()}
+        onNavigate={vi.fn()}
+        onOpenProviders={onOpenProviders}
+      />,
     );
 
     expect(await screen.findByRole("heading", { name: "Requesty" })).toBeInTheDocument();
     expect(screen.getByText("模型服务接入")).toBeVisible();
     expect(screen.queryByText("请求处理")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "前往 Provider 管理" }));
+    expect(onOpenProviders).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains unknown legacy extensions in plain language", async () => {
+    const payload = detailPayload(false, []);
+    payload.data.plugin.placements = [];
+    payload.data.plugin.permissions = [];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 })));
+
+    render(
+      <PluginDetailView api={api} data={emptyData()} pluginID="example.detail" section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />,
+    );
+
+    expect(await screen.findByText("为 TokenHub 提供此插件声明的扩展功能。")).toBeVisible();
+    expect(screen.queryByText("未提供插件说明。")).not.toBeInTheDocument();
   });
 
   it("keeps the plugin manager header available on secondary pages", async () => {
@@ -169,7 +210,7 @@ describe("PluginDetailView", () => {
     expect(screen.getByRole("link", { name: "插件市场" })).toHaveAttribute("href", "https://plugins.betokenhub.com");
     expect(container.querySelector(".plugin-detail-surface")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "安装插件" }));
+    fireEvent.click(screen.getByRole("tab", { name: "浏览插件" }));
     expect(onSelectManagerTab).toHaveBeenCalledWith("install");
     fireEvent.click(screen.getByRole("tab", { name: "已安装插件" }));
     expect(onBack).toHaveBeenCalledTimes(1);

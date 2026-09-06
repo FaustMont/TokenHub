@@ -2,12 +2,11 @@ import { ArrowLeft, Boxes, File, FileCode2, FolderOpen, LockKeyhole, PackageOpen
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { type ApiContext, type AppData, type PluginDescriptor } from "../core/types";
 import { formatBytes } from "../domain/formatting";
-import { localizedPluginName } from "../domain/plugin-localization";
 import { type PluginDetailSection } from "../domain/plugin-detail-route";
 import { pluginMarketplaceWebsiteURL, type PluginManagerTabKey } from "../domain/plugin-management";
 import { type PluginThemeOverrides } from "../domain/plugin-theme-overrides";
 import { simRegistryFromPlugins } from "../domain/sim-registry";
-import { languageLocale, tx } from "../i18n/runtime";
+import { tx } from "../i18n/runtime";
 import { adminFetch, isAuthExpiredError, readAdminError } from "../resources/payloads";
 import { PluginTemplateSettings } from "./plugin-template-settings";
 import { PluginManagerHeader } from "./plugin-manager-header";
@@ -38,6 +37,7 @@ export function PluginDetailView({
   themeOverrides = {},
   onBack,
   onNavigate,
+  onOpenProviders,
   managerTab = "installed",
   themeMode = "light",
   onSelectManagerTab,
@@ -51,6 +51,7 @@ export function PluginDetailView({
   themeOverrides?: PluginThemeOverrides;
   onBack: () => void;
   onNavigate: (pluginID: string, section: PluginDetailSection) => void;
+  onOpenProviders?: () => void;
   managerTab?: PluginManagerTabKey;
   themeMode?: "light" | "dark";
   onSelectManagerTab?: (tab: PluginManagerTabKey) => void;
@@ -63,7 +64,6 @@ export function PluginDetailView({
   const [fileContent, setFileContent] = useState<PackageFileContent | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState("");
-  const locale = languageLocale();
   const fallbackPlugin = data.plugins.find((plugin) => plugin.id === pluginID);
   const plugin = detail?.plugin ?? fallbackPlugin;
   const hooks = useMemo(() => data.pluginChain.hooks.filter((hook) => hook.plugin_id === pluginID), [data.pluginChain.hooks, pluginID]);
@@ -74,7 +74,7 @@ export function PluginDetailView({
     const hasPluginDescriptor = data.plugins.some((item) => item.id === pluginID);
     return simRegistryFromPlugins(hasPluginDescriptor || !detail?.plugin ? data.plugins : [...data.plugins, detail.plugin]);
   }, [data.plugins, detail?.plugin, pluginID]);
-  const hasSettings = simRegistry.themeTokens.some((theme) => theme.pluginID === pluginID);
+  const hasSettings = Boolean(plugin?.has_settings) || simRegistry.themeTokens.some((theme) => theme.pluginID === pluginID);
   const hasPackage = Boolean(detail?.package);
   const pluginAvailable = Boolean(plugin);
   const visibleSection = (section === "settings" && !hasSettings) || (section === "files" && detail && !hasPackage) ? "overview" : section;
@@ -154,7 +154,7 @@ export function PluginDetailView({
     return () => controller.abort();
   }, [api, detail?.package, pluginID, section, selectedPath]);
 
-  const pluginName = plugin ? localizedPluginName(plugin, locale) : pluginID;
+  const pluginName = plugin?.name || pluginID;
   const marketplaceWebsiteURL = pluginMarketplaceWebsiteURL(data);
   return (
     <div className="plugin-detail-view">
@@ -198,6 +198,7 @@ export function PluginDetailView({
               hooks={hooks}
               jobs={jobs}
               marketplaceEntry={data.pluginMarketplace.find((entry) => entry.plugin.id === pluginID)}
+              onOpenProviders={onOpenProviders}
               packageInspection={detail?.package}
               plugin={plugin}
             />
