@@ -1,5 +1,6 @@
 export const billingStatementTranslations = {
   en: {
+ "金额": "Amount",
  "金额来源": "Amount source", "项目 / 模型": "Project / model", "时间 / 时区": "Time / time zone", "依据": "Evidence",
     "1 小时缓存写": "1-hour cache write",
     "5 分钟缓存写": "5-minute cache write",
@@ -44,6 +45,7 @@ export const billingStatementTranslations = {
     "预计毛利汇总": "Estimated margin summary",
   },
   ja: {
+ "金额": "金額",
  "金额来源": "金額の出所", "项目 / 模型": "プロジェクト / モデル", "时间 / 时区": "時刻 / タイムゾーン", "依据": "根拠",
     "1 小时缓存写": "1時間キャッシュ書き込み",
     "5 分钟缓存写": "5分キャッシュ書き込み",
