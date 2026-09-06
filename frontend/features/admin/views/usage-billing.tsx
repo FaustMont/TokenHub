@@ -227,7 +227,7 @@ export function PersonalUsageSummary({ data }: { data: AppData }) {
     <section className="executive-report personal-usage-report">
       <header className="executive-report-head">
         <div>
-          <p className="eyebrow">Personal Usage</p>
+          <p className="eyebrow">{tx("个人用量")}</p>
           <h2>{tx("我的用量概览")}</h2>
         </div>
         <div className="executive-report-tools">
@@ -282,7 +282,7 @@ export function ExecutiveUsageReport({ data }: { data: AppData }) {
     <section className="executive-report">
       <header className="executive-report-head">
         <div>
-          <p className="eyebrow">Executive Usage Report</p>
+          <p className="eyebrow">{tx("管理层用量报告")}</p>
           <h2>{tx("企业 AI 用量看板")}</h2>
           <span>{tx("面向管理层的部门、个人与 Token 消耗对比")}</span>
         </div>
@@ -816,7 +816,7 @@ function BillingConnectorEditor({ api, connector, onClose, onSaved }: { api: Api
     <div className="modal-backdrop" role="presentation">
       <form className="modal billing-connector-modal" onSubmit={submit}>
         <div className="modal-header">
-          <div><p className="eyebrow">Billing Connector</p><h2>{tx(connector ? "编辑账单连接器" : "新增账单连接器")}</h2></div>
+          <div><p className="eyebrow">{tx("账单连接器")}</p><h2>{tx(connector ? "编辑账单连接器" : "新增账单连接器")}</h2></div>
           <button className="icon-button" onClick={onClose} title={tx("关闭")} type="button"><X size={18} /></button>
         </div>
         <div className="modal-body billing-connector-form">
@@ -833,7 +833,7 @@ function BillingConnectorEditor({ api, connector, onClose, onSaved }: { api: Api
               <label className="field"><span>AccessKey ID *</span><input autoComplete="off" value={values.access_key_id} onChange={(event) => update("access_key_id", event.target.value)} required={!connector?.credentials_configured} /></label>
               <label className="field"><span>AccessKey Secret *</span><input autoComplete="new-password" type="password" value={values.access_key_secret} onChange={(event) => update("access_key_secret", event.target.value)} required={!connector?.credentials_configured} /></label>
               <label className="field"><span>{tx("源时区")}</span><input value={values.source_timezone} onChange={(event) => update("source_timezone", event.target.value)} /></label>
-              <label className="field"><span>Product Code</span><input value={values.product_code} onChange={(event) => update("product_code", event.target.value)} /></label>
+              <label className="field"><span>{tx("产品代码")}</span><input value={values.product_code} onChange={(event) => update("product_code", event.target.value)} /></label>
             </>
           ) : (
             <>
