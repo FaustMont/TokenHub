@@ -77,6 +77,23 @@ describe("PluginDetailView", () => {
     vi.unstubAllGlobals();
   });
 
+  it("renders when optional plugin extension collections are null", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(detailPayload()), { status: 200 })));
+    const data = appData();
+    Object.assign(data.pluginChain, { hooks: null });
+    Object.assign(data, {
+      pluginUI: null,
+      pluginActions: null,
+      pluginBackgroundJobs: null,
+    });
+
+    render(
+      <PluginDetailView api={api} data={data} pluginID="example.detail" section="overview" onBack={vi.fn()} onNavigate={vi.fn()} />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Detail Example" })).toBeInTheDocument();
+  });
+
   it("leads with plain-language value and keeps implementation details collapsed", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(detailPayload()), { status: 200 })));
 

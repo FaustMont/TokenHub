@@ -169,7 +169,7 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 			}
 		}
 		usage := providerUsage[descriptor.ID]
-		logicallyInstalled := ok || (descriptor.Source == pluginmeta.SourceBuiltIn && !pluginmeta.CatalogOnlyProvider(descriptor)) || stateFound || usage.configured
+		logicallyInstalled := ok || descriptor.Source == pluginmeta.SourceBuiltIn || stateFound || usage.configured
 		if !logicallyInstalled {
 			descriptor.Status = pluginmeta.StatusDisabled
 			pkg.State = pluginmeta.PackageState{Status: pluginmeta.StatusDisabled}

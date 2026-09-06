@@ -88,6 +88,15 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect(page).toHaveURL(/\/plugins$/);
 
   const pluginSearch = page.getByRole("searchbox", { name: "搜索插件" });
+  await page.getByRole("tab", { name: "Provider 集成" }).click();
+  await pluginSearch.fill("tokenhub.provider-catalog.requesty");
+  const catalogPluginRow = page.locator(".plugin-installed-row").filter({ hasText: "Requesty" });
+  await expect(catalogPluginRow).toBeVisible();
+  await expect(catalogPluginRow.getByText("待配置", { exact: true })).toBeVisible();
+  await expect(catalogPluginRow.getByRole("button", { name: "禁用", exact: true })).toBeVisible();
+  await expect(catalogPluginRow.getByRole("button", { name: "安装", exact: true })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: "全部插件" }).click();
   await pluginSearch.fill("TokenHub Default Interface Template");
   const configurableRow = page.locator(".plugin-installed-row").filter({
     has: page.getByRole("button", { name: "设置", exact: true }),
@@ -106,6 +115,17 @@ test("admin can inspect plugin details and files without fake settings", async (
   expect(settingsBox!.width).toBeGreaterThanOrEqual(80);
 
   await pluginSearch.fill("");
+  const detailOnlyBox = await page.getByRole("button", { name: "查看插件详情 TokenHub Core Provider Settings" })
+    .locator("xpath=ancestor::article")
+    .getByRole("button", { name: "详情", exact: true })
+    .boundingBox();
+  expect(detailOnlyBox).not.toBeNull();
+  expect(Math.abs(detailOnlyBox!.x - detailBox!.x)).toBeLessThan(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect.poll(() => page.locator(".plugin-installed-actions").evaluateAll((actions) => actions.every((item) => item.scrollWidth <= item.clientWidth))).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "查看插件详情 TokenHub Core Provider Settings" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider$/);
   await expect(page.getByText("兼容", { exact: true })).toBeVisible();
