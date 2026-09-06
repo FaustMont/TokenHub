@@ -9,6 +9,7 @@ import { adminFetch, readAdminError } from "../resources/payloads";
 import { DataSection, SimpleTable, StatusPill } from "../shared/ui";
 import { AdminUIReportTemplates } from "./admin-ui-report-templates";
 import { BillingRateCards } from "./billing-rate-cards";
+import { BillingStatements } from "./billing-statements";
 import { ReconciliationManager } from "./billing-reconciliation";
 
 export function UsageView({ api, data, user }: { api: ApiContext; data: AppData; user: AdminUser }) {
@@ -614,6 +615,7 @@ export function BillingView({
   return (
     <>
       {appRole(user.role) === "admin" ? <BillingRateCards api={api} data={data} /> : null}
+      {appRole(user.role) === "admin" ? <BillingStatements api={api} /> : null}
       {appRole(user.role) === "admin" ? <BillingConnectorManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
       {appRole(user.role) === "admin" ? <ReconciliationManager api={api} data={data} loading={loading} onReload={onReload} /> : null}
       {showMemberBreakdown ? (

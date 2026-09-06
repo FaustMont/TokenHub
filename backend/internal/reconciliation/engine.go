@@ -94,9 +94,6 @@ func calculate(run Run, bills []BillingRecord, usages []Usage) (Run, []Item, err
 			continue
 		}
 		localCost := record.ProviderCostUSD
-		if localCost == 0 {
-			localCost = record.CostUSD
-		}
 		amount, parseErr := moneyFromFloat(localCost)
 		if parseErr != nil {
 			return run, nil, fmt.Errorf("usage record %s: %w", record.ID, parseErr)
