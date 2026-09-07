@@ -162,6 +162,13 @@ When Provider Channels, Model Directory, or Routing Policies has no configured d
 
 Publication and runtime health are different states. Membership in `GET /v1/models` requires an active external `Model`, at least one active `ModelRoute`, and API-key access when a model allowlist is configured. It does not change when a Provider or Provider Resource is temporarily unhealthy. Health affects whether a request can be served and is shown separately in the directory and routing diagnostics. Disabling the external model removes it from `GET /v1/models` while retaining its mappings for later re-publication.
 
+### GPT-6 Astra
+
+The standard model directory and built-in OpenAI Provider inventory include `gpt-6-astra`. Select it when creating a model and configure an authorized upstream route; catalog inclusion does not grant upstream access. Codex subscription inventory remains account-discovered. Supported reasoning efforts are `low`, `medium`, `high`, `xhigh`, and `max`; Codex probes and Anthropic-to-Codex conversion preserve `max`.
+
+The template uses OpenAI Standard prices per million tokens: $10 input, $1 cached input, $12.50 cache writes, and $50 output. Above 272,000 input tokens, OpenAI doubles input/cache rates and multiplies output rates by 1.5 for the full request. Provider tier metadata records this distinction; the standard template's fixed prices do not automatically apply context tiers or Batch/Flex/Fast discounts and surcharges. Configure applicable pricing separately. See [OpenAI model specifications](https://developers.openai.com/api/docs/models/gpt-6-astra).
+
+
 ## Custom Upstream Request Headers
 
 In **Provider Channels**, add fixed custom request headers under a Provider's connection settings or under a Provider Resource's advanced settings. Provider headers are defaults; a Resource header with the same case-insensitive name overrides the Provider value for that actual routing attempt. This makes per-account failover safe: TokenHub recomputes the effective headers for every selected Resource. For example, set `User-Agent: TokenHub-Custom-Client/1.0` at Provider scope and override `X-Tenant` on individual Resources.

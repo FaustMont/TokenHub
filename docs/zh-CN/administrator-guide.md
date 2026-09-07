@@ -162,6 +162,13 @@ Provider 模型价格代表真实上游成本，用于内部审计；模型目�
 
 「发布状态」与「运行健康」相互独立。模型要出现在 `GET /v1/models` 中，必须同时满足：对外 `Model` 已启用、至少有一条已启用 `ModelRoute`，且在 API Key 配置了模型白名单时获得授权。Provider 或 Provider Resource 短时不健康不会改变该列表，只会影响当前请求能否成功，并在目录和路由诊断中单独展示。下线对外模型会将它从 `GET /v1/models` 移除，但保留映射，便于之后重新发布。
 
+### GPT-6 Astra
+
+标准模型目录和内置 OpenAI Provider 库存已包含 `gpt-6-astra`。创建模型时选择它，并配置有访问权限的上游路由；目录收录不代表获得上游权限。Codex 订阅库存仍从账户发现。支持的推理档位为 `low`、`medium`、`high`、`xhigh`、`max`；Codex 探测和 Anthropic 到 Codex 的转换会保留 `max`。
+
+模板采用 OpenAI Standard 每百万 token 价格：输入 10 美元、缓存读取 1 美元、缓存写入 12.50 美元、输出 50 美元。输入超过 272,000 token 时，OpenAI 对整个请求的输入及缓存价格乘以 2，输出价格乘以 1.5。Provider 阶梯元数据记录了该差异；标准模板的固定价格不会自动应用上下文阶梯或 Batch/Flex/Fast 折扣及加价，请单独配置适用价格。参见 [OpenAI 模型说明](https://developers.openai.com/api/docs/models/gpt-6-astra)。
+
+
 ## 自定义上游请求头
 
 在「Provider 渠道」中，可以在 Provider 连接设置或 Provider Resource 高级设置里添加固定自定义请求头。Provider 请求头是默认值；Resource 中名称相同（不区分大小写）的请求头会在该次实际路由尝试中覆盖 Provider 值。因此切换账号资源时，TokenHub 会为每个选中的 Resource 重新计算最终请求头。例如，可在 Provider 级设置 `User-Agent: TokenHub-Custom-Client/1.0`，再在各 Resource 上分别覆盖 `X-Tenant`。
