@@ -4,6 +4,8 @@ Language: English | [简体中文](../zh-CN/plugin-development/background-jobs.m
 
 Use a background job plugin for work that does not belong on the model request path, such as quota refresh, account synchronization, cleanup, reporting, and health checks. A job may run on a declared schedule or be triggered by an operator from Plugin Management.
 
+> **Runtime availability:** This page defines the external background-job contract. Packages and schedules can be validated, but the current TokenHub runtime rejects external background commands before launch because host-level isolation is not yet enforceable. In-process built-in jobs are unaffected.
+
 ## Declare a Job
 
 Declare `extension` as the kind, `background` as the placement, and add one or more `capabilities.background_jobs` entries:

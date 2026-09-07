@@ -6,7 +6,7 @@ Language: [English](../../plugin-development/guide.md) | [简体中文](../../zh
 
 このガイドは、まず最小のプラグインを動かし、その後で完全な契約を説明する順序で構成しています。WordPress がメインファイルのヘッダーからプラグインを検出するのと同様に、TokenHub はパッケージルートの `plugin.yaml` からプラグインを検出、検証、読み込みます。TokenHub ではさらに、配置先、capability、最小権限を明示的に宣言する必要があります。
 
-> **現在の実装範囲:** Plugin API v2 が現在の Manifest contract であり、既存 package は v1 adapter 経由で引き続き動作します。UI template は宣言的な theme/layout capability で、任意の React / JavaScript 拡張機構ではありません。すべての built-in plugin に検査可能な package file があります。Manifest が実在する編集可能設定を宣言した場合だけ Settings route を表示し、source file は read-only preview のままで管理画面から編集できません。
+> **現在の実装範囲:** Plugin API v2 が現在の Manifest contract であり、既存 package は v1 adapter 経由で引き続き動作します。ランタイムはホストレベルのプロセス、ネットワーク、リソース隔離をまだ強制できないため、動的に読み込まれた外部 Provider、Gateway Hook、バックグラウンドジョブ、管理 Action の各コマンドを起動前にすべて拒否します。このガイドのコマンド例は、現在デプロイ可能な integration ではなく、開発契約を定義するものです。UI template は宣言的な theme/layout capability で、任意の React / JavaScript 拡張機構ではありません。すべての built-in plugin に検査可能な package file があります。Manifest が実在する編集可能設定を宣言した場合だけ Settings route を表示し、source file は read-only preview のままで管理画面から編集できません。
 
 TokenHub は core を小さく保ちます。
 

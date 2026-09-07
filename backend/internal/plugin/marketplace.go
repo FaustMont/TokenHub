@@ -64,18 +64,14 @@ func (m Marketplace) List(ctx context.Context) ([]Descriptor, error) {
 // not expose self-asserted trust badges or an installable distribution from an
 // unauthenticated document.
 func decodeOnlineMarketplaceIndex(data []byte) ([]Descriptor, error) {
-	data = bytes.TrimSpace(data)
-	if !looksLikeMarketplaceChannelIndex(data) {
-		return decodeMarketplaceIndex(data)
-	}
-	index, err := DecodeMarketplaceIndex(data)
+	descriptors, err := decodeMarketplaceIndex(data)
 	if err != nil {
 		return nil, err
 	}
-	descriptors, err := MarketplaceDescriptorsFromChannelIndex(index)
-	if err != nil {
-		return nil, err
-	}
+	return sanitizeOnlineMarketplaceDescriptors(descriptors), nil
+}
+
+func sanitizeOnlineMarketplaceDescriptors(descriptors []Descriptor) []Descriptor {
 	for index := range descriptors {
 		descriptor := &descriptors[index]
 		descriptor.Distribution = nil
@@ -88,7 +84,7 @@ func decodeOnlineMarketplaceIndex(data []byte) ([]Descriptor, error) {
 		descriptor.Marketplace.Compatibility = &MarketplaceCompatibility{Verdict: MarketplaceCompatibilityUnknown}
 		*descriptor = NormalizeDescriptor(*descriptor)
 	}
-	return descriptors, nil
+	return descriptors
 }
 
 func (m Marketplace) readOfflineMirror() ([]byte, bool, error) {

@@ -162,7 +162,7 @@ func newWithConfig(store Store, config Config, billingDependencies BillingDepend
 		SyntheticDNSPolicy:  syntheticDNSPolicy,
 		ProviderProxyPolicy: providerProxyPolicy,
 	})
-	pluginBootstrap, err := bootstrapServerPlugins(store, config, providerRuntime.adapters)
+	pluginBootstrap, err := bootstrapServerPlugins(config, providerRuntime.adapters)
 	if err != nil {
 		panic(err)
 	}
@@ -220,6 +220,12 @@ func newWithConfig(store Store, config Config, billingDependencies BillingDepend
 	}
 	s.pluginBackgroundRunner.SetSchedulerSnapshotLocker(s.pluginRuntimeMu.RLocker())
 	s.installServerPluginHandlers(&pluginBootstrap)
+	if err := pluginmeta.NewRuntime(config.PluginDir).CompleteRuntimeRestart(); err != nil {
+		panic(fmt.Errorf("complete TokenHub plugin runtime restart: %w", err))
+	}
+	if err := s.publishServerPluginStoreConfiguration(&pluginBootstrap); err != nil {
+		panic(fmt.Errorf("publish TokenHub plugin store configuration: %w", err))
+	}
 	s.billingAdmin = admin.NewBillingHandler(billingDependencies.Repository, s.billing, admin.BillingTransport{
 		DecodeJSON:         s.decodeJSON,
 		DecodeJSONOptional: s.decodeJSONOptional,

@@ -679,6 +679,26 @@ func (s *Server) handleAdminPluginRollbackPost(w http.ResponseWriter, r *http.Re
 		return
 	}
 	runtime := pluginmeta.NewRuntime(s.config.PluginDir)
+	if candidate, found, err := runtime.DescribeRollbackPackage(pluginID); err != nil {
+		s.recordPluginRollbackAudit(r, user, pluginID, "failed", "plugin_rollback_failed")
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_failed", "Plugin rollback package could not be inspected"))
+		return
+	} else if found {
+		candidateDescriptor := candidate.Manifest.Descriptor()
+		if current, installed, inspectErr := runtime.DescribeInstalledPackage(pluginID); inspectErr != nil {
+			s.recordPluginRollbackAudit(r, user, pluginID, "failed", "plugin_rollback_failed")
+			writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_failed", "Plugin package could not be inspected"))
+			return
+		} else if installed {
+			candidateDescriptor.Status = rollbackPackageStatus(current.State.Status)
+		}
+		descriptors := replacePluginDependencyDescriptor(s.pluginRegistry.List(), candidateDescriptor)
+		if dependencyErr := pluginmeta.ValidatePluginDependencySet(descriptors); dependencyErr != nil {
+			s.recordPluginRollbackAudit(r, user, pluginID, "failed", "plugin_dependency_unsatisfied")
+			writeError(w, r, NewHTTPError(http.StatusConflict, "plugin_dependency_unsatisfied", dependencyErr.Error()))
+			return
+		}
+	}
 	pkg, err := runtime.RollbackPackage(pluginID, payload.Reason)
 	if err != nil {
 		if errors.Is(err, pluginmeta.ErrPackageRollbackUnavailable) {
@@ -707,6 +727,25 @@ func (s *Server) handleAdminPluginRollbackPost(w http.ResponseWriter, r *http.Re
 		RollbackVersion: pkg.Manifest.Version,
 		RollbackTarget:  pluginmeta.PackageRollbackTargetPreviousPackage,
 	}})
+}
+
+func rollbackPackageStatus(status pluginmeta.Status) pluginmeta.Status {
+	switch status {
+	case pluginmeta.StatusPendingRestart, pluginmeta.StatusFailedValidation, pluginmeta.StatusFailedStartup:
+		return pluginmeta.StatusDisabled
+	default:
+		return status
+	}
+}
+
+func replacePluginDependencyDescriptor(descriptors []pluginmeta.Descriptor, candidate pluginmeta.Descriptor) []pluginmeta.Descriptor {
+	for index := range descriptors {
+		if descriptors[index].ID == candidate.ID {
+			descriptors[index] = candidate
+			return descriptors
+		}
+	}
+	return append(descriptors, candidate)
 }
 
 func (s *Server) handleAdminPluginBuiltInFallbackRollback(w http.ResponseWriter, r *http.Request, user AdminUser, runtime pluginmeta.Runtime, pluginID string, reason string) bool {

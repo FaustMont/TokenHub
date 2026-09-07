@@ -113,7 +113,7 @@ flowchart LR
 
 ## 插件运行时与边界
 
-`backend/internal/server/plugin_bootstrap.go` 统一装配插件注册表、请求链及执行器、管理 UI 注册表、Action Broker、后台任务 Broker/Runner 和适配器注册表。启动时注册内置能力，从 `TOKENHUB_PLUGIN_DIR` 加载插件包，再接入启用的外部 Provider 适配器。内置与外部插件共享元数据和能力契约，但内置实现运行于 Go 进程内，外部命令通过 `stdio-json-v1` 执行。
+`backend/internal/server/plugin_bootstrap.go` 统一装配插件注册表、请求链及执行器、管理 UI 注册表、Action Broker、后台任务 Broker/Runner 和适配器注册表。启动时注册内置能力，从 `TOKENHUB_PLUGIN_DIR` 加载插件包，再接入启用的外部 Provider 适配器。内置与外部插件共享元数据和能力契约，但内置实现运行于 Go 进程内，外部命令集成使用 `stdio-json-v1` 协议契约。
 
 | 能力面 | 实现入口 | 职责与边界 |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ flowchart LR
 | 后台任务与管理动作 | `backend/internal/plugin/background_scheduler.go`、`background_job.go`、`action_broker.go` | 调度声明的任务并代理管理员操作；与持久化后台 Responses 任务分开 |
 | 界面 | `backend/internal/plugin/admin_ui.go`、`sim.go` | 由控制台渲染声明式面板、设置、主题和布局；不执行任意插件 React 或 JavaScript |
 
-插件包通过 `plugin.yaml` 声明 manifest schema `2` 和 Plugin API `v2`；schema `1` 与 API `v1` 仍通过兼容适配器支持。权限决定调用时可投影哪些 Core 数据，以及 Core 接受哪些结构化修改。这不等同于操作系统沙箱：命令策略当前将网络和资源强制隔离标记为 `unsupported`。因此，通过运行时加载的外部请求链命令会在启动前被拒绝，因为请求链插件要求进程、网络和资源隔离均可强制执行；该拒绝对请求的影响由 Hook 声明的失败策略决定，进程内置插件不受影响。其他外部命令使用受限环境变量、包内相对可执行路径、输入输出大小限制和超时，但不具备宿主级网络或资源隔离。通用命令默认超时为 30 秒，输入上限 4 MiB、输出上限 1 MiB；各能力面可设置自己的超时，例如请求链 Hook 默认 5 秒。流式支持须按适配器核对；当前外部 Provider 桥接从命令结果中解析事件数组，并非实时转发子进程输出流。
+插件包通过 `plugin.yaml` 声明 manifest schema `2` 和 Plugin API `v2`；schema `1` 与 API `v1` 仍通过兼容适配器支持。权限决定调用时可投影哪些 Core 数据，以及 Core 接受哪些结构化修改。这不等同于操作系统沙箱：命令策略当前将网络和资源强制隔离标记为 `unsupported`。因此，在宿主机能够强制执行进程、网络和资源隔离前，TokenHub 会采取失败关闭策略，在启动前拒绝所有由运行时加载的外部 Action、后台任务、Provider 命令和请求链命令。请求链 Hook 声明的失败策略决定该拒绝如何影响请求，进程内置插件不受影响。通用命令限制仍属于未来执行契约：默认超时 30 秒、输入上限 4 MiB、输出上限 1 MiB，各能力面还可使用自己的限制，例如请求链 Hook 默认 5 秒。外部命令禁用期间，外部 Provider 流式调用同样不可用；当前协议形态描述的是事件数组，而不是对子进程输出的实时转发。
 
 三种 Compose 编排均将 `tokenhub-plugins` 挂载到 `/app/plugins`，并提供 `TOKENHUB_PLUGIN_DIR` 和 `TOKENHUB_PLUGIN_MARKETPLACE_URL`。插件文件与生命周期状态保存在文件系统，注册表和执行器则属于各进程。插件生命周期操作会热加载处理该请求的服务进程，因此普通单实例中的安装、更新、启用/禁用、回滚和卸载无需重启服务。PostgreSQL 不负责分发插件二进制，也不会刷新所有副本的注册表；多实例部署仍需协调插件版本，并逐副本执行热加载。
 

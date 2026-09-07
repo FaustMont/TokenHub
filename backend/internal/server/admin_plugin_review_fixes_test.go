@@ -121,6 +121,46 @@ func TestAdminPluginUpdateRejectsDependencyBreakingVersion(t *testing.T) {
 	}
 }
 
+func TestAdminPluginRollbackRejectsDependencyBreakingVersion(t *testing.T) {
+	pluginDir := t.TempDir()
+	archive := adminPluginZip(t, map[string]string{
+		"plugin.yaml": serverDependencyManifest("tokenhub.core", "2.0.0", "", ""),
+	})
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(archive)
+	}))
+	defer upstream.Close()
+	writeServerPluginManifest(t, filepath.Join(pluginDir, "core"), adminPluginManifestWithTestDistribution("tokenhub.core", "Core Plugin", "1.0.0", upstream.URL+"/core.zip", adminSHA256Hex(archive), "automation"))
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server.pluginInstallClient = upstream.Client()
+
+	update := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.core/update", map[string]any{}, "dev_admin_token")
+	if update.Code != http.StatusOK {
+		t.Fatalf("update plugin: expected 200, got %d: %s", update.Code, update.Body)
+	}
+	writeServerPluginManifest(t, filepath.Join(pluginDir, "consumer"), serverDependencyManifest("tokenhub.consumer", "1.0.0", "tokenhub.core", "^2.0.0"))
+	if err := server.reloadPluginRuntime(context.Background()); err != nil {
+		t.Fatalf("reload consumer: %v", err)
+	}
+
+	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.core/rollback", map[string]any{}, "dev_admin_token")
+	assertResponseBodyJSONError(t, response, http.StatusConflict, "plugin_dependency_unsatisfied")
+	current, found, err := pluginmeta.NewRuntime(pluginDir).DescribeInstalledPackage("tokenhub.core")
+	if err != nil || !found {
+		t.Fatalf("inspect current package found=%t err=%v", found, err)
+	}
+	if current.Manifest.Version != "2.0.0" {
+		t.Fatalf("current version = %q, want unchanged 2.0.0", current.Manifest.Version)
+	}
+	rollback, found, err := pluginmeta.NewRuntime(pluginDir).DescribeRollbackPackage("tokenhub.core")
+	if err != nil || !found {
+		t.Fatalf("inspect rollback package found=%t err=%v", found, err)
+	}
+	if rollback.Manifest.Version != "1.0.0" {
+		t.Fatalf("rollback version = %q, want preserved 1.0.0", rollback.Manifest.Version)
+	}
+}
+
 func TestReloadPluginRuntimeWaitsForRequestSnapshot(t *testing.T) {
 	server := NewWithConfig(NewMemoryStore(), Config{PluginDir: t.TempDir()})
 	requestEntered := make(chan struct{})
@@ -219,6 +259,105 @@ func TestReloadPluginRuntimeWaitsForScheduledJobSnapshot(t *testing.T) {
 	}
 }
 
+type runtimeSnapshotResponseAdapter struct {
+	MockAdapter
+	started chan struct{}
+	release chan struct{}
+}
+
+func (a *runtimeSnapshotResponseAdapter) Responses(ctx context.Context, provider Provider, providerModel string, request ResponsesRequest) (any, Usage, error) {
+	close(a.started)
+	select {
+	case <-a.release:
+		return a.MockAdapter.Responses(ctx, provider, providerModel, request)
+	case <-ctx.Done():
+		return nil, Usage{}, ctx.Err()
+	}
+}
+
+func TestReloadPluginRuntimeWaitsForResponseWorkerSnapshot(t *testing.T) {
+	server, _, secret := newBackgroundResponseTestServer(t)
+	server.config.PluginDir = t.TempDir()
+	adapter := &runtimeSnapshotResponseAdapter{started: make(chan struct{}), release: make(chan struct{})}
+	server.adapterRegistry.Register(ProviderMock, adapter, AdapterCapabilityResponses)
+	submitBackgroundResponse(t, server.Handler(), secret, "runtime snapshot")
+	select {
+	case <-adapter.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("response worker did not enter the provider adapter")
+	}
+
+	reloadDone := make(chan error, 1)
+	go func() { reloadDone <- server.reloadPluginRuntime(context.Background()) }()
+	assertPluginReloadBlocked(t, reloadDone, "response worker")
+	close(adapter.release)
+	assertPluginReloadCompletes(t, reloadDone, "response worker")
+}
+
+func TestReloadPluginRuntimeWaitsForImageWorkerSnapshot(t *testing.T) {
+	store := NewMemoryStore()
+	project := store.CreateProject(Project{Name: "Image Snapshot", Status: StatusActive})
+	_, secret, err := store.CreateAPIKey(project.ID, APIKey{Name: "image-snapshot", Allowed: []string{openAIImageModelName}, Status: StatusActive}, "thk_image_snapshot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := store.AddProvider(Provider{ID: "prv_image_snapshot", Name: "Image Snapshot", Type: ProviderOpenAI, Status: StatusActive, Healthy: true})
+	store.AddModel(Model{ID: openAIImageModelName, Name: openAIImageModelName, Modality: "image", Status: StatusActive})
+	store.AddRoute(ModelRoute{ID: "route_image_snapshot", ModelName: openAIImageModelName, ProviderID: provider.ID, ProviderModel: openAIImageModelName, Priority: 1, Weight: 100, Status: StatusActive})
+	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", SecretKey: "image-snapshot-secret", PluginDir: t.TempDir(), ImageStorageDir: t.TempDir(), ImageWorkerConcurrency: 1})
+	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
+	started := make(chan struct{})
+	release := make(chan struct{})
+	imageBytes := realPNGFixture(t)
+	server.imageRunner = func(ctx context.Context, _ RouteSelection, _ ImageJob) ([]byte, string, Usage, error) {
+		close(started)
+		select {
+		case <-release:
+			return imageBytes, "", Usage{TotalTokens: 1}, nil
+		case <-ctx.Done():
+			return nil, "", Usage{}, ctx.Err()
+		}
+	}
+	response := doImageJSON(t, server.Handler(), http.MethodPost, "/v1/images/generations", map[string]any{
+		"model": openAIImageModelName, "prompt": "runtime snapshot",
+	}, secret, map[string]string{"Prefer": "respond-async"})
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("submit image job: expected 202, got %d: %s", response.Code, response.Body)
+	}
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("image worker did not enter the provider adapter")
+	}
+
+	reloadDone := make(chan error, 1)
+	go func() { reloadDone <- server.reloadPluginRuntime(context.Background()) }()
+	assertPluginReloadBlocked(t, reloadDone, "image worker")
+	close(release)
+	assertPluginReloadCompletes(t, reloadDone, "image worker")
+}
+
+func assertPluginReloadBlocked(t *testing.T, reloadDone <-chan error, consumer string) {
+	t.Helper()
+	select {
+	case err := <-reloadDone:
+		t.Fatalf("reload completed while %s held a runtime snapshot: %v", consumer, err)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func assertPluginReloadCompletes(t *testing.T, reloadDone <-chan error, consumer string) {
+	t.Helper()
+	select {
+	case err := <-reloadDone:
+		if err != nil {
+			t.Fatalf("reload after %s snapshot: %v", consumer, err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("reload did not complete after %s released its snapshot", consumer)
+	}
+}
+
 func TestAdminPluginActionFailurePersistsSafeMessage(t *testing.T) {
 	store := NewMemoryStore()
 	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token"})
@@ -253,6 +392,10 @@ func TestPluginDescriptorHasSettingsRequiresRenderedCapability(t *testing.T) {
 	descriptor := pluginmeta.Descriptor{Settings: pluginmeta.ManifestSettings{Scopes: []string{"administrator", "project"}}}
 	if pluginDescriptorHasSettings(descriptor) {
 		t.Fatal("settings scopes without a rendered capability exposed an empty Settings page")
+	}
+	descriptor.Capabilities = []pluginmeta.CapabilityDescriptor{{Kind: pluginmeta.CapabilityKindAdminUI, Name: pluginmeta.AdminUICapabilityLegacySettingsPanel}}
+	if pluginDescriptorHasSettings(descriptor) {
+		t.Fatal("legacy settings panel without a detail renderer exposed an empty Settings page")
 	}
 	descriptor.Capabilities = []pluginmeta.CapabilityDescriptor{{Kind: pluginmeta.CapabilityKindSIM, Name: pluginmeta.SIMCapabilityThemeTokens}}
 	if !pluginDescriptorHasSettings(descriptor) {

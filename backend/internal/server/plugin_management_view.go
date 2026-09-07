@@ -96,9 +96,6 @@ func pluginDescriptorHasSettings(descriptor pluginmeta.Descriptor) bool {
 		if capability.Kind == pluginmeta.CapabilityKindSIM && capability.Name == pluginmeta.SIMCapabilityThemeTokens {
 			return true
 		}
-		if capability.Kind == pluginmeta.CapabilityKindAdminUI && capability.Name == pluginmeta.AdminUICapabilityLegacySettingsPanel {
-			return true
-		}
 	}
 	return false
 }
