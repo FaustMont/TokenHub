@@ -43,7 +43,7 @@ Initial coverage includes customer/provider/margin statements, unknown versus ze
 
 ## Review screenshots
 
-Time, timezone, language, viewport and motion are controlled. The capture helper waits for fonts and captures the relevant section so internal scrolling does not cut off the tested content. Desktop scenarios use 1440×1000; the mobile scenario uses 390×844. Element screenshots can be taller than the viewport. Test names and diagnostics are English; the human-facing gallery captions are Chinese. Native controls and system fonts can vary between operating systems.
+Time, timezone, language, viewport and motion are controlled. The capture helper waits for fonts and captures the relevant section. It rejects sections taller than the viewport, which must use explicitly positioned, named viewport segments to avoid internal-scroll clipping. Desktop scenarios use 1440×1000; mobile form/result segments use 390×844. Test names and diagnostics are English; the human-facing gallery captions are Chinese. Native controls and system fonts can vary between operating systems.
 
 Review every changed screenshot for readable text, visible actions, clipping and correct state. Keep passing and failing runs distinguishable; only a passing run is acceptance evidence. Attach or share the generated gallery when useful, rather than checking runtime images into source control.
 

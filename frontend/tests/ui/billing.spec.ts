@@ -93,5 +93,8 @@ test("billing mobile retains statement actions", async ({ page, api }, testInfo)
   await expect(form.getByRole("status")).toBeVisible();
   await expect(form.getByRole("button", { name: "导出当前预览 CSV", exact: true })).toBeEnabled();
   await expect.poll(() => form.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await capture(page, testInfo, form, "statement-mobile", "手机：对账单状态与导出");
+  await form.evaluate(element => element.scrollIntoView({ block: "start" }));
+  await capture(page, testInfo, form, "statement-mobile-form", "手机：对账单表单", "viewport");
+  await form.evaluate(element => element.scrollIntoView({ block: "end" }));
+  await capture(page, testInfo, form, "statement-mobile-results", "手机：对账单状态与导出", "viewport");
 });
