@@ -231,32 +231,35 @@ test("SIM selection excludes a quarantined preferred plugin and uses the active 
 });
 
 test("SIM selection does not inherit a failed SIM kind into a non-SIM active fallback", () => {
-  const selection = resolveSIMSelection({
-    preference: { active_sim_plugin_id: "tokenhub.shared" },
-    plugins: [
-      {
-        ...simPlugin("tokenhub.shared", [
-          themeCapability("failed-theme", { default: true }),
-          layoutCapability("failed-layout", { default: true }),
+  for (const activeKinds of [["provider"], null]) {
+    const selection = resolveSIMSelection({
+      preference: { active_sim_plugin_id: "tokenhub.shared" },
+      plugins: [
+        {
+          ...simPlugin("tokenhub.shared", [
+            themeCapability("failed-theme", { default: true }),
+            layoutCapability("failed-layout", { default: true }),
+          ]),
+          version: "2.0.0",
+          status: "failed_startup",
+          loadable: false,
+          active_kinds: activeKinds,
+          active_capabilities: [{ kind: "provider", name: "chat_completions", subject: "shared" }],
+          lifecycle: { desired_version: "2.0.0", active_enabled: true, active_version: "builtin" },
+        },
+        simPlugin("tokenhub.sim.default", [
+          themeCapability("default-theme", { default: true }),
+          layoutCapability("default-layout", { default: true }),
         ]),
-        status: "failed_startup",
-        loadable: false,
-        active_kinds: ["provider"],
-        active_capabilities: [{ kind: "provider", name: "chat_completions", subject: "shared" }],
-        lifecycle: { active_enabled: true, active_version: "builtin" },
-      },
-      simPlugin("tokenhub.sim.default", [
-        themeCapability("default-theme", { default: true }),
-        layoutCapability("default-layout", { default: true }),
-      ]),
-    ],
-  });
+      ],
+    });
 
-  assert.equal(selection.activeSIMPluginID, "tokenhub.sim.default");
-  assert.equal(selection.activeSIMPlugin?.id, "tokenhub.sim.default");
-  assert.equal(selection.theme.capability?.pluginID, "tokenhub.sim.default");
-  assert.equal(selection.layout.capability?.pluginID, "tokenhub.sim.default");
-  assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), true);
+    assert.equal(selection.activeSIMPluginID, "tokenhub.sim.default");
+    assert.equal(selection.activeSIMPlugin?.id, "tokenhub.sim.default");
+    assert.equal(selection.theme.capability?.pluginID, "tokenhub.sim.default");
+    assert.equal(selection.layout.capability?.pluginID, "tokenhub.sim.default");
+    assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), true);
+  }
 });
 
 test("SIM selection preserves an active SIM implemented only through Admin UI capabilities", () => {
@@ -282,6 +285,37 @@ test("SIM selection preserves an active SIM implemented only through Admin UI ca
   assert.equal(selection.activeSIMPluginID, "tokenhub.sim.admin-ui");
   assert.equal(selection.activeSIMPlugin?.id, "tokenhub.sim.admin-ui");
   assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), false);
+});
+
+test("SIM selection preserves legacy active SIM kinds when active_kinds is omitted or null", () => {
+  const legacyKinds = [
+    {
+      id: "tokenhub.sim.omitted",
+      fields: {},
+      activeCapabilities: [{ kind: "admin_ui", name: "settings.schema", subject: "legacy-settings" }],
+    },
+    { id: "tokenhub.sim.null", fields: { active_kinds: null }, activeCapabilities: [] },
+  ];
+
+  for (const legacy of legacyKinds) {
+    const selection = resolveSIMSelection({
+      preference: { active_sim_plugin_id: legacy.id },
+      plugins: [{
+        ...simPlugin(legacy.id, []),
+        ...legacy.fields,
+        active_capabilities: legacy.activeCapabilities,
+        lifecycle: {
+          desired_version: "1.0.0",
+          active_enabled: true,
+          active_version: "1.0.0",
+        },
+      }],
+    });
+
+    assert.equal(selection.activeSIMPluginID, legacy.id);
+    assert.equal(selection.activeSIMPlugin?.id, legacy.id);
+    assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), false);
+  }
 });
 
 function simPlugin(id, capabilities) {
