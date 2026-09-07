@@ -341,7 +341,7 @@ function stringValue(value: unknown) {
 }
 
 function pluginHasSIMKind(plugin: SIMPluginDescriptorLike) {
-  const kinds = Array.isArray((plugin as { kinds?: unknown }).kinds) ? (plugin as { kinds?: unknown[] }).kinds ?? [] : [];
+  const kinds = Array.isArray(plugin.kinds) ? plugin.kinds : [];
   return kinds.some((kind) => stringValue(kind) === "sim");
 }
 

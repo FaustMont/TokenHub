@@ -11,6 +11,7 @@ export type SIMPluginDescriptorLike = {
   id?: unknown;
   name?: unknown;
   version?: unknown;
+  kinds?: unknown;
   status?: unknown;
   loadable?: unknown;
   capabilities?: unknown;
@@ -99,13 +100,23 @@ function operationalSIMPlugin(plugin: SIMPluginDescriptorLike): SIMPluginDescrip
     : null;
   if (lifecycle && typeof lifecycle.active_enabled === "boolean") {
     if (!lifecycle.active_enabled) return null;
+    const activeCapabilities = Array.isArray(plugin.active_capabilities) ? plugin.active_capabilities : [];
     return {
       ...plugin,
       version: stringValue(lifecycle.active_version) || plugin.version,
-      capabilities: Array.isArray(plugin.active_capabilities) ? plugin.active_capabilities : [],
+      kinds: activeCapabilityKinds(activeCapabilities),
+      capabilities: activeCapabilities,
     };
   }
   return simPluginIsOperational(plugin) ? plugin : null;
+}
+
+function activeCapabilityKinds(capabilities: readonly unknown[]) {
+  return [...new Set(capabilities.flatMap((capability) => {
+    if (!capability || typeof capability !== "object" || Array.isArray(capability)) return [];
+    const kind = stringValue((capability as SIMPluginCapabilityDescriptorLike).kind);
+    return kind ? [kind] : [];
+  }))];
 }
 
 function simPluginIsOperational(plugin: SIMPluginDescriptorLike) {
