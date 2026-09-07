@@ -54,6 +54,59 @@ entry:
 	}
 }
 
+func TestAdminPluginDetailShowsExternalCommandPackageAsInstalledButNotOperational(t *testing.T) {
+	pluginDir := t.TempDir()
+	packageDir := filepath.Join(pluginDir, "example.command")
+	writeServerPluginManifest(t, packageDir, `
+schema_version: 2
+id: example.command
+name: External Command Example
+version: 1.0.0
+summary: Exercises the external command lifecycle boundary.
+category: automation
+tokenhub:
+  plugin_api: v2
+kinds: [extension]
+placement: [background]
+entry:
+  backend:
+    protocol: stdio-json-v1
+    command: bin/run
+capabilities:
+  background_jobs:
+    - id: example.run
+      title: Run example
+      schedule: "0 * * * *"
+permissions:
+  data:
+    read: []
+    write: []
+`)
+	writeAdminPluginDetailFile(t, packageDir, "bin/run", "#!/bin/sh\nprintf '{}'")
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+
+	response := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugins/example.command/detail", nil, "dev_admin_token")
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET external command plugin detail: expected 200, got %d: %s", response.Code, response.Body)
+	}
+	var body struct {
+		Data adminPluginDetailResponse `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+		t.Fatalf("decode external command plugin detail: %v", err)
+	}
+	plugin := body.Data.Plugin
+	if plugin.Status != pluginmeta.StatusFailedStartup || plugin.Loadable ||
+		plugin.Lifecycle.Enabled || plugin.Lifecycle.ActiveEnabled ||
+		plugin.LastErrorCode != string(pluginmeta.PluginErrorPermissionUnsupported) ||
+		body.Data.Package == nil || body.Data.Package.FileCount == 0 {
+		t.Fatalf("external command plugin detail = %+v, want inspectable startup failure", body.Data)
+	}
+	if job, ok := server.pluginBackgroundJobs.Describe("example.command", "example.run"); ok {
+		t.Fatalf("external command job was published: %+v", job)
+	}
+}
+
 func TestAdminPluginFileReturnsOnlySafeTextPreview(t *testing.T) {
 	pluginDir := t.TempDir()
 	packageDir := filepath.Join(pluginDir, "example.files")

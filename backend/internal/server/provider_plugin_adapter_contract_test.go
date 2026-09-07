@@ -15,9 +15,9 @@ func TestExternalMockProviderFixtureRegistersAdapterContract(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("external mock provider fixture uses POSIX sh")
 	}
-	packages, err := pluginmeta.NewRuntime(externalMockProviderFixtureDir()).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(externalMockProviderFixtureDir()).Discover()
 	if err != nil {
-		t.Fatalf("load external mock provider fixture: %v", err)
+		t.Fatalf("discover external mock provider fixture: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -182,9 +182,9 @@ func TestExternalMockProviderFixtureServesCatalogAndProbe(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("external mock provider fixture uses POSIX sh")
 	}
-	packages, err := pluginmeta.NewRuntime(externalMockProviderFixtureDir()).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(externalMockProviderFixtureDir()).Discover()
 	if err != nil {
-		t.Fatalf("load external mock provider fixture: %v", err)
+		t.Fatalf("discover external mock provider fixture: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -235,7 +235,7 @@ func newExternalMockProviderGatewayServer(t *testing.T, model string, modality s
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: externalMockProviderFixtureDir()})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, externalMockProviderFixtureDir())
 	return server, secret
 }

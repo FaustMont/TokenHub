@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,7 +12,7 @@ func TestExternalTraceHookWithoutIsolationIsSkippedByObserveOnlyPolicy(t *testin
 	store := NewMemoryStore()
 	app := NewWithConfig(store, Config{
 		AdminToken: "external-trace-admin",
-		PluginDir:  filepath.Join("..", "plugin", "testdata", "external-trace-hook"),
+		PluginDir:  copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-trace-hook")),
 	})
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
@@ -53,7 +54,7 @@ func TestExternalTraceHookFixtureFailureDoesNotAffectGatewayCompletion(t *testin
 	store := NewMemoryStore()
 	app := NewWithConfig(store, Config{
 		AdminToken: "external-trace-admin",
-		PluginDir:  filepath.Join("..", "plugin", "testdata", "external-trace-hook"),
+		PluginDir:  copyExternalPluginFixtureForServerTest(t, filepath.Join("..", "plugin", "testdata", "external-trace-hook")),
 	})
 	emitter := &recordingTraceEmitter{}
 	app.traceEmitter = emitter
@@ -83,4 +84,30 @@ func TestExternalTraceHookFixtureFailureDoesNotAffectGatewayCompletion(t *testin
 			t.Fatalf("failed trace hook leaked credentials: %s", event.AfterSnapshot)
 		}
 	}
+}
+
+func copyExternalPluginFixtureForServerTest(t *testing.T, source string) string {
+	t.Helper()
+	target := t.TempDir()
+	entries, err := os.ReadDir(source)
+	if err != nil {
+		t.Fatalf("read external plugin fixture: %v", err)
+	}
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() {
+			t.Fatalf("external plugin fixture contains unsupported entry %q", entry.Name())
+		}
+		data, err := os.ReadFile(filepath.Join(source, entry.Name()))
+		if err != nil {
+			t.Fatalf("read external plugin fixture file %q: %v", entry.Name(), err)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			t.Fatalf("inspect external plugin fixture file %q: %v", entry.Name(), err)
+		}
+		if err := os.WriteFile(filepath.Join(target, entry.Name()), data, info.Mode().Perm()); err != nil {
+			t.Fatalf("copy external plugin fixture file %q: %v", entry.Name(), err)
+		}
+	}
+	return target
 }

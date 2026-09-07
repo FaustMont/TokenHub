@@ -120,3 +120,14 @@ func pluginDescriptorSummary(descriptor pluginmeta.Descriptor) string {
 	}
 	return strings.TrimSpace(descriptor.Description)
 }
+
+func (s *Server) reloadedInstalledPluginPackage(pluginID string) (pluginmeta.Package, error) {
+	pkg, found, err := pluginmeta.NewRuntime(s.config.PluginDir).DescribeInstalledPackage(pluginID)
+	if err != nil {
+		return pluginmeta.Package{}, err
+	}
+	if !found {
+		return pluginmeta.Package{}, pluginmeta.ErrPackageNotFound
+	}
+	return pkg, nil
+}

@@ -480,6 +480,11 @@ func (s *Server) handleAdminPluginInstallPost(w http.ResponseWriter, r *http.Req
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin runtime could not be reloaded"))
 		return
 	}
+	pkg, err = s.reloadedInstalledPluginPackage(pkg.Manifest.ID)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin package state could not be inspected after reload"))
+		return
+	}
 	descriptor := pkg.Manifest.Descriptor()
 	descriptor.Status = pkg.State.Status
 	writeJSON(w, http.StatusCreated, map[string]any{"data": adminPluginInstallResponse{
@@ -652,6 +657,11 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_update_failed", "Plugin runtime could not be reloaded"))
 		return
 	}
+	pkg, err = s.reloadedInstalledPluginPackage(pkg.Manifest.ID)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_update_failed", "Plugin package state could not be inspected after reload"))
+		return
+	}
 	updated := pkg.Manifest.Descriptor()
 	updated.Status = pkg.State.Status
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginInstallResponse{
@@ -713,14 +723,19 @@ func (s *Server) handleAdminPluginRollbackPost(w http.ResponseWriter, r *http.Re
 		writeError(w, r, httpErr)
 		return
 	}
-	descriptor := pkg.Manifest.Descriptor()
-	descriptor.Status = pkg.State.Status
-	plugin := adminPluginDescriptorForPackage(descriptor, pkg, true)
 	s.recordPluginRollbackAudit(r, user, pluginID, "success", string(pluginmeta.PackageLifecycleRollbackStarted))
 	if err := s.reloadPluginRuntime(r.Context()); err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_failed", "Plugin runtime could not be reloaded"))
 		return
 	}
+	pkg, err = s.reloadedInstalledPluginPackage(pkg.Manifest.ID)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_failed", "Plugin package state could not be inspected after reload"))
+		return
+	}
+	descriptor := pkg.Manifest.Descriptor()
+	descriptor.Status = pkg.State.Status
+	plugin := adminPluginDescriptorForPackage(descriptor, pkg, true)
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginRollbackResponse{
 		Plugin:          plugin,
 		RestartRequired: false,
@@ -853,6 +868,11 @@ func (s *Server) handleAdminPluginStatePatch(w http.ResponseWriter, r *http.Requ
 	}
 	if err := s.reloadPluginRuntime(r.Context()); err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_state_update_failed", "Plugin runtime could not be reloaded"))
+		return
+	}
+	pkg, err = s.reloadedInstalledPluginPackage(pkg.Manifest.ID)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_state_update_failed", "Plugin package state could not be inspected after reload"))
 		return
 	}
 	descriptor := pkg.Manifest.Descriptor()

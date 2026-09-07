@@ -36,9 +36,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -293,9 +293,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -391,9 +391,9 @@ printf '{"response":{},"usage":{}}'
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -442,7 +442,7 @@ printf '{"response":{"id":"chatcmpl_stdio","object":"chat.completion","choices":
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -515,7 +515,7 @@ esac
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -563,7 +563,7 @@ JSON
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -605,9 +605,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -664,9 +664,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -727,7 +727,7 @@ JSON
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses", map[string]any{
@@ -764,9 +764,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -830,7 +830,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses/compact", map[string]any{
@@ -886,7 +886,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -955,7 +955,7 @@ esac
 		Weight:             100,
 		Status:             StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root, SecretKey: "plugin-compact-affinity-secret"})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", SecretKey: "plugin-compact-affinity-secret"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	request := httptest.NewRequest(http.MethodPost, "/v1/responses/compact", strings.NewReader(
@@ -1002,9 +1002,9 @@ esac
 	if err := os.WriteFile(filepath.Join(pluginDir, "provider.sh"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -1072,7 +1072,7 @@ esac
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin"})
 	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doImageJSON(t, server.Handler(), http.MethodPost, "/v1/images/generations", map[string]any{
@@ -1112,9 +1112,9 @@ esac
 `), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	packages, err := pluginmeta.NewRuntime(root).LoadIntoWithActions(pluginmeta.NewRegistry(), pluginmeta.NewGatewayChainRegistry(), nil, nil)
+	packages, err := pluginmeta.NewRuntime(root).Discover()
 	if err != nil {
-		t.Fatalf("load plugin packages: %v", err)
+		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
 	registerExternalProviderPluginAdaptersForTest(registry, packages)
@@ -1188,7 +1188,7 @@ func allowUnsandboxedProviderCommandsForTest(t *testing.T, registry *AdapterRegi
 	if err != nil {
 		t.Fatalf("discover provider plugin fixtures: %v", err)
 	}
-	useUnsandboxedProviderCommandsForTest(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 }
 
 func useUnsandboxedProviderCommandsForTest(registry *AdapterRegistry, packages []pluginmeta.Package) {

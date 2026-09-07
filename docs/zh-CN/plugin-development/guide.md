@@ -182,7 +182,7 @@ Admin UI 贡献不是一个独立运行时能力面。它是声明式的面板�
 5. 添加 contract tests
 6. 本地运行
 7. 发布到 marketplace
-8. 安装后在 TokenHub 中验证
+8. 安装后在 TokenHub 中验证包检查与生命周期呈现
 
 写代码之前，先回答：
 
@@ -571,7 +571,7 @@ TokenHub 对 built-in 和 external 插件使用同一种包形态。
 - 许可证
 - 兼容性元数据
 
-插件市场地址默认是 `https://plugins.betokenhub.com`。运维可以从 Marketplace 或直接 ZIP URL 安装插件包并校验 checksum，TokenHub 会立即重新加载插件运行时。
+插件市场地址默认是 `https://plugins.betokenhub.com`。运维可以从 Marketplace 或直接 ZIP URL 安装插件包并校验 checksum。TokenHub 会立即重新评估插件包的校验与生命周期状态；这可以激活受支持的声明式贡献，但不会启用外部命令执行。
 
 ZIP 可以把 `plugin.yaml` 放在归档根目录，也可以只包一层插件目录；归档中必须且只能发现一个 `plugin.yaml`。不要包含 symlink。运行入口必须保留可执行权限，并且 `entry.backend.command` 必须是插件目录内的相对路径。
 
@@ -587,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-在管理后台打开“插件管理 > 浏览插件 > 手动安装”，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装成功后 TokenHub 会重新加载运行时。已安装、已启用、已配置、使用中和需要重启是相互独立的生命周期事实；只有期望状态与实际运行状态存在差异时才显示重启标记，服务成功启动并加载期望状态后会清除标记。
+在管理后台打开「插件管理 > 浏览插件 > 手动安装」，可上传 ZIP，或提供 HTTPS `download_url` 与小写 SHA-256 checksum。安装成功后 TokenHub 会重新评估插件包。声明式界面贡献可以生效；带外部命令的包会记录 `failed_startup`，保持可检查，并且不发布任何运行时能力。可执行契约测试必须使用 Devkit。
 
 ## 7. 版本与兼容性
 
@@ -626,7 +626,7 @@ shasum -a 256 background-heartbeat-go.zip
 4. 包级测试
 5. TokenHub 集成测试
 6. marketplace 和兼容性检查
-7. 安装、运行时重载与生命周期验证
+7. 安装、文件检查与生命周期失败验证
 
 各家族重点关注：
 

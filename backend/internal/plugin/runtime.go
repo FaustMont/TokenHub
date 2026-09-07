@@ -154,7 +154,11 @@ type runtimePendingPackage struct {
 
 func (r Runtime) activatePackage(pkg Package, targets runtimeLoadTargets) (Package, error) {
 	staged := targets.clone()
-	if err := staged.activatePackage(pkg); err != nil {
+	err := validateExternalPackageRuntime(pkg)
+	if err == nil {
+		err = staged.activatePackage(pkg)
+	}
+	if err != nil {
 		failed, ok, failErr := r.markPackageLoadFailure(pkg.Dir, targets, StatusFailedStartup, PackageLifecycleStartupFailed, err)
 		if failErr != nil {
 			return Package{}, failErr
@@ -166,6 +170,25 @@ func (r Runtime) activatePackage(pkg Package, targets runtimeLoadTargets) (Packa
 	}
 	targets.commitFrom(staged)
 	return pkg, nil
+}
+
+func validateExternalPackageRuntime(pkg Package) error {
+	if !pkg.State.Enabled() || pkg.Manifest.Entry.Backend == nil {
+		return nil
+	}
+	command := strings.TrimSpace(pkg.Manifest.Entry.Backend.Command)
+	if command == "" {
+		return nil
+	}
+	policy, err := BuildCommandSandboxPolicy(CommandSandboxOptions{
+		Dir:         pkg.Dir,
+		Command:     command,
+		Permissions: PermissionGrantFromManifest(pkg.Manifest.Permissions),
+	})
+	if err != nil {
+		return err
+	}
+	return requireCommandSandboxIsolation(policy)
 }
 
 type packageLoadCandidate struct {

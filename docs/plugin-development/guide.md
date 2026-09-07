@@ -182,7 +182,7 @@ The safest workflow is:
 5. Add contract tests.
 6. Run the package locally.
 7. Publish to the marketplace.
-8. Install and verify inside TokenHub.
+8. Install to verify package inspection and lifecycle reporting inside TokenHub.
 
 Before writing code, answer:
 
@@ -571,7 +571,7 @@ Distribution metadata should include:
 - license
 - compatibility metadata
 
-The plugin marketplace URL defaults to `https://plugins.betokenhub.com`. Operators can install a package from that marketplace or from a direct ZIP URL, validate the checksum, and let TokenHub reload the plugin runtime immediately.
+The plugin marketplace URL defaults to `https://plugins.betokenhub.com`. Operators can install a package from that marketplace or from a direct ZIP URL and validate its checksum. TokenHub immediately reevaluates package validation and lifecycle state; this may activate supported declarative contributions, but it does not enable external command execution.
 
 The ZIP may place `plugin.yaml` at the archive root or inside one top-level plugin directory; exactly one manifest must be discoverable. Do not include symlinks. Preserve executable permissions on the runtime entry, and keep `entry.backend.command` relative to the plugin directory.
 
@@ -587,7 +587,7 @@ cd ../../..
 shasum -a 256 background-heartbeat-go.zip
 ```
 
-In the admin console, open **Plugin Management > Browse Plugins > Manual Install** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. TokenHub reloads the runtime after a successful install. Installed, Enabled, Configured, In Use, and Restart Required are independent lifecycle facts. A restart marker appears only for real desired/active drift and is cleared after successful startup loading.
+In the admin console, open **Plugin Management > Browse Plugins > Manual Install** and upload the ZIP, or provide an HTTPS `download_url` and lowercase SHA-256 checksum. TokenHub reevaluates the package after a successful install. Declarative presentation contributions may activate, while a package with an external command records `failed_startup`, stays inspectable, and publishes no runtime capabilities. Use the Devkit for executable contract tests.
 
 ## 7. Versioning and Compatibility
 
@@ -626,7 +626,7 @@ Recommended order:
 4. Package-level tests
 5. TokenHub integration tests
 6. Marketplace and compatibility checks
-7. Install, runtime reload, and lifecycle validation
+7. Install, file inspection, and lifecycle-failure validation
 
 What to emphasize by family:
 
