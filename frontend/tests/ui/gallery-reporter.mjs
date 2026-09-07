@@ -16,13 +16,14 @@ export default class GalleryReporter {
     catch { this.head = "unavailable"; }
   }
   onTestEnd(test, result) {
-    const annotation = name => test.annotations.find(item => item.type === name)?.description;
+    const captures = test.annotations.filter(item => item.type === "ui-capture").map(item => JSON.parse(item.description));
     const images = result.attachments.filter(item => item.contentType === "image/png" && item.path).map(item => {
       const relative = path.relative(this.output, item.path);
       if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Screenshot must be inside the UI artifact directory");
-      return { file: relative.split(path.sep).join("/"), title: item.name };
+      const capture = captures.find(capture => capture.id === item.name);
+      return { file: relative.split(path.sep).join("/"), id: capture?.id ?? item.name, title: capture?.title ?? item.name };
     });
-    this.entries.push({ id: annotation("ui-scenario") ?? test.title, title: annotation("ui-title") ?? test.title, status: result.status, expectedStatus: test.expectedStatus, images });
+    this.entries.push({ id: captures[0]?.id ?? test.title, title: captures[0]?.title ?? test.title, test: test.title, status: result.status, expectedStatus: test.expectedStatus, images });
   }
   async onEnd(result) {
     await mkdir(this.output, { recursive: true });

@@ -19,9 +19,12 @@ for (const scenario of statements) {
     await form.getByRole("button", { name: "预览对账单", exact: true }).click();
     await expect(form.getByRole("button", { name: "导出当前预览 CSV", exact: true })).toBeVisible();
     const query = readStatementQuery(api.calls.find(call => call.method === "POST")?.body);
-    expect(query.side).toBe(scenario.side);
-    expect(query.from).toBe("2026-09-01");
-    expect(query.to).toBe("2026-10-01");
+    expect(query).toEqual({
+      side: scenario.side, from: "2026-09-01", to: "2026-10-01", timezone: "Asia/Shanghai",
+      customer: scenario.side === "provider" ? "" : "UI Review Customer",
+      project_ids: scenario.side === "provider" ? [] : [project.id],
+      provider_id: "", resource_id: "", model: "",
+    });
     if (scenario.state === "pending") {
       await expect(form.getByRole("status")).toContainText("未知金额: 1");
       await expect(form.getByText("US$0.00", { exact: true })).toBeVisible();

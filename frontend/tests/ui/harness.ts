@@ -43,11 +43,11 @@ export async function openBilling(page: Page) {
   await expect(section(page, "费用对账单").getByRole("option", { name: "UI Review Project (prj_ui)", exact: true })).toBeAttached();
 }
 export async function capture(page: Page, testInfo: TestInfo, subject: Locator, id: string, title: string) {
-  testInfo.annotations.push({ type: "ui-scenario", description: id }, { type: "ui-title", description: title });
+  testInfo.annotations.push({ type: "ui-capture", description: JSON.stringify({ id, title }) });
   if (process.env.TOKENHUB_UI_CAPTURE !== "1") return;
   await page.evaluate(() => document.fonts.ready);
   await subject.scrollIntoViewIfNeeded();
   const image = testInfo.outputPath(`${id}.png`);
   await subject.screenshot({ path: image, animations: "disabled", caret: "hide" });
-  await testInfo.attach(title, { path: image, contentType: "image/png" });
+  await testInfo.attach(id, { path: image, contentType: "image/png" });
 }
