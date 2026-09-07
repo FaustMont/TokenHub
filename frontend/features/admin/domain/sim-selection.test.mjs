@@ -212,6 +212,7 @@ test("SIM selection excludes a quarantined preferred plugin and uses the active 
         ]),
         status: "failed_startup",
         loadable: false,
+        active_kinds: [],
         active_capabilities: [],
         lifecycle: { active_enabled: false, active_version: "" },
       },
@@ -240,6 +241,7 @@ test("SIM selection does not inherit a failed SIM kind into a non-SIM active fal
         ]),
         status: "failed_startup",
         loadable: false,
+        active_kinds: ["provider"],
         active_capabilities: [{ kind: "provider", name: "chat_completions", subject: "shared" }],
         lifecycle: { active_enabled: true, active_version: "builtin" },
       },
@@ -255,6 +257,31 @@ test("SIM selection does not inherit a failed SIM kind into a non-SIM active fal
   assert.equal(selection.theme.capability?.pluginID, "tokenhub.sim.default");
   assert.equal(selection.layout.capability?.pluginID, "tokenhub.sim.default");
   assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), true);
+});
+
+test("SIM selection preserves an active SIM implemented only through Admin UI capabilities", () => {
+  const selection = resolveSIMSelection({
+    preference: { active_sim_plugin_id: "tokenhub.sim.admin-ui" },
+    plugins: [
+      {
+        ...simPlugin("tokenhub.sim.admin-ui", []),
+        active_kinds: ["sim"],
+        active_capabilities: [
+          { kind: "admin_ui", name: "theme.tokens", subject: "admin-ui-theme" },
+          { kind: "admin_ui", name: "layout.preset", subject: "admin-ui-layout" },
+        ],
+        lifecycle: { active_enabled: true, active_version: "1.0.0" },
+      },
+      simPlugin("tokenhub.sim.default", [
+        themeCapability("default-theme", { default: true }),
+        layoutCapability("default-layout", { default: true }),
+      ]),
+    ],
+  });
+
+  assert.equal(selection.activeSIMPluginID, "tokenhub.sim.admin-ui");
+  assert.equal(selection.activeSIMPlugin?.id, "tokenhub.sim.admin-ui");
+  assert.equal(selection.warnings.some((warning) => warning.code === "missing_preferred_sim"), false);
 });
 
 function simPlugin(id, capabilities) {
