@@ -20,7 +20,7 @@ func TestExternalMockProviderFixtureRegistersAdapterContract(t *testing.T) {
 		t.Fatalf("load external mock provider fixture: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 
 	descriptor, ok := registry.Describe("external_mock")
 	if !ok {
@@ -187,7 +187,7 @@ func TestExternalMockProviderFixtureServesCatalogAndProbe(t *testing.T) {
 		t.Fatalf("load external mock provider fixture: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 
 	provider := Provider{ID: "prv_external_mock", Type: "external_mock", APIKey: "provider-secret"}
 	resource := ProviderResource{ID: "rsrc_external_mock", ProviderID: "prv_external_mock", ResourceType: "external_mock_account"}
@@ -235,7 +235,9 @@ func newExternalMockProviderGatewayServer(t *testing.T, model string, modality s
 		Weight:        100,
 		Status:        StatusActive,
 	})
-	return NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: externalMockProviderFixtureDir()}), secret
+	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: externalMockProviderFixtureDir()})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, externalMockProviderFixtureDir())
+	return server, secret
 }
 
 func externalMockProviderFixtureDir() string {

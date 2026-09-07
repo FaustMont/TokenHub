@@ -60,6 +60,16 @@ func (r Runtime) loadInto(plugins *Registry, chain *GatewayChainRegistry, adminU
 		backgroundJobs: backgroundJobs,
 		hookRunner:     hookRunner,
 	}
+	dependencyDescriptors := targets.plugins.List()
+	for _, dir := range dirs {
+		candidate, candidateErr := readPackageForLoad(dir)
+		if candidateErr != nil || !candidate.ManifestValidated || !candidate.State.Enabled() {
+			continue
+		}
+		descriptor := candidate.Manifest.Descriptor()
+		descriptor.Status = candidate.State.Status
+		dependencyDescriptors = append(dependencyDescriptors, descriptor)
+	}
 	packageDirsByID := map[string]string{}
 	packages := make([]Package, 0, len(dirs))
 	for _, dir := range dirs {
@@ -93,6 +103,18 @@ func (r Runtime) loadInto(plugins *Registry, chain *GatewayChainRegistry, adminU
 		if !candidate.ManifestValidated && !pkg.State.Enabled() {
 			packages = append(packages, pkg)
 			continue
+		}
+		if pkg.State.Enabled() {
+			if err := ValidateManifestDependencies(pkg.Manifest, dependencyDescriptors); err != nil {
+				failed, ok, failErr := r.markPackageLoadFailure(pkg.Dir, targets, StatusFailedStartup, PackageLifecycleStartupFailed, err)
+				if failErr != nil {
+					return nil, failErr
+				}
+				if ok {
+					packages = append(packages, failed)
+				}
+				continue
+			}
 		}
 		staged := targets.clone()
 		if err := staged.activatePackage(pkg); err != nil {

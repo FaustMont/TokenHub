@@ -41,7 +41,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 
 	resolved, err := registry.Resolve("custom_stdio")
 	if err != nil {
@@ -298,7 +298,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok || !adapterSupports(descriptor, AdapterCapabilityChatStream) {
 		t.Fatalf("adapter descriptor = %+v, want chat_stream", descriptor)
@@ -339,7 +339,7 @@ func TestDisabledExternalProviderPluginAdapterIsNotRegistered(t *testing.T) {
 		t.Fatalf("plugin descriptor = %+v, want disabled descriptor", pluginDescriptor)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	if descriptor, ok := registry.Describe("custom_stdio"); ok {
 		t.Fatalf("disabled provider plugin registered adapter: %+v", descriptor)
 	}
@@ -396,7 +396,7 @@ printf '{"response":{},"usage":{}}'
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 
 	descriptor, ok := registry.Describe("native_stdio")
 	if !ok {
@@ -443,6 +443,7 @@ printf '{"response":{"id":"chatcmpl_stdio","object":"chat.completion","choices":
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "plugin-chat",
@@ -515,6 +516,7 @@ esac
 		Status:             StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "plugin-account-chat",
@@ -562,6 +564,7 @@ JSON
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":  "plugin-stream-chat",
@@ -607,7 +610,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok {
 		t.Fatal("external provider descriptor was not registered")
@@ -666,7 +669,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok || !adapterSupports(descriptor, AdapterCapabilityResponseStream) {
 		t.Fatalf("adapter descriptor = %+v, want responses_stream", descriptor)
@@ -725,6 +728,7 @@ JSON
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses", map[string]any{
 		"model":  "plugin-responses-stream",
@@ -765,7 +769,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok || !adapterSupports(descriptor, AdapterCapabilityCompact) {
 		t.Fatalf("adapter descriptor = %+v, want responses_compact", descriptor)
@@ -827,6 +831,7 @@ esac
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/responses/compact", map[string]any{
 		"model": "plugin-compact",
@@ -882,6 +887,7 @@ esac
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model": "plugin-chat-bridge",
@@ -950,6 +956,7 @@ esac
 		Status:             StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root, SecretKey: "plugin-compact-affinity-secret"})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	request := httptest.NewRequest(http.MethodPost, "/v1/responses/compact", strings.NewReader(
 		`{"model":"plugin-affinity-compact","input":"hello","client_metadata":{"session_id":"plugin-compact-session"}}`,
@@ -1000,7 +1007,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok || !adapterSupports(descriptor, AdapterCapabilityImageGenerate) {
 		t.Fatalf("adapter descriptor = %+v, want image_generation", descriptor)
@@ -1066,6 +1073,7 @@ esac
 		Status:        StatusActive,
 	})
 	server := NewWithConfig(store, Config{AdminToken: "plugin-admin", PluginDir: root})
+	allowUnsandboxedProviderCommandsForTest(t, server.adapterRegistry, root)
 
 	response := doImageJSON(t, server.Handler(), http.MethodPost, "/v1/images/generations", map[string]any{
 		"model":           openAIImageModelName,
@@ -1109,7 +1117,7 @@ esac
 		t.Fatalf("load plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 	descriptor, ok := registry.Describe("custom_stdio")
 	if !ok {
 		t.Fatal("external provider descriptor was not registered")
@@ -1162,10 +1170,42 @@ printf '{"response":{},"usage":{}}'
 		t.Fatalf("discover plugin packages: %v", err)
 	}
 	registry := NewAdapterRegistry()
-	registerExternalProviderPluginAdapters(registry, packages)
+	registerExternalProviderPluginAdaptersForTest(registry, packages)
 
 	if _, err := registry.Resolve("custom_stdio"); err == nil || !strings.Contains(err.Error(), "Provider adapter is not registered") {
 		t.Fatalf("resolve external provider without credential permission err = %v", err)
+	}
+}
+
+func registerExternalProviderPluginAdaptersForTest(registry *AdapterRegistry, packages []pluginmeta.Package) {
+	registerExternalProviderPluginAdapters(registry, packages)
+	useUnsandboxedProviderCommandsForTest(registry, packages)
+}
+
+func allowUnsandboxedProviderCommandsForTest(t *testing.T, registry *AdapterRegistry, root string) {
+	t.Helper()
+	packages, err := pluginmeta.NewRuntime(root).Discover()
+	if err != nil {
+		t.Fatalf("discover provider plugin fixtures: %v", err)
+	}
+	useUnsandboxedProviderCommandsForTest(registry, packages)
+}
+
+func useUnsandboxedProviderCommandsForTest(registry *AdapterRegistry, packages []pluginmeta.Package) {
+	for _, pkg := range packages {
+		if pkg.Manifest.Entry.Backend == nil {
+			continue
+		}
+		grant := pluginmeta.PermissionGrantFromManifest(pkg.Manifest.Permissions)
+		grant.Enforced = false
+		adapter := newProviderPluginAdapter(pkg)
+		adapter.commandRunner = pluginmeta.NewProviderCommandRunner(pkg.Dir, pkg.Manifest.Entry.Backend.Command, grant)
+		for _, providerType := range pkg.Manifest.Capabilities.ProviderTypes {
+			providerType = strings.TrimSpace(providerType)
+			if _, registered := registry.adapters[providerType]; registered {
+				registry.adapters[providerType] = adapter
+			}
+		}
 	}
 }
 

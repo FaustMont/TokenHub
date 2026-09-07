@@ -14,6 +14,10 @@ func (s *Server) reloadPluginRuntime(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		s.installServerPluginHandlers(&bootstrap)
+
+		s.pluginRuntimeMu.Lock()
+		defer s.pluginRuntimeMu.Unlock()
 		s.pluginRegistry = bootstrap.pluginRegistry
 		s.gatewayChain = bootstrap.gatewayChain
 		s.gatewayHooks = bootstrap.gatewayHooks
@@ -30,7 +34,6 @@ func (s *Server) reloadPluginRuntime(ctx context.Context) error {
 		if s.providerCatalog != nil {
 			s.providerCatalog.UsePluginCatalogTypes(bootstrap.adapterRegistry)
 		}
-		s.installServerPluginHandlers()
 		return nil
 	})
 }

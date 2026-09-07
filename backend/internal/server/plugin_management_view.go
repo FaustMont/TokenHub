@@ -92,9 +92,6 @@ func (s *Server) providerPluginUsageFacts() map[string]pluginUsageFacts {
 }
 
 func pluginDescriptorHasSettings(descriptor pluginmeta.Descriptor) bool {
-	if len(descriptor.Settings.Scopes) > 0 {
-		return true
-	}
 	for _, capability := range descriptor.Capabilities {
 		if capability.Kind == pluginmeta.CapabilityKindSIM && capability.Name == pluginmeta.SIMCapabilityThemeTokens {
 			return true

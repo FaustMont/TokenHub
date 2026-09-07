@@ -12,7 +12,7 @@ import { formatBytes } from "../domain/formatting";
 import { localizedContributionTitle } from "../domain/plugin-localization";
 import { pluginMarketplaceDisplay } from "../domain/plugin-marketplace";
 import { pluginManagerDisplayState } from "../domain/plugin-manager";
-import { languageLocale, tx } from "../i18n/runtime";
+import { formatLocaleNumber, formatTranslationTemplate, languageLocale, tx } from "../i18n/runtime";
 
 export type PluginPackageInspection = {
   file_count: number;
@@ -358,5 +358,8 @@ function compatibilityDescription(verdict: string) {
 
 function packageLabel(packageInspection?: PluginPackageInspection) {
   if (!packageInspection) return tx("内置实现");
-  return `${packageInspection.file_count} ${tx("个文件")} · ${formatBytes(packageInspection.total_size)}`;
+  return formatTranslationTemplate(tx("{count} 个文件 · {size}"), {
+    count: formatLocaleNumber(packageInspection.file_count),
+    size: formatBytes(packageInspection.total_size),
+  });
 }

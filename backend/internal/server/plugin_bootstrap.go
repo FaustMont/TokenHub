@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -67,16 +68,16 @@ func bootstrapServerPlugins(store Store, config Config, adapters map[string]any)
 	}, nil
 }
 
-func (s *Server) installServerPluginHandlers() {
-	if s == nil {
+func (s *Server) installServerPluginHandlers(bootstrap *serverPluginBootstrap) {
+	if s == nil || bootstrap == nil {
 		return
 	}
-	registerBuiltinPluginActions(s)
-	registerBuiltinPluginBackgroundJobs(s)
-	if s.adapterRegistry != nil {
-		configureProviderImageCapabilityProfiles(s.adapterRegistry.adapters, func(providerType string) []providerImageCapabilityRouteProfile {
+	registerBuiltinPluginActions(s, bootstrap.pluginActions)
+	registerBuiltinPluginBackgroundJobs(s, bootstrap.pluginBackgroundJobs)
+	if bootstrap.adapterRegistry != nil {
+		configureProviderImageCapabilityProfiles(bootstrap.adapterRegistry.adapters, func(providerType string) []providerImageCapabilityRouteProfile {
 			profiles := []providerImageCapabilityRouteProfile{}
-			for _, profile := range providerImageCapabilityRouteProfilesFromActions(s.pluginActions.List()) {
+			for _, profile := range providerImageCapabilityRouteProfilesFromActions(bootstrap.pluginActions.List()) {
 				if profile.ProviderType == strings.TrimSpace(providerType) {
 					profiles = append(profiles, profile)
 				}
@@ -84,9 +85,19 @@ func (s *Server) installServerPluginHandlers() {
 			return profiles
 		})
 	}
-	s.syncProviderImageCapabilityRouteProfiles()
-	if s.credentialRefresh != nil {
-		s.credentialRefresh.pluginRefresh = s.refreshProviderResourceCredentialsWithPluginAction
-		s.credentialRefresh.pluginJob = s.providerCredentialRefreshBackgroundJobRegistered
+	if store, ok := s.store.(providerImageCapabilityProfileStore); ok {
+		store.setProviderImageCapabilityRouteProfiles(providerImageCapabilityRouteProfilesFromActions(bootstrap.pluginActions.List()))
+	}
+	if s.credentialRefresh != nil && s.credentialRefresh.pluginRefresh == nil {
+		s.credentialRefresh.pluginRefresh = func(ctx context.Context, resource ProviderResource) (bool, error) {
+			s.pluginRuntimeMu.RLock()
+			defer s.pluginRuntimeMu.RUnlock()
+			return s.refreshProviderResourceCredentialsWithPluginAction(ctx, resource)
+		}
+		s.credentialRefresh.pluginJob = func(providerType string) bool {
+			s.pluginRuntimeMu.RLock()
+			defer s.pluginRuntimeMu.RUnlock()
+			return s.providerCredentialRefreshBackgroundJobRegistered(providerType)
+		}
 	}
 }

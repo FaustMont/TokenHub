@@ -115,8 +115,10 @@ test("admin can inspect plugin details and files without fake settings", async (
   expect(settingsBox!.width).toBeGreaterThanOrEqual(80);
 
   await pluginSearch.fill("");
-  const detailOnlyBox = await page.getByRole("button", { name: "查看插件详情 TokenHub Core Provider Settings" })
-    .locator("xpath=ancestor::article")
+  const detailOnlyRow = page.getByRole("button", { name: "查看插件 TokenHub Core Provider Settings 的详情" })
+    .locator("xpath=ancestor::article");
+  await expect(detailOnlyRow.getByRole("button", { name: "设置", exact: true })).toHaveCount(0);
+  const detailOnlyBox = await detailOnlyRow
     .getByRole("button", { name: "详情", exact: true })
     .boundingBox();
   expect(detailOnlyBox).not.toBeNull();
@@ -126,7 +128,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await expect.poll(() => page.locator(".plugin-installed-actions").evaluateAll((actions) => actions.every((item) => item.scrollWidth <= item.clientWidth))).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "查看插件详情 TokenHub Core Provider Settings" }).click();
+  await page.getByRole("button", { name: "查看插件 TokenHub Core Provider Settings 的详情" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.admin\.core-provider$/);
   await expect(page.getByText("兼容", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "文件" }).click();
@@ -135,7 +137,7 @@ test("admin can inspect plugin details and files without fake settings", async (
   await expect(page.getByText("该内置插件没有独立安装包。")).toHaveCount(0);
   await page.getByRole("button", { name: "返回插件列表" }).click();
 
-  await page.getByRole("button", { name: "查看插件详情 External Trace Hook" }).click();
+  await page.getByRole("button", { name: "查看插件 External Trace Hook 的详情" }).click();
   await expect(page).toHaveURL(/\/plugins\/tokenhub\.extension\.external-trace$/);
   await expect(page.getByRole("heading", { name: "External Trace Hook" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "这个插件做什么" })).toBeVisible();

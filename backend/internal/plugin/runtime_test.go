@@ -530,7 +530,7 @@ capabilities:
 	}
 }
 
-func TestRuntimeLoadIntoWithActionsBindsBackendCommand(t *testing.T) {
+func TestRuntimeLoadedActionCommandFailsClosedWithoutIsolation(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "action")
 	writeManifest(t, pluginDir, `
@@ -565,16 +565,15 @@ printf '{"data":{"status":"started"}}'
 		t.Fatalf("load runtime: %v", err)
 	}
 	result, err := actions.Execute(t.Context(), ActionInvocation{PluginID: "tokenhub.action", ActionID: "sync.run"})
-	if err != nil {
-		t.Fatalf("execute runtime-bound action: %v", err)
+	if err == nil || result.Data != nil {
+		t.Fatalf("runtime-bound action result = %+v, err = %v; want isolation refusal", result, err)
 	}
-	data := result.Data.(map[string]any)
-	if data["status"] != "started" {
-		t.Fatalf("action result = %+v, want started", data)
+	if code, ok := PluginErrorCodeOf(err); !ok || code != PluginErrorPermissionUnsupported {
+		t.Fatalf("action error code = %q, %t; want %q for %v", code, ok, PluginErrorPermissionUnsupported, err)
 	}
 }
 
-func TestRuntimeLoadIntoWithActionsAndBackgroundRegistersJobs(t *testing.T) {
+func TestRuntimeLoadedBackgroundCommandFailsClosedWithoutIsolation(t *testing.T) {
 	root := t.TempDir()
 	pluginDir := filepath.Join(root, "jobs")
 	writeManifest(t, pluginDir, `
@@ -633,12 +632,11 @@ printf '{"data":{"refreshed":true}}'
 		Trigger:  "manual",
 		Payload:  json.RawMessage(`{"resource_id":"res_1"}`),
 	})
-	if err != nil {
-		t.Fatalf("execute background job: %v", err)
+	if err == nil || result.Data != nil {
+		t.Fatalf("runtime-bound background result = %+v, err = %v; want isolation refusal", result, err)
 	}
-	data := result.Data.(map[string]any)
-	if data["refreshed"] != true {
-		t.Fatalf("background job result = %+v, want refreshed", data)
+	if code, ok := PluginErrorCodeOf(err); !ok || code != PluginErrorPermissionUnsupported {
+		t.Fatalf("background error code = %q, %t; want %q for %v", code, ok, PluginErrorPermissionUnsupported, err)
 	}
 }
 

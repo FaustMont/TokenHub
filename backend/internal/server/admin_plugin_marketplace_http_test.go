@@ -93,21 +93,18 @@ kinds:
 	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
 		t.Fatalf("decode marketplace response: %v", err)
 	}
-	if len(body.Data.Plugins) != 1 || !body.Data.Plugins[0].Installed || !body.Data.Plugins[0].UpdateAvailable {
+	if len(body.Data.Plugins) != 1 || !body.Data.Plugins[0].Installed || body.Data.Plugins[0].UpdateAvailable {
 		t.Fatalf("marketplace plugin annotation = %+v", body.Data.Plugins)
 	}
 	plugin := body.Data.Plugins[0].Plugin
-	if plugin.Version != "1.1.0" || plugin.Distribution == nil ||
-		plugin.Distribution.ChecksumSHA256 != strings.Repeat("4", 64) ||
-		plugin.Distribution.SignatureAlgorithm != pluginmeta.PluginSignatureAlgorithmEd25519 ||
-		plugin.Distribution.SignatureKeyID != "tokenhub-official-2026" {
-		t.Fatalf("marketplace plugin distribution = %+v", plugin)
+	if plugin.Version != "1.1.0" || plugin.Distribution != nil {
+		t.Fatalf("unverified online marketplace distribution = %+v", plugin)
 	}
 	if plugin.Marketplace == nil || plugin.Marketplace.Compatibility == nil ||
-		plugin.Marketplace.Compatibility.Verdict != pluginmeta.MarketplaceCompatibilityNeedsReview {
+		plugin.Marketplace.Compatibility.Verdict != pluginmeta.MarketplaceCompatibilityUnknown {
 		t.Fatalf("marketplace compatibility = %+v", plugin.Marketplace)
 	}
-	if plugin.Marketplace.Publisher == nil || !plugin.Marketplace.Publisher.Verified || plugin.Marketplace.Publisher.ID != "tokenhub-official" {
+	if plugin.Marketplace.Publisher == nil || plugin.Marketplace.Publisher.Verified || plugin.Marketplace.Publisher.ID != "tokenhub-official" {
 		t.Fatalf("marketplace publisher = %+v", plugin.Marketplace.Publisher)
 	}
 	if len(plugin.Marketplace.Advisories) != 1 || plugin.Marketplace.Advisories[0].Severity != "high" {

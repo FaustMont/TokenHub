@@ -597,6 +597,15 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, err)
 		return
 	}
+	candidate, err := pluginmeta.InspectInstallZipArchive(archive)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusBadRequest, "plugin_package_inspection_failed", "Plugin package could not be inspected"))
+		return
+	}
+	if candidate.ID != pluginID {
+		writeError(w, r, NewHTTPError(http.StatusBadRequest, "plugin_id_mismatch", "Candidate plugin ID does not match the requested plugin"))
+		return
+	}
 	current, _, err := pluginmeta.NewRuntime(s.config.PluginDir).DescribeInstalledPackage(pluginID)
 	if err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin package could not be inspected"))
@@ -637,6 +646,10 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 	}
 	if err := removeSupersededPluginPackageDir(s.config.PluginDir, current.Dir, pkg.Dir); err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_update_cleanup_failed", "Plugin package update cleanup failed"))
+		return
+	}
+	if err := s.reloadPluginRuntime(r.Context()); err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_update_failed", "Plugin runtime could not be reloaded"))
 		return
 	}
 	updated := pkg.Manifest.Descriptor()
@@ -786,6 +799,10 @@ func (s *Server) handleAdminPluginStatePatch(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, NewHTTPError(http.StatusBadRequest, "invalid_plugin_state", err.Error()))
 		return
 	}
+	if err := s.validatePluginLifecycleDependencies(current.Manifest, pluginID, state.Enabled()); err != nil {
+		writeError(w, r, err)
+		return
+	}
 	pkg, err := runtime.UpdatePackageState(pluginID, state)
 	if err != nil {
 		if errors.Is(err, pluginmeta.ErrPackageNotFound) {
@@ -841,6 +858,10 @@ func (s *Server) handleAdminBuiltInPluginStatePatch(w http.ResponseWriter, r *ht
 	state, err := adminPluginStatePatchState(currentState, status, reason)
 	if err != nil {
 		writeError(w, r, NewHTTPError(http.StatusBadRequest, "invalid_plugin_state", err.Error()))
+		return
+	}
+	if err := s.validatePluginLifecycleDependencies(pluginmeta.Manifest{Dependencies: descriptor.Dependencies}, pluginID, state.Enabled()); err != nil {
+		writeError(w, r, err)
 		return
 	}
 	state, err = runtime.UpdateBuiltInPackageState(pluginID, state)
@@ -915,6 +936,20 @@ func adminPluginLifecycleEventForStatus(status pluginmeta.Status) pluginmeta.Pac
 	}
 }
 
+func (s *Server) validatePluginLifecycleDependencies(manifest pluginmeta.Manifest, pluginID string, enabling bool) error {
+	descriptors := s.pluginRegistry.List()
+	if enabling {
+		if err := pluginmeta.ValidateManifestDependencies(manifest, descriptors); err != nil {
+			return NewHTTPError(http.StatusConflict, "plugin_dependency_unsatisfied", err.Error())
+		}
+		return nil
+	}
+	if err := pluginmeta.ValidatePluginDeactivation(pluginID, descriptors); err != nil {
+		return NewHTTPError(http.StatusConflict, "plugin_dependency_in_use", err.Error())
+	}
+	return nil
+}
+
 func (s *Server) handleAdminPluginDelete(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.requireAdmin(w, r, "providers", r.Method); !ok {
 		return
@@ -922,6 +957,10 @@ func (s *Server) handleAdminPluginDelete(w http.ResponseWriter, r *http.Request)
 	pluginID := strings.TrimSpace(r.PathValue("plugin_id"))
 	if pluginID == "" {
 		writeError(w, r, NewHTTPError(http.StatusNotFound, "plugin_not_found", "Plugin not found"))
+		return
+	}
+	if err := pluginmeta.ValidatePluginDeactivation(pluginID, s.pluginRegistry.List()); err != nil {
+		writeError(w, r, NewHTTPError(http.StatusConflict, "plugin_dependency_in_use", err.Error()))
 		return
 	}
 	pkg, err := pluginmeta.NewRuntime(s.config.PluginDir).UninstallPackage(pluginID)
@@ -1099,6 +1138,34 @@ func removeSupersededPluginPackageDir(root string, previousDir string, installed
 }
 
 func (s *Server) installPluginArchive(archive []byte, options pluginmeta.InstallOptions) (pluginmeta.Package, error) {
+	manifest, err := pluginmeta.InspectInstallZipArchive(archive)
+	if err != nil {
+		return pluginmeta.Package{}, err
+	}
+	descriptors := s.pluginRegistry.List()
+	if err := pluginmeta.ValidateManifestDependencies(manifest, descriptors); err != nil {
+		return pluginmeta.Package{}, err
+	}
+	state, err := pluginmeta.NormalizePackageState(options.InitialState)
+	if err != nil {
+		return pluginmeta.Package{}, err
+	}
+	candidate := manifest.Descriptor()
+	candidate.Status = state.Status
+	replaced := false
+	for index := range descriptors {
+		if descriptors[index].ID == candidate.ID {
+			descriptors[index] = candidate
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		descriptors = append(descriptors, candidate)
+	}
+	if err := pluginmeta.ValidatePluginDependencySet(descriptors); err != nil {
+		return pluginmeta.Package{}, err
+	}
 	return pluginmeta.NewRuntime(s.config.PluginDir).InstallZipArchive(archive, options)
 }
 
@@ -1108,6 +1175,8 @@ func pluginInstallHTTPError(err error) error {
 		return NewHTTPError(http.StatusBadRequest, "plugin_checksum_mismatch", "Plugin package checksum verification failed")
 	case errors.Is(err, pluginmeta.ErrInstallPackageExists):
 		return NewHTTPError(http.StatusConflict, "plugin_package_exists", "Plugin package is already installed")
+	case errors.Is(err, pluginmeta.ErrPluginDependencyUnsatisfied):
+		return NewHTTPError(http.StatusConflict, "plugin_dependency_unsatisfied", err.Error())
 	default:
 		return NewHTTPError(http.StatusBadRequest, "plugin_install_failed", err.Error())
 	}
