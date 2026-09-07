@@ -14,6 +14,8 @@ export type SIMPluginDescriptorLike = {
   status?: unknown;
   loadable?: unknown;
   capabilities?: unknown;
+  active_capabilities?: unknown;
+  lifecycle?: unknown;
 };
 
 export type SIMJSONValue = string | number | boolean | null | SIMJSONValue[] | { [key: string]: SIMJSONValue };
@@ -74,15 +76,31 @@ export function simRegistryFromPlugins(plugins: readonly SIMPluginDescriptorLike
 export function simCapabilitiesFromPlugins(plugins: readonly SIMPluginDescriptorLike[] | undefined): SIMCapability[] {
   const capabilities: SIMCapability[] = [];
   for (const plugin of plugins ?? []) {
-    if (!simPluginIsOperational(plugin)) continue;
-    const rawCapabilities = Array.isArray(plugin.capabilities) ? plugin.capabilities : [];
+    const operationalPlugin = operationalSIMPlugin(plugin);
+    if (!operationalPlugin) continue;
+    const rawCapabilities = Array.isArray(operationalPlugin.capabilities) ? operationalPlugin.capabilities : [];
     for (const rawCapability of rawCapabilities) {
       if (!rawCapability || typeof rawCapability !== "object" || Array.isArray(rawCapability)) continue;
-      const parsed = parseSIMCapability(plugin, rawCapability as SIMPluginCapabilityDescriptorLike);
+      const parsed = parseSIMCapability(operationalPlugin, rawCapability as SIMPluginCapabilityDescriptorLike);
       if (parsed) capabilities.push(parsed);
     }
   }
   return capabilities.sort(compareSIMCapabilities);
+}
+
+function operationalSIMPlugin(plugin: SIMPluginDescriptorLike): SIMPluginDescriptorLike | null {
+  const lifecycle = plugin.lifecycle && typeof plugin.lifecycle === "object" && !Array.isArray(plugin.lifecycle)
+    ? plugin.lifecycle as Record<string, unknown>
+    : null;
+  if (lifecycle && typeof lifecycle.active_enabled === "boolean") {
+    if (!lifecycle.active_enabled) return null;
+    return {
+      ...plugin,
+      version: stringValue(lifecycle.active_version) || plugin.version,
+      capabilities: Array.isArray(plugin.active_capabilities) ? plugin.active_capabilities : [],
+    };
+  }
+  return simPluginIsOperational(plugin) ? plugin : null;
 }
 
 function simPluginIsOperational(plugin: SIMPluginDescriptorLike) {

@@ -22,23 +22,24 @@ const (
 type adminPluginDescriptorResponse struct {
 	pluginmeta.Descriptor
 
-	Category          pluginmeta.Category              `json:"category"`
-	Summary           string                           `json:"summary"`
-	HasSettings       bool                             `json:"has_settings"`
-	Legacy            bool                             `json:"legacy"`
-	Reason            string                           `json:"reason,omitempty"`
-	RestartRequired   bool                             `json:"restart_required"`
-	Health            pluginmeta.PackageHealthStatus   `json:"health,omitempty"`
-	Mandatory         bool                             `json:"mandatory,omitempty"`
-	RollbackAvailable bool                             `json:"rollback_available"`
-	RollbackVersion   string                           `json:"rollback_version,omitempty"`
-	RollbackTarget    pluginmeta.PackageRollbackTarget `json:"rollback_target,omitempty"`
-	LastErrorCode     string                           `json:"last_error_code,omitempty"`
-	AuditEvent        pluginmeta.PackageLifecycleEvent `json:"audit_event,omitempty"`
-	Loadable          bool                             `json:"loadable"`
-	Lifecycle         adminPluginLifecycleResponse     `json:"lifecycle"`
-	Compatibility     adminPluginCompatibilityResponse `json:"compatibility"`
-	Trust             adminPluginTrustSummaryResponse  `json:"trust"`
+	Category           pluginmeta.Category               `json:"category"`
+	Summary            string                            `json:"summary"`
+	HasSettings        bool                              `json:"has_settings"`
+	Legacy             bool                              `json:"legacy"`
+	Reason             string                            `json:"reason,omitempty"`
+	RestartRequired    bool                              `json:"restart_required"`
+	Health             pluginmeta.PackageHealthStatus    `json:"health,omitempty"`
+	Mandatory          bool                              `json:"mandatory,omitempty"`
+	RollbackAvailable  bool                              `json:"rollback_available"`
+	RollbackVersion    string                            `json:"rollback_version,omitempty"`
+	RollbackTarget     pluginmeta.PackageRollbackTarget  `json:"rollback_target,omitempty"`
+	LastErrorCode      string                            `json:"last_error_code,omitempty"`
+	AuditEvent         pluginmeta.PackageLifecycleEvent  `json:"audit_event,omitempty"`
+	Loadable           bool                              `json:"loadable"`
+	ActiveCapabilities []pluginmeta.CapabilityDescriptor `json:"active_capabilities,omitempty"`
+	Lifecycle          adminPluginLifecycleResponse      `json:"lifecycle"`
+	Compatibility      adminPluginCompatibilityResponse  `json:"compatibility"`
+	Trust              adminPluginTrustSummaryResponse   `json:"trust"`
 }
 
 type adminPluginLifecycleResponse struct {
@@ -187,7 +188,9 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 			DesiredVersion: descriptor.Version,
 			ActiveVersion:  activeDescriptor.Version,
 		})
-		response = append(response, adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts))
+		plugin := adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts)
+		plugin.ActiveCapabilities = append([]pluginmeta.CapabilityDescriptor(nil), activeDescriptor.Capabilities...)
+		response = append(response, plugin)
 		seen[descriptor.ID] = true
 	}
 	for _, pkg := range installed {
@@ -204,10 +207,12 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 func (s *Server) adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, packageInstalled bool, installed bool) adminPluginDescriptorResponse {
 	activeStatus := pluginmeta.StatusDisabled
 	activeVersion := ""
+	var activeCapabilities []pluginmeta.CapabilityDescriptor
 	if s != nil && s.pluginRegistry != nil {
 		if active, ok := s.pluginRegistry.Describe(descriptor.ID); ok {
 			activeStatus = active.Status
 			activeVersion = active.Version
+			activeCapabilities = append(activeCapabilities, active.Capabilities...)
 		}
 	}
 	facts := pluginmeta.DeriveLifecycleFacts(pluginmeta.LifecycleFactsInput{
@@ -220,7 +225,9 @@ func (s *Server) adminPluginDescriptorForPackage(descriptor pluginmeta.Descripto
 		DesiredVersion: descriptor.Version,
 		ActiveVersion:  activeVersion,
 	})
-	return adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts)
+	plugin := adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts)
+	plugin.ActiveCapabilities = activeCapabilities
+	return plugin
 }
 
 func adminPluginDescriptorForPackageWithFacts(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, packageInstalled bool, facts pluginmeta.LifecycleFacts) adminPluginDescriptorResponse {
@@ -589,10 +596,17 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	runtime := pluginmeta.NewRuntime(s.config.PluginDir)
-	current, found, err := runtime.DescribeInstalledPackage(pluginID)
+	packages, err := runtime.DiscoverRecoverable()
 	if err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin package could not be inspected"))
 		return
+	}
+	current, found := pluginmeta.Package{}, false
+	for _, pkg := range packages {
+		if pkg.Manifest.ID == pluginID {
+			current, found = pkg, true
+			break
+		}
 	}
 	if !found {
 		writeError(w, r, NewHTTPError(http.StatusNotFound, "plugin_not_found", "Plugin not found"))
@@ -635,9 +649,14 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 	}
 	updateState.RestartRequired = false
 	updateState.Health = pluginmeta.PackageHealthUnknown
-	updateState.RollbackVersion = current.Manifest.Version
-	updateState.RollbackTarget = pluginmeta.PackageRollbackTargetPreviousPackage
 	updateState.LastErrorCode = ""
+	preserveCurrentRollback := current.Manifest.Validate() == nil
+	if preserveCurrentRollback {
+		updateState.RollbackVersion = current.Manifest.Version
+		updateState.RollbackTarget = pluginmeta.PackageRollbackTargetPreviousPackage
+	} else if updateState.RollbackVersion == "" {
+		updateState.RollbackTarget = ""
+	}
 	if updateState.Enabled() {
 		updateState.AuditEvent = pluginmeta.PackageLifecycleEnabled
 	} else {
@@ -647,7 +666,7 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		ChecksumSHA256:   checksum,
 		TrustPolicy:      payload.TrustPolicy,
 		Replace:          true,
-		PreserveRollback: true,
+		PreserveRollback: preserveCurrentRollback,
 		InitialState:     updateState,
 	}
 	options, err = s.applyAdminPluginInstallTrust(r, archive, options, payload.adminPluginInstallTrustPayload, distribution)
@@ -655,9 +674,11 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, err)
 		return
 	}
-	if err := runtime.PreserveRollbackPackage(pluginID, current.Dir); err != nil {
-		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_prepare_failed", "Plugin rollback package could not be prepared"))
-		return
+	if preserveCurrentRollback {
+		if err := runtime.PreserveRollbackPackage(pluginID, current.Dir); err != nil {
+			writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_prepare_failed", "Plugin rollback package could not be prepared"))
+			return
+		}
 	}
 	pkg, err := s.installPluginArchive(archive, options)
 	if err != nil {

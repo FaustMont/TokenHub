@@ -165,6 +165,59 @@ func TestAdminPluginUpdateRecoversQuarantinedPackage(t *testing.T) {
 	}
 }
 
+func TestAdminPluginUpdateRecoversStructurallyInvalidManifest(t *testing.T) {
+	pluginDir := t.TempDir()
+	archive := adminPluginZip(t, map[string]string{
+		"plugin.yaml": adminPluginManifest("tokenhub.invalid-recovery", "Recovered Invalid Plugin", "2.0.0"),
+	})
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(archive)
+	}))
+	defer upstream.Close()
+	writeServerPluginManifest(t, filepath.Join(pluginDir, "invalid-recovery"), `
+schema_version: 99
+id: tokenhub.invalid-recovery
+name: Invalid Plugin
+version: 1.0.0
+distribution:
+  download_url: `+upstream.URL+`/invalid-recovery.zip
+  checksum_sha256: `+adminSHA256Hex(archive)+`
+tokenhub:
+  plugin_api: v2
+kinds: [extension]
+`)
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server.pluginInstallClient = upstream.Client()
+
+	if _, ok := server.pluginRegistry.Describe("tokenhub.invalid-recovery"); ok {
+		t.Fatal("invalid package was registered before recovery")
+	}
+	packages, err := pluginmeta.NewRuntime(pluginDir).DiscoverRecoverable()
+	if err != nil {
+		t.Fatalf("discover invalid package: %v", err)
+	}
+	if len(packages) != 1 || packages[0].Manifest.ID != "tokenhub.invalid-recovery" || !packages[0].State.FailedValidation() {
+		t.Fatalf("recoverable invalid packages = %+v", packages)
+	}
+
+	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.invalid-recovery/update", map[string]any{}, "dev_admin_token")
+	if response.Code != http.StatusOK {
+		t.Fatalf("update invalid plugin: expected 200, got %d: %s", response.Code, response.Body)
+	}
+	var body struct {
+		Data adminPluginInstallResponse `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+		t.Fatalf("decode recovered invalid plugin response: %v", err)
+	}
+	plugin := body.Data.Plugin
+	if plugin.Version != "2.0.0" || plugin.Status != pluginmeta.StatusEnabled || !plugin.Loadable ||
+		!plugin.Lifecycle.ActiveEnabled || plugin.Lifecycle.ActiveVersion != "2.0.0" ||
+		plugin.Reason != "" || plugin.LastErrorCode != "" || plugin.RollbackAvailable || plugin.RollbackVersion != "" {
+		t.Fatalf("recovered invalid plugin response = %+v", plugin)
+	}
+}
+
 func TestAdminPluginUpdateRejectsDependencyBreakingVersion(t *testing.T) {
 	pluginDir := t.TempDir()
 	archive := adminPluginZip(t, map[string]string{

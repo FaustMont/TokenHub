@@ -1038,7 +1038,7 @@ kinds:
 	quarantined := requireAdminPluginDescriptor(t, server, "tokenhub.provider.openai-codex")
 	if quarantined.Name != "External Codex" || quarantined.Version != "2.0.0" || quarantined.Source != pluginmeta.SourceLocalFile ||
 		quarantined.Lifecycle.DesiredVersion != "2.0.0" || quarantined.Lifecycle.ActiveVersion != pluginmeta.BuiltInVersion ||
-		quarantined.Lifecycle.DesiredEnabled || !quarantined.Lifecycle.ActiveEnabled {
+		quarantined.Lifecycle.DesiredEnabled || !quarantined.Lifecycle.ActiveEnabled || quarantined.Lifecycle.RestartRequired {
 		t.Fatalf("built-in fallback lifecycle = %+v", quarantined)
 	}
 

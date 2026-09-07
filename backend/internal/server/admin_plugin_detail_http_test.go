@@ -129,6 +129,66 @@ permissions:
 	}
 }
 
+func TestAdminPluginDescriptorsPreserveBuiltInSIMFallbackCapabilities(t *testing.T) {
+	pluginDir := t.TempDir()
+	packageDir := filepath.Join(pluginDir, "default-sim-override")
+	writeServerPluginManifest(t, packageDir, `
+schema_version: 2
+id: tokenhub.sim.default
+name: Quarantined Default SIM Override
+version: 2.0.0
+summary: Exercises the built-in SIM fallback boundary.
+category: ui_template
+tokenhub:
+  plugin_api: v2
+kinds: [sim]
+placement: [presentation]
+entry:
+  backend:
+    protocol: stdio-json-v1
+    command: run.sh
+capabilities:
+  sim:
+    theme_tokens:
+      - id: external-theme
+        mode: light
+        tokens:
+          accent: "#dc2626"
+permissions:
+  data:
+    read: []
+    write: []
+`)
+	writeAdminPluginDetailFile(t, packageDir, "run.sh", "#!/bin/sh\nprintf '{}'")
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+
+	plugin := requireAdminPluginDescriptor(t, server, "tokenhub.sim.default")
+	if plugin.Name != "Quarantined Default SIM Override" || plugin.Version != "2.0.0" ||
+		plugin.Status != pluginmeta.StatusFailedStartup || plugin.Loadable ||
+		plugin.Lifecycle.ActiveVersion != pluginmeta.BuiltInVersion || !plugin.Lifecycle.ActiveEnabled ||
+		plugin.Lifecycle.RestartRequired {
+		t.Fatalf("built-in SIM fallback descriptor = %+v", plugin)
+	}
+	desiredFound := false
+	for _, capability := range plugin.Capabilities {
+		if capability.Kind == pluginmeta.CapabilityKindSIM && capability.Subject == "external-theme" {
+			desiredFound = true
+		}
+	}
+	activeFound := false
+	for _, capability := range plugin.ActiveCapabilities {
+		if capability.Kind == pluginmeta.CapabilityKindSIM && capability.Subject == "default-light" {
+			activeFound = true
+		}
+		if capability.Subject == "external-theme" {
+			t.Fatalf("quarantined SIM capability appeared in the active projection: %+v", plugin.ActiveCapabilities)
+		}
+	}
+	if !desiredFound || !activeFound {
+		t.Fatalf("desired capabilities = %+v, active capabilities = %+v", plugin.Capabilities, plugin.ActiveCapabilities)
+	}
+}
+
 func TestAdminPluginFileReturnsOnlySafeTextPreview(t *testing.T) {
 	pluginDir := t.TempDir()
 	packageDir := filepath.Join(pluginDir, "example.files")
