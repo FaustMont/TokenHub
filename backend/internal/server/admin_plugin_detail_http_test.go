@@ -63,11 +63,11 @@ id: example.command
 name: External Command Example
 version: 1.0.0
 summary: Exercises the external command lifecycle boundary.
-category: automation
+category: ui_template
 tokenhub:
   plugin_api: v2
-kinds: [extension]
-placement: [background]
+kinds: [extension, sim]
+placement: [background, presentation]
 entry:
   backend:
     protocol: stdio-json-v1
@@ -77,6 +77,12 @@ capabilities:
     - id: example.run
       title: Run example
       schedule: "0 * * * *"
+  sim:
+    theme_tokens:
+      - id: command-theme
+        mode: light
+        tokens:
+          accent: "#2563eb"
 permissions:
   data:
     read: []
@@ -98,9 +104,25 @@ permissions:
 	plugin := body.Data.Plugin
 	if plugin.Status != pluginmeta.StatusFailedStartup || plugin.Loadable ||
 		plugin.Lifecycle.Enabled || plugin.Lifecycle.ActiveEnabled ||
+		plugin.HasSettings || plugin.Lifecycle.DesiredVersion != "1.0.0" || plugin.Lifecycle.ActiveVersion != "" ||
 		plugin.LastErrorCode != string(pluginmeta.PluginErrorPermissionUnsupported) ||
 		body.Data.Package == nil || body.Data.Package.FileCount == 0 {
 		t.Fatalf("external command plugin detail = %+v, want inspectable startup failure", body.Data)
+	}
+	hasSIMDeclaration := false
+	for _, capability := range plugin.Capabilities {
+		if capability.Kind == pluginmeta.CapabilityKindSIM && capability.Name == pluginmeta.SIMCapabilityThemeTokens && capability.Subject == "command-theme" {
+			hasSIMDeclaration = true
+			break
+		}
+	}
+	if !hasSIMDeclaration {
+		t.Fatalf("external command plugin detail lost its inspectable SIM declaration: %+v", plugin.Capabilities)
+	}
+	for _, contribution := range server.adminUI.List() {
+		if contribution.PluginID == "example.command" {
+			t.Fatalf("external command plugin published an admin UI contribution: %+v", contribution)
+		}
 	}
 	if job, ok := server.pluginBackgroundJobs.Describe("example.command", "example.run"); ok {
 		t.Fatalf("external command job was published: %+v", job)

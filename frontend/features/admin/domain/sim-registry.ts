@@ -11,6 +11,8 @@ export type SIMPluginDescriptorLike = {
   id?: unknown;
   name?: unknown;
   version?: unknown;
+  status?: unknown;
+  loadable?: unknown;
   capabilities?: unknown;
 };
 
@@ -72,6 +74,7 @@ export function simRegistryFromPlugins(plugins: readonly SIMPluginDescriptorLike
 export function simCapabilitiesFromPlugins(plugins: readonly SIMPluginDescriptorLike[] | undefined): SIMCapability[] {
   const capabilities: SIMCapability[] = [];
   for (const plugin of plugins ?? []) {
+    if (!simPluginIsOperational(plugin)) continue;
     const rawCapabilities = Array.isArray(plugin.capabilities) ? plugin.capabilities : [];
     for (const rawCapability of rawCapabilities) {
       if (!rawCapability || typeof rawCapability !== "object" || Array.isArray(rawCapability)) continue;
@@ -80,6 +83,19 @@ export function simCapabilitiesFromPlugins(plugins: readonly SIMPluginDescriptor
     }
   }
   return capabilities.sort(compareSIMCapabilities);
+}
+
+function simPluginIsOperational(plugin: SIMPluginDescriptorLike) {
+  if (plugin.loadable === false) return false;
+  switch (stringValue(plugin.status)) {
+    case "disabled":
+    case "pending_restart":
+    case "failed_validation":
+    case "failed_startup":
+      return false;
+    default:
+      return true;
+  }
 }
 
 export function parseSIMCapability(plugin: SIMPluginDescriptorLike, capability: SIMPluginCapabilityDescriptorLike): SIMCapability | null {

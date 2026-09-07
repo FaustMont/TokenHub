@@ -1035,6 +1035,12 @@ kinds:
 	}
 	store := NewMemoryStore()
 	server := NewWithConfig(store, Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	quarantined := requireAdminPluginDescriptor(t, server, "tokenhub.provider.openai-codex")
+	if quarantined.Name != "External Codex" || quarantined.Version != "2.0.0" || quarantined.Source != pluginmeta.SourceLocalFile ||
+		quarantined.Lifecycle.DesiredVersion != "2.0.0" || quarantined.Lifecycle.ActiveVersion != pluginmeta.BuiltInVersion ||
+		quarantined.Lifecycle.DesiredEnabled || !quarantined.Lifecycle.ActiveEnabled {
+		t.Fatalf("built-in fallback lifecycle = %+v", quarantined)
+	}
 
 	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.provider.openai-codex/rollback", map[string]any{
 		"reason": "operator fallback",

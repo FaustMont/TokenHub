@@ -148,16 +148,19 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 			installed[pkg.Manifest.ID] = pkg
 		}
 	}
-	descriptors := s.pluginRegistry.List()
-	response := make([]adminPluginDescriptorResponse, 0, len(descriptors))
+	activeDescriptors := s.pluginRegistry.List()
+	response := make([]adminPluginDescriptorResponse, 0, len(activeDescriptors))
 	seen := map[string]bool{}
 	providerUsage := s.providerPluginUsageFacts()
-	for _, descriptor := range descriptors {
-		activeStatus := descriptor.Status
-		activeVersion := descriptor.Version
-		pkg, ok := installed[descriptor.ID]
+	for _, activeDescriptor := range activeDescriptors {
+		descriptor := activeDescriptor
+		pkg, packageInstalled := installed[activeDescriptor.ID]
+		if packageInstalled && activeDescriptor.Source == pluginmeta.SourceBuiltIn {
+			descriptor = pkg.Manifest.Descriptor()
+			descriptor.Status = pkg.State.Status
+		}
 		stateFound := false
-		if !ok && descriptor.Source == pluginmeta.SourceBuiltIn && strings.TrimSpace(s.config.PluginDir) != "" {
+		if !packageInstalled && descriptor.Source == pluginmeta.SourceBuiltIn && strings.TrimSpace(s.config.PluginDir) != "" {
 			state, found, err := pluginmeta.NewRuntime(s.config.PluginDir).ReadBuiltInPackageState(descriptor.ID)
 			if err != nil {
 				return nil, err
@@ -169,7 +172,7 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 			}
 		}
 		usage := providerUsage[descriptor.ID]
-		logicallyInstalled := ok || descriptor.Source == pluginmeta.SourceBuiltIn || stateFound || usage.configured
+		logicallyInstalled := packageInstalled || descriptor.Source == pluginmeta.SourceBuiltIn || stateFound || usage.configured
 		if !logicallyInstalled {
 			descriptor.Status = pluginmeta.StatusDisabled
 			pkg.State = pluginmeta.PackageState{Status: pluginmeta.StatusDisabled}
@@ -180,11 +183,11 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 			Configured:     usage.configured || !pluginDescriptorRequiresConfiguration(descriptor),
 			InUse:          usage.inUse,
 			DesiredState:   pkg.State,
-			ActiveStatus:   activeStatus,
+			ActiveStatus:   activeDescriptor.Status,
 			DesiredVersion: descriptor.Version,
-			ActiveVersion:  activeVersion,
+			ActiveVersion:  activeDescriptor.Version,
 		})
-		response = append(response, adminPluginDescriptorForPackageWithFacts(descriptor, pkg, ok, facts))
+		response = append(response, adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts))
 		seen[descriptor.ID] = true
 	}
 	for _, pkg := range installed {
@@ -193,23 +196,31 @@ func (s *Server) adminPluginDescriptors() ([]adminPluginDescriptorResponse, erro
 		}
 		descriptor := pkg.Manifest.Descriptor()
 		descriptor.Status = pkg.State.Status
-		response = append(response, adminPluginDescriptorForPackage(descriptor, pkg, true))
+		response = append(response, s.adminPluginDescriptorForPackage(descriptor, pkg, true, true))
 	}
 	return response, nil
 }
 
-func adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, installed bool) adminPluginDescriptorResponse {
+func (s *Server) adminPluginDescriptorForPackage(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, packageInstalled bool, installed bool) adminPluginDescriptorResponse {
+	activeStatus := pluginmeta.StatusDisabled
+	activeVersion := ""
+	if s != nil && s.pluginRegistry != nil {
+		if active, ok := s.pluginRegistry.Describe(descriptor.ID); ok {
+			activeStatus = active.Status
+			activeVersion = active.Version
+		}
+	}
 	facts := pluginmeta.DeriveLifecycleFacts(pluginmeta.LifecycleFactsInput{
 		Available:      true,
 		Installed:      installed,
 		Configured:     installed,
 		InUse:          false,
 		DesiredState:   pkg.State,
-		ActiveStatus:   descriptor.Status,
+		ActiveStatus:   activeStatus,
 		DesiredVersion: descriptor.Version,
-		ActiveVersion:  descriptor.Version,
+		ActiveVersion:  activeVersion,
 	})
-	return adminPluginDescriptorForPackageWithFacts(descriptor, pkg, installed, facts)
+	return adminPluginDescriptorForPackageWithFacts(descriptor, pkg, packageInstalled, facts)
 }
 
 func adminPluginDescriptorForPackageWithFacts(descriptor pluginmeta.Descriptor, pkg pluginmeta.Package, packageInstalled bool, facts pluginmeta.LifecycleFacts) adminPluginDescriptorResponse {
@@ -237,7 +248,7 @@ func adminPluginDescriptorForPackageWithFacts(descriptor pluginmeta.Descriptor, 
 		Descriptor:        descriptor,
 		Category:          pluginmeta.PrimaryCategory(descriptor),
 		Summary:           pluginDescriptorSummary(descriptor),
-		HasSettings:       pluginDescriptorHasSettings(descriptor),
+		HasSettings:       lifecycle.Loadable && pluginDescriptorHasSettings(descriptor),
 		Legacy:            compatibility.PluginAPI == pluginmeta.PluginAPIV1,
 		Reason:            lifecycle.Reason,
 		RestartRequired:   lifecycle.RestartRequired,
@@ -488,7 +499,7 @@ func (s *Server) handleAdminPluginInstallPost(w http.ResponseWriter, r *http.Req
 	descriptor := pkg.Manifest.Descriptor()
 	descriptor.Status = pkg.State.Status
 	writeJSON(w, http.StatusCreated, map[string]any{"data": adminPluginInstallResponse{
-		Plugin:          adminPluginDescriptorForPackage(descriptor, pkg, true),
+		Plugin:          s.adminPluginDescriptorForPackage(descriptor, pkg, true, true),
 		RestartRequired: false,
 		Replaced:        payload.Replace,
 	}})
@@ -577,11 +588,17 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, NewHTTPError(http.StatusNotFound, "plugin_not_found", "Plugin not found"))
 		return
 	}
-	descriptor, ok := s.pluginRegistry.Describe(pluginID)
-	if !ok {
+	runtime := pluginmeta.NewRuntime(s.config.PluginDir)
+	current, found, err := runtime.DescribeInstalledPackage(pluginID)
+	if err != nil {
+		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin package could not be inspected"))
+		return
+	}
+	if !found {
 		writeError(w, r, NewHTTPError(http.StatusNotFound, "plugin_not_found", "Plugin not found"))
 		return
 	}
+	descriptor := current.Manifest.Descriptor()
 	distribution := descriptor.Distribution
 	if distribution == nil {
 		distribution = &pluginmeta.Distribution{}
@@ -611,19 +628,17 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, NewHTTPError(http.StatusBadRequest, "plugin_id_mismatch", "Candidate plugin ID does not match the requested plugin"))
 		return
 	}
-	current, _, err := pluginmeta.NewRuntime(s.config.PluginDir).DescribeInstalledPackage(pluginID)
-	if err != nil {
-		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_install_failed", "Plugin package could not be inspected"))
-		return
-	}
-	if current.Manifest.ID == "" {
-		writeError(w, r, NewHTTPError(http.StatusNotFound, "plugin_not_found", "Plugin not found"))
-		return
-	}
 	updateState := current.State
+	if updateState.FailedStartup() || updateState.FailedValidation() {
+		updateState.Status = pluginmeta.StatusEnabled
+		updateState.Reason = ""
+	}
 	updateState.RestartRequired = false
+	updateState.Health = pluginmeta.PackageHealthUnknown
 	updateState.RollbackVersion = current.Manifest.Version
-	if current.State.Enabled() {
+	updateState.RollbackTarget = pluginmeta.PackageRollbackTargetPreviousPackage
+	updateState.LastErrorCode = ""
+	if updateState.Enabled() {
 		updateState.AuditEvent = pluginmeta.PackageLifecycleEnabled
 	} else {
 		updateState.AuditEvent = pluginmeta.PackageLifecycleDisabled
@@ -640,7 +655,7 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, err)
 		return
 	}
-	if err := pluginmeta.NewRuntime(s.config.PluginDir).PreserveRollbackPackage(pluginID, current.Dir); err != nil {
+	if err := runtime.PreserveRollbackPackage(pluginID, current.Dir); err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_prepare_failed", "Plugin rollback package could not be prepared"))
 		return
 	}
@@ -665,7 +680,7 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 	updated := pkg.Manifest.Descriptor()
 	updated.Status = pkg.State.Status
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginInstallResponse{
-		Plugin:          adminPluginDescriptorForPackage(updated, pkg, true),
+		Plugin:          s.adminPluginDescriptorForPackage(updated, pkg, true, true),
 		RestartRequired: false,
 		Replaced:        true,
 	}})
@@ -735,7 +750,7 @@ func (s *Server) handleAdminPluginRollbackPost(w http.ResponseWriter, r *http.Re
 	}
 	descriptor := pkg.Manifest.Descriptor()
 	descriptor.Status = pkg.State.Status
-	plugin := adminPluginDescriptorForPackage(descriptor, pkg, true)
+	plugin := s.adminPluginDescriptorForPackage(descriptor, pkg, true, true)
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginRollbackResponse{
 		Plugin:          plugin,
 		RestartRequired: false,
@@ -772,13 +787,13 @@ func (s *Server) handleAdminPluginBuiltInFallbackRollback(w http.ResponseWriter,
 	if err != nil {
 		return false
 	}
-	descriptor.Status = pkg.State.Status
-	plugin := adminPluginDescriptorForPackage(descriptor, pluginmeta.Package{}, false)
 	s.recordPluginRollbackAudit(r, user, pluginID, "success", string(pluginmeta.PackageRollbackTargetBuiltIn))
 	if err := s.reloadPluginRuntime(r.Context()); err != nil {
 		writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_failed", "Plugin runtime could not be reloaded"))
 		return true
 	}
+	descriptor.Status = pkg.State.Status
+	plugin := s.adminPluginDescriptorForPackage(descriptor, pluginmeta.Package{State: pkg.State}, false, true)
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginRollbackResponse{
 		Plugin:          plugin,
 		RestartRequired: false,
@@ -877,7 +892,7 @@ func (s *Server) handleAdminPluginStatePatch(w http.ResponseWriter, r *http.Requ
 	}
 	descriptor := pkg.Manifest.Descriptor()
 	descriptor.Status = pkg.State.Status
-	plugin := adminPluginDescriptorForPackage(descriptor, pkg, true)
+	plugin := s.adminPluginDescriptorForPackage(descriptor, pkg, true, true)
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginStateResponse{
 		PluginID:          pkg.Manifest.ID,
 		Status:            pkg.State.Status,
@@ -933,7 +948,7 @@ func (s *Server) handleAdminBuiltInPluginStatePatch(w http.ResponseWriter, r *ht
 		return
 	}
 	descriptor.Status = state.Status
-	plugin := adminPluginDescriptorForPackage(descriptor, pluginmeta.Package{State: state}, false)
+	plugin := s.adminPluginDescriptorForPackage(descriptor, pluginmeta.Package{State: state}, false, true)
 	writeJSON(w, http.StatusOK, map[string]any{"data": adminPluginStateResponse{
 		PluginID:          descriptor.ID,
 		Status:            state.Status,

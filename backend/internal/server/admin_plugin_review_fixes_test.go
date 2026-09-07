@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -96,6 +97,71 @@ func TestAdminPluginUpdatePublishesNewActions(t *testing.T) {
 	after := doJSON(t, server.Handler(), http.MethodGet, "/api/admin/plugin-actions", nil, "dev_admin_token")
 	if !strings.Contains(after.Body, `"action_id":"sync.new"`) || strings.Contains(after.Body, `"action_id":"sync.old"`) {
 		t.Fatalf("runtime actions were not replaced after update: %s", after.Body)
+	}
+}
+
+func TestAdminPluginUpdateRecoversQuarantinedPackage(t *testing.T) {
+	pluginDir := t.TempDir()
+	archive := adminPluginZip(t, map[string]string{
+		"plugin.yaml": adminPluginManifest("tokenhub.recovery", "Recovered Plugin", "2.0.0"),
+	})
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(archive)
+	}))
+	defer upstream.Close()
+	currentDir := filepath.Join(pluginDir, "recovery")
+	writeServerPluginManifest(t, currentDir, adminPluginCommandManifest(
+		"tokenhub.recovery",
+		"Quarantined Plugin",
+		"1.0.0",
+		upstream.URL+"/recovery.zip",
+		adminSHA256Hex(archive),
+	))
+	if err := os.WriteFile(filepath.Join(currentDir, "run.sh"), []byte("#!/bin/sh\nprintf '{}'"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server.pluginInstallClient = upstream.Client()
+
+	if _, ok := server.pluginRegistry.Describe("tokenhub.recovery"); ok {
+		t.Fatal("quarantined package was registered before recovery")
+	}
+	available := pluginmeta.Descriptor{
+		ID:      "tokenhub.recovery",
+		Name:    "Recovered Plugin",
+		Version: "2.0.0",
+		Distribution: &pluginmeta.Distribution{
+			DownloadURL:    upstream.URL + "/recovery.zip",
+			ChecksumSHA256: adminSHA256Hex(archive),
+		},
+	}
+	marketplace, err := server.annotatePluginMarketplace([]pluginmeta.Descriptor{available})
+	if err != nil {
+		t.Fatalf("annotate marketplace: %v", err)
+	}
+	if len(marketplace) != 1 || !marketplace[0].Installed || !marketplace[0].UpdateAvailable || marketplace[0].InstalledVersion != "1.0.0" {
+		t.Fatalf("quarantined marketplace annotation = %+v", marketplace)
+	}
+
+	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.recovery/update", map[string]any{}, "dev_admin_token")
+	if response.Code != http.StatusOK {
+		t.Fatalf("update quarantined plugin: expected 200, got %d: %s", response.Code, response.Body)
+	}
+	var body struct {
+		Data adminPluginInstallResponse `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+		t.Fatalf("decode recovered plugin response: %v", err)
+	}
+	plugin := body.Data.Plugin
+	if plugin.Version != "2.0.0" || plugin.Status != pluginmeta.StatusEnabled || !plugin.Loadable ||
+		!plugin.Lifecycle.ActiveEnabled || plugin.Lifecycle.DesiredVersion != "2.0.0" || plugin.Lifecycle.ActiveVersion != "2.0.0" ||
+		plugin.Reason != "" || plugin.LastErrorCode != "" {
+		t.Fatalf("recovered plugin response = %+v", plugin)
+	}
+	active, ok := server.pluginRegistry.Describe("tokenhub.recovery")
+	if !ok || active.Version != "2.0.0" {
+		t.Fatalf("recovered active descriptor = %+v, %t", active, ok)
 	}
 }
 
@@ -445,6 +511,37 @@ func adminPluginManifestWithTestDistribution(id string, name string, version str
 		"distribution:\n  download_url: " + downloadURL + "\n  checksum_sha256: " + checksum + "\n" +
 		"tokenhub:\n  plugin_api: " + pluginAPI + "\n" +
 		"kinds: [extension]\nplacement: []\npermissions:\n  data:\n    read: []\n    write: []\n"
+}
+
+func adminPluginCommandManifest(id string, name string, version string, downloadURL string, checksum string) string {
+	return `
+schema_version: 2
+id: ` + id + `
+name: ` + name + `
+version: ` + version + `
+summary: Exercises command package update recovery.
+category: automation
+distribution:
+  download_url: ` + downloadURL + `
+  checksum_sha256: ` + checksum + `
+tokenhub:
+  plugin_api: v2
+kinds: [extension]
+placement: [management_action]
+entry:
+  backend:
+    protocol: stdio-json-v1
+    command: run.sh
+capabilities:
+  actions:
+    - id: recovery.run
+      kind: read
+      title: Recover
+permissions:
+  data:
+    read: []
+    write: []
+`
 }
 
 func adminPluginActionManifest(id string, version string, actionID string, downloadURL string, checksum string) string {

@@ -110,6 +110,21 @@ test("SIM registry ignores malformed or unsupported capability values safely", (
   assert.equal(registry.shellLayouts.length, 0);
 });
 
+test("SIM registry excludes non-loadable plugin declarations", () => {
+  const capability = {
+    kind: "sim",
+    name: "theme_tokens",
+    value: JSON.stringify({ id: "quarantined", tokens: { accent: "#dc2626" } }),
+  };
+  const registry = simRegistryFromPlugins([
+    { id: "tokenhub.sim.failed", status: "failed_startup", loadable: false, capabilities: [capability] },
+    { id: "tokenhub.sim.disabled", status: "disabled", capabilities: [capability] },
+    { id: "tokenhub.sim.active", status: "enabled", loadable: true, capabilities: [capability] },
+  ]);
+
+  assert.deepEqual(registry.all.map((item) => item.pluginID), ["tokenhub.sim.active"]);
+});
+
 test("SIM registry exposes deterministic ordering", () => {
   const plugins = [
     {
