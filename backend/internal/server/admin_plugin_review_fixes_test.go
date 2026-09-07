@@ -218,6 +218,128 @@ kinds: [extension]
 	}
 }
 
+func TestAdminPluginUpdateDoesNotPreserveFailedValidationPackageForRollback(t *testing.T) {
+	pluginDir := t.TempDir()
+	archive := adminPluginZip(t, map[string]string{
+		"plugin.yaml": adminPluginManifest("tokenhub.schema-recovery", "Recovered Schema Plugin", "2.0.0"),
+	})
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(archive)
+	}))
+	defer upstream.Close()
+	currentDir := filepath.Join(pluginDir, "tokenhub.schema-recovery")
+	writeServerPluginManifest(t, currentDir, `
+schema_version: 2
+id: tokenhub.schema-recovery
+name: Invalid Schema Plugin
+version: 1.0.0
+summary: Exercises recovery from a missing frontend schema.
+category: ui_template
+distribution:
+  download_url: `+upstream.URL+`/schema-recovery.zip
+  checksum_sha256: `+adminSHA256Hex(archive)+`
+tokenhub:
+  plugin_api: v2
+kinds: [admin_ui]
+placement: [presentation]
+entry:
+  frontend:
+    schema: ui/missing.json
+permissions:
+  data:
+    read: []
+    write: []
+`)
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server.pluginInstallClient = upstream.Client()
+
+	packages, err := pluginmeta.NewRuntime(pluginDir).DiscoverRecoverable()
+	if err != nil || len(packages) != 1 || !packages[0].State.FailedValidation() {
+		t.Fatalf("discover failed-validation package = %+v, err=%v", packages, err)
+	}
+	response := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.schema-recovery/update", map[string]any{}, "dev_admin_token")
+	if response.Code != http.StatusOK {
+		t.Fatalf("recover failed-validation plugin: expected 200, got %d: %s", response.Code, response.Body)
+	}
+	var body struct {
+		Data adminPluginInstallResponse `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
+		t.Fatalf("decode recovered plugin response: %v", err)
+	}
+	if body.Data.Plugin.Version != "2.0.0" || body.Data.Plugin.RollbackAvailable || body.Data.Plugin.RollbackVersion != "" {
+		t.Fatalf("recovered plugin response = %+v, want no rollback to invalid package", body.Data.Plugin)
+	}
+	if _, err := os.Stat(filepath.Join(pluginDir, ".rollback", "tokenhub.schema-recovery")); !os.IsNotExist(err) {
+		t.Fatalf("failed-validation package was preserved for rollback: %v", err)
+	}
+}
+
+func TestAdminPluginUpdateRetainsLastKnownGoodRollbackWhileRecoveringFailedUpdate(t *testing.T) {
+	pluginDir := t.TempDir()
+	recoveredArchive := adminPluginZip(t, map[string]string{
+		"plugin.yaml": adminPluginManifest("tokenhub.rollback-recovery", "Recovered Plugin", "3.0.0"),
+	})
+	var upstream *httptest.Server
+	failedArchive := []byte(nil)
+	upstream = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/failed.zip":
+			_, _ = w.Write(failedArchive)
+		case "/recovered.zip":
+			_, _ = w.Write(recoveredArchive)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	failedArchive = adminPluginZip(t, map[string]string{
+		"plugin.yaml": adminPluginCommandManifest(
+			"tokenhub.rollback-recovery",
+			"Failed Update",
+			"2.0.0",
+			upstream.URL+"/recovered.zip",
+			adminSHA256Hex(recoveredArchive),
+		),
+		"run.sh": "#!/bin/sh\nprintf '{}'",
+	})
+	writeServerPluginManifest(t, filepath.Join(pluginDir, "tokenhub.rollback-recovery"), adminPluginManifestWithTestDistribution(
+		"tokenhub.rollback-recovery",
+		"Last Known Good Plugin",
+		"1.0.0",
+		upstream.URL+"/failed.zip",
+		adminSHA256Hex(failedArchive),
+		"automation",
+	))
+	server := NewWithConfig(NewMemoryStore(), Config{AdminToken: "dev_admin_token", PluginDir: pluginDir})
+	server.pluginInstallClient = upstream.Client()
+
+	failedUpdate := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.rollback-recovery/update", map[string]any{}, "dev_admin_token")
+	if failedUpdate.Code != http.StatusOK {
+		t.Fatalf("install failed update: expected 200, got %d: %s", failedUpdate.Code, failedUpdate.Body)
+	}
+	failed, found, err := pluginmeta.NewRuntime(pluginDir).DescribeInstalledPackage("tokenhub.rollback-recovery")
+	if err != nil || !found || !failed.State.FailedStartup() || failed.State.RollbackVersion != "1.0.0" {
+		t.Fatalf("failed update package = %+v, found=%t, err=%v", failed, found, err)
+	}
+
+	recovery := doJSON(t, server.Handler(), http.MethodPost, "/api/admin/plugins/tokenhub.rollback-recovery/update", map[string]any{}, "dev_admin_token")
+	if recovery.Code != http.StatusOK {
+		t.Fatalf("recover failed update: expected 200, got %d: %s", recovery.Code, recovery.Body)
+	}
+	rollback, found, err := pluginmeta.NewRuntime(pluginDir).DescribeRollbackPackage("tokenhub.rollback-recovery")
+	if err != nil || !found {
+		t.Fatalf("inspect retained rollback package: found=%t err=%v", found, err)
+	}
+	if rollback.Manifest.Version != "1.0.0" {
+		t.Fatalf("rollback version = %q, want last-known-good 1.0.0", rollback.Manifest.Version)
+	}
+	current, found, err := pluginmeta.NewRuntime(pluginDir).DescribeInstalledPackage("tokenhub.rollback-recovery")
+	if err != nil || !found || current.Manifest.Version != "3.0.0" || current.State.RollbackVersion != "1.0.0" {
+		t.Fatalf("recovered package = %+v, found=%t, err=%v", current, found, err)
+	}
+}
+
 func TestAdminPluginUpdateRejectsDependencyBreakingVersion(t *testing.T) {
 	pluginDir := t.TempDir()
 	archive := adminPluginZip(t, map[string]string{

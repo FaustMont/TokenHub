@@ -650,7 +650,8 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 	updateState.RestartRequired = false
 	updateState.Health = pluginmeta.PackageHealthUnknown
 	updateState.LastErrorCode = ""
-	preserveCurrentRollback := current.Manifest.Validate() == nil
+	preserveCurrentRollback := current.Manifest.Validate() == nil &&
+		!current.State.FailedValidation() && !current.State.FailedStartup()
 	if preserveCurrentRollback {
 		updateState.RollbackVersion = current.Manifest.Version
 		updateState.RollbackTarget = pluginmeta.PackageRollbackTargetPreviousPackage

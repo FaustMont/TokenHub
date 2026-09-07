@@ -75,17 +75,22 @@ export function simRegistryFromPlugins(plugins: readonly SIMPluginDescriptorLike
 
 export function simCapabilitiesFromPlugins(plugins: readonly SIMPluginDescriptorLike[] | undefined): SIMCapability[] {
   const capabilities: SIMCapability[] = [];
-  for (const plugin of plugins ?? []) {
-    const operationalPlugin = operationalSIMPlugin(plugin);
-    if (!operationalPlugin) continue;
-    const rawCapabilities = Array.isArray(operationalPlugin.capabilities) ? operationalPlugin.capabilities : [];
+  for (const plugin of operationalSIMPlugins(plugins)) {
+    const rawCapabilities = Array.isArray(plugin.capabilities) ? plugin.capabilities : [];
     for (const rawCapability of rawCapabilities) {
       if (!rawCapability || typeof rawCapability !== "object" || Array.isArray(rawCapability)) continue;
-      const parsed = parseSIMCapability(operationalPlugin, rawCapability as SIMPluginCapabilityDescriptorLike);
+      const parsed = parseSIMCapability(plugin, rawCapability as SIMPluginCapabilityDescriptorLike);
       if (parsed) capabilities.push(parsed);
     }
   }
   return capabilities.sort(compareSIMCapabilities);
+}
+
+export function operationalSIMPlugins(plugins: readonly SIMPluginDescriptorLike[] | undefined): SIMPluginDescriptorLike[] {
+  return (plugins ?? []).flatMap((plugin) => {
+    const operational = operationalSIMPlugin(plugin);
+    return operational ? [operational] : [];
+  });
 }
 
 function operationalSIMPlugin(plugin: SIMPluginDescriptorLike): SIMPluginDescriptorLike | null {

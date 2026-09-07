@@ -1,4 +1,5 @@
 import {
+  operationalSIMPlugins,
   simRegistryFromPlugins,
   type SIMPluginDescriptorLike,
   type SIMShellLayout,
@@ -107,7 +108,7 @@ export function resolveSIMSelection(input: SIMSelectionInput): SIMSelectionResul
   const warnings: SIMSelectionWarning[] = [];
   const preference = simSelectionPreference(input.preference, warnings);
   const registry = simRegistryFromPlugins(input.plugins);
-  const plugins = simPluginOptions(input.plugins, registry.themeTokens, registry.shellLayouts, warnings);
+  const plugins = simPluginOptions(operationalSIMPlugins(input.plugins), registry.themeTokens, registry.shellLayouts, warnings);
   const themeMode = input.themeMode ?? "light";
   const themes = dedupeCapabilities(registry.themeTokens.filter((theme) => themeMatchesMode(theme, themeMode)), "theme", warnings);
   const layouts = dedupeCapabilities(registry.shellLayouts, "layout", warnings);
