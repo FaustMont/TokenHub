@@ -710,7 +710,7 @@ func (s *Server) processImageJob(work imageJobWork) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(s.config.ImageJobTimeoutSeconds)*time.Second)
 	defer cancel()
-	routes, routeErr := s.imageRouteCandidates(job.Model)
+	routes, routeErr := s.imageRouteCandidates(work.call, job.Model)
 	if routeErr != nil {
 		routeErr = s.annotateRoutingPolicyForCandidateError(&work.call, routeErr)
 		httpErr := AsHTTPError(routeErr)
@@ -1340,7 +1340,7 @@ func (s *Server) providerImageGenerationRequest(route RouteSelection, job ImageJ
 	return request, nil
 }
 
-func (s *Server) imageRouteCandidates(model string) ([]RouteSelection, error) {
+func (s *Server) imageRouteCandidates(call CallContext, model string) ([]RouteSelection, error) {
 	if profile, ok := s.providerImageCapabilityRouteProfileForModel(model); ok {
 		routes, err := s.store.SelectRouteCandidates(profile.PublicModel)
 		if err != nil {
@@ -1350,7 +1350,7 @@ func (s *Server) imageRouteCandidates(model string) ([]RouteSelection, error) {
 		if len(filtered) == 0 {
 			return nil, ErrProviderMissing
 		}
-		return s.routesWithAdapterCapabilityOrProviderCall(filtered, AdapterCapabilityImageGenerate, providerRouteProtocolImageGeneration), nil
+		return s.routesWithAdapterCapabilityOrProviderCall(call, filtered, AdapterCapabilityImageGenerate, providerRouteProtocolImageGeneration), nil
 	}
 	routes, err := s.store.SelectRouteCandidates(openAIImageModelName)
 	if err != nil {
@@ -1362,7 +1362,7 @@ func (s *Server) imageRouteCandidates(model string) ([]RouteSelection, error) {
 			filtered = append(filtered, route)
 		}
 	}
-	return s.routesWithAdapterCapabilityOrProviderCall(filtered, AdapterCapabilityImageGenerate, providerRouteProtocolImageGeneration), nil
+	return s.routesWithAdapterCapabilityOrProviderCall(call, filtered, AdapterCapabilityImageGenerate, providerRouteProtocolImageGeneration), nil
 }
 
 func (s *Server) routeMatchesProviderImageCapabilityProfile(route RouteSelection) bool {

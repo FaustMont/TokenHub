@@ -339,7 +339,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(
 			http.StatusNotImplemented,
@@ -351,7 +351,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Stream {
-		routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponseStream, providerRouteProtocolResponses)
+		routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityResponseStream, providerRouteProtocolResponses)
 		if len(routed.Routes) == 0 {
 			err := NewHTTPError(
 				http.StatusNotImplemented,

@@ -557,7 +557,7 @@ func (s *Server) processResponseJob(job ResponseJob, owner string, leaseTTL time
 		s.finalizeResponseJob(job, owner, routed.Call, RouteSelection{}, Usage{}, nil, httpErr.Status, httpErr.Code, httpErr.Message, auditPayload, resultTTL)
 		return
 	}
-	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
 	if len(routed.Routes) == 0 {
 		if s.stopResponseJobForShutdown(job, owner, resultTTL) {
 			return

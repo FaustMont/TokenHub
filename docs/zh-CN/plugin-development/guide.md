@@ -701,6 +701,8 @@ shasum -a 256 background-heartbeat-go.zip
 
 插件包和签名下载地址必须使用 HTTPS 和公网 IP。每次重定向都必须保持原始协议和主机，建立连接时会解析并验证 DNS。私网、回环和链路本地地址均被阻止，不受 Provider 上游访问设置影响。
 
+只有完整 scope 与当前请求匹配时，`provider_call` Hook 才能为路由提供能力：包括项目、API Key、Provider、资源、路由协议和 `provider_call` 操作。能力筛选与 Hook 执行共用匹配规则，并兼容旧版 scope metadata。无关 Hook 不会让纯插件路由成为可用候选；不支持的路由会在调用前排除，且不会惩罚 Provider 资源。内置适配器支持的能力仍独立于插件 Hook 可用。
+
 频道索引可以保留与当前服务器核心版本范围或所需功能不兼容的历史及未来版本。兼容性语法错误仍会使索引校验失败；版本选择优先采用兼容、审核通过且提供当前平台构建产物的最高 SemVer。只有严格更新的版本才显示为可更新。尚未安装的市场插件支持详情概览，并按市场分类展示。
 
 流式 `provider_call` Hook 通过 `stream_events` 返回 `{event, data}` 对象数组，并可返回 `usage`。每个事件输出前依次执行 `stream_transform`、`response_post` 和 `guardrail_post`；拒绝时会在写出该事件前终止流。`stream_transform` 支持事件数据和审计输出，不支持完整 `provider_response` 或最终 `usage` 写入，相关声明会在校验时被拒绝。Provider 用量通过 `provider_call` 返回，完成时的用量修正使用用量归属阶段。

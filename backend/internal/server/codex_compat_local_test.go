@@ -720,7 +720,7 @@ func TestLocalCodexCompatAnthropicRouteCompatibility(t *testing.T) {
 		},
 		ProviderModel: localCodexCompatModel,
 	}
-	if err := server.validateAnthropicRouteCompatibility(codexRoute, validRequest); err != nil {
+	if err := server.validateAnthropicRouteCompatibility(CallContext{}, codexRoute, validRequest); err != nil {
 		t.Fatalf("valid Codex route was rejected: %v", err)
 	}
 
@@ -762,7 +762,7 @@ func TestLocalCodexCompatAnthropicRouteCompatibility(t *testing.T) {
 			},
 		},
 	})
-	err = server.validateAnthropicRouteCompatibility(codexRoute, unsupportedRequest)
+	err = server.validateAnthropicRouteCompatibility(CallContext{}, codexRoute, unsupportedRequest)
 	if err == nil || AsHTTPError(err).Code != "unsupported_content_block" {
 		t.Fatalf("assistant image compatibility error = %#v", err)
 	}

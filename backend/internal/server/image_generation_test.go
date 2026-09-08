@@ -219,14 +219,14 @@ func TestImageModelsUseSeparateProviderTypes(t *testing.T) {
 	server := NewWithConfig(store, Config{AdminToken: "test-admin-token", SecretKey: "separate-image-routes-secret"})
 	t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 
-	platformRoutes, err := server.imageRouteCandidates(openAIImageModelName)
+	platformRoutes, err := server.imageRouteCandidates(CallContext{}, openAIImageModelName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(platformRoutes) != 1 || platformRoutes[0].Provider.Type != ProviderOpenAI {
 		t.Fatalf("gpt-image-2 must only use OpenAI Platform routes: %+v", platformRoutes)
 	}
-	subscriptionRoutes, err := server.imageRouteCandidates(codexImageModelName)
+	subscriptionRoutes, err := server.imageRouteCandidates(CallContext{}, codexImageModelName)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -219,7 +219,7 @@ func TestImageProviderCallRouteRequiresMatchingHookSubject(t *testing.T) {
 		t.Fatalf("register image capability action: %v", err)
 	}
 
-	routes, err := server.imageRouteCandidates("plugin-image-model")
+	routes, err := server.imageRouteCandidates(CallContext{}, "plugin-image-model")
 	if err != nil {
 		t.Fatalf("image route candidates returned error: %v", err)
 	}

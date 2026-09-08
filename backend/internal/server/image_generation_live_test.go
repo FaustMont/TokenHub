@@ -29,7 +29,7 @@ func TestLiveCodexImageGeneration(t *testing.T) {
 
 	targetResourceID := strings.TrimSpace(os.Getenv("TOKENHUB_LIVE_CODEX_RESOURCE_ID"))
 	var selected RouteSelection
-	routes, err := server.imageRouteCandidates(codexImageModelName)
+	routes, err := server.imageRouteCandidates(CallContext{}, codexImageModelName)
 	if err != nil {
 		t.Fatal(err)
 	}

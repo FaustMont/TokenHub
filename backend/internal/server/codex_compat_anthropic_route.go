@@ -52,7 +52,7 @@ func (s *Server) compatibleAnthropicRoutes(routed RoutedCall, req anthropicMessa
 	compatible.Routes = make([]RouteSelection, 0, len(routed.Routes))
 	var firstErr error
 	for _, route := range routed.Routes {
-		err := s.validateAnthropicRouteCompatibility(route, req)
+		err := s.validateAnthropicRouteCompatibility(routed.Call, route, req)
 		if err == nil {
 			compatible.Routes = append(compatible.Routes, route)
 			continue
@@ -73,8 +73,8 @@ func (s *Server) compatibleAnthropicRoutes(routed RoutedCall, req anthropicMessa
 	return compatible, nil
 }
 
-func (s *Server) validateAnthropicRouteCompatibility(route RouteSelection, req anthropicMessagesRequest) error {
-	if routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolAnthropic) || s.hasGatewayProviderCallHookForRoute(route, providerRouteProtocolAnthropic) {
+func (s *Server) validateAnthropicRouteCompatibility(call CallContext, route RouteSelection, req anthropicMessagesRequest) error {
+	if routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolAnthropic) || s.hasGatewayProviderCallHookForRoute(call, route, providerRouteProtocolAnthropic) {
 		return nil
 	}
 	if bridge, ok := s.anthropicRouteBridge(route); ok {

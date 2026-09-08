@@ -10,22 +10,37 @@ func (s *Server) hasGatewayHookStage(stage pluginmeta.GatewayHookStage) bool {
 	return s != nil && s.gatewayHooks != nil && s.gatewayChain != nil && len(s.gatewayChain.Hooks(stage)) > 0
 }
 
-func (s *Server) routesWithAdapterCapabilityOrProviderCall(routes []RouteSelection, capability AdapterCapability, protocol string) []RouteSelection {
+func (s *Server) routesWithAdapterCapabilityOrProviderCall(call CallContext, routes []RouteSelection, capability AdapterCapability, protocol string) []RouteSelection {
 	filtered := make([]RouteSelection, 0, len(routes))
 	for _, route := range routes {
-		if s.routeSupportsAdapterCapability(route, capability) || s.hasGatewayProviderCallHookForRoute(route, protocol) {
+		if s.routeSupportsAdapterCapability(route, capability) || s.hasGatewayProviderCallHookForRoute(call, route, protocol) {
 			filtered = append(filtered, route)
 		}
 	}
 	return filtered
 }
 
-func (s *Server) hasGatewayProviderCallHookForRoute(route RouteSelection, protocol string) bool {
-	return len(s.gatewayProviderCallHooksForRoute(route, protocol)) > 0
+func (s *Server) hasGatewayProviderCallHookForRoute(call CallContext, route RouteSelection, protocol string) bool {
+	return len(s.gatewayProviderCallHooksForRoute(call, route, protocol)) > 0
 }
 
-func (s *Server) gatewayProviderCallHooksForRoute(route RouteSelection, protocol string) []pluginmeta.GatewayHookDescriptor {
-	return s.gatewayRouteHooksForRoute(pluginmeta.StageProviderCall, route, protocol, false)
+func (s *Server) gatewayProviderCallHooksForRoute(call CallContext, route RouteSelection, protocol string) []pluginmeta.GatewayHookDescriptor {
+	if !s.hasGatewayHookStage(pluginmeta.StageProviderCall) {
+		return nil
+	}
+	target := pluginmeta.GatewayHookScopeTarget{
+		ProjectID: call.Project.ID, APIKeyID: call.Key.ID,
+		ProviderType: route.Provider.Type, ProviderID: route.Provider.ID,
+		ResourceID: routeResourceID(route), ResourceType: routeResourceType(route),
+		RouteProtocol: protocol, Operation: "provider_call",
+	}
+	hooks := []pluginmeta.GatewayHookDescriptor{}
+	for _, hook := range s.gatewayChain.Hooks(pluginmeta.StageProviderCall) {
+		if hook.PluginID != tokenHubCoreGatewayChainPluginID && pluginmeta.GatewayHookScopeMatches(hook, target) {
+			hooks = append(hooks, hook)
+		}
+	}
+	return hooks
 }
 
 func (s *Server) gatewayRequestTransformHooksForRoute(route RouteSelection, protocol string) []pluginmeta.GatewayHookDescriptor {

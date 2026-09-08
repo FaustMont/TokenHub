@@ -699,6 +699,8 @@ When you build a plugin, optimize for:
 If a behavior can live in a plugin, keep it there.
 If it must stay in Core, let Core make the final decision and keep the implementation path stable.
 
+A `provider_call` hook contributes route capability only when its complete scope matches the current request: project, API key, Provider, resource, route protocol, and the `provider_call` operation. Capability selection and hook execution share the same matcher, including legacy scope metadata. An unrelated hook cannot make a plugin-only route eligible; unsupported routes are excluded before invocation without penalizing the Provider resource. A built-in adapter's supported capabilities remain available independently of plugin hooks.
+
 Plugin download URLs and signature URLs require HTTPS and public IP addresses. Every redirect must keep the original scheme and authority; DNS is resolved and validated at connection time. Private, loopback, and link-local destinations are blocked independently of Provider upstream access settings.
 
 A channel index can retain archived or future releases whose core ranges or required features do not match this server. Invalid compatibility syntax still rejects the index; release selection prefers the highest compatible approved SemVer with an artifact for this host. Only a strictly newer SemVer is advertised as an update. Marketplace-only entries support overview details and use listing categories for classification.

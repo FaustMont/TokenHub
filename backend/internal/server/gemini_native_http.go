@@ -243,7 +243,7 @@ func (s *Server) handleGeminiGenerate(w http.ResponseWriter, r *http.Request, mo
 	if stream {
 		capability = AdapterCapabilityResponseStream
 	}
-	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, capability, providerRouteProtocolGemini)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, capability, providerRouteProtocolGemini)
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "No route supports the Gemini CLI compatibility protocol")
 		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)

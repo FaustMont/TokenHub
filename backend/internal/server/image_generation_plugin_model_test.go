@@ -137,7 +137,7 @@ func TestOpenAIImageModelSkipsPluginImageCapabilityRoutes(t *testing.T) {
 		t.Fatalf("register plugin image action: %v", err)
 	}
 
-	routes, err := server.imageRouteCandidates(openAIImageModelName)
+	routes, err := server.imageRouteCandidates(CallContext{}, openAIImageModelName)
 	if err != nil {
 		t.Fatal(err)
 	}

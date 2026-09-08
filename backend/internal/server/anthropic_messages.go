@@ -318,7 +318,7 @@ func (s *Server) executeRoutedAnthropicMessages(
 			return nil, Usage{}, err
 		}
 		upstreamReq := anthropicRequestForRoute(req, route)
-		protocol := s.anthropicGatewayRouteProtocol(route)
+		protocol := s.anthropicGatewayRouteProtocol(routed.Call, route)
 		if transformErr := s.runGatewayAnthropicRequestTransformHooks(ctx, routed.Call, route, &upstreamReq, protocol); transformErr != nil {
 			return nil, Usage{}, transformErr
 		}
@@ -339,9 +339,9 @@ func (s *Server) executeRoutedAnthropicMessages(
 	})
 }
 
-func (s *Server) anthropicGatewayRouteProtocol(route RouteSelection) string {
+func (s *Server) anthropicGatewayRouteProtocol(call CallContext, route RouteSelection) string {
 	registry := s.adapterRegistry
-	if routeSupportsProviderProtocol(registry, route, providerRouteProtocolAnthropic) || s.hasGatewayProviderCallHookForRoute(route, providerRouteProtocolAnthropic) {
+	if routeSupportsProviderProtocol(registry, route, providerRouteProtocolAnthropic) || s.hasGatewayProviderCallHookForRoute(call, route, providerRouteProtocolAnthropic) {
 		return providerRouteProtocolAnthropic
 	}
 	if bridge, ok := providerRouteBridgeForRoute(registry, route, anthropicRouteBridgeSupported); ok {
@@ -1008,7 +1008,7 @@ func (s *Server) handleAnthropicMessagesStream(
 				return struct{}{}, Usage{}, prepareErr
 			}
 			attemptReq := anthropicRequestForRoute(req, prepared)
-			protocol := s.anthropicGatewayRouteProtocol(prepared)
+			protocol := s.anthropicGatewayRouteProtocol(routed.Call, prepared)
 			if transformErr := s.runGatewayAnthropicRequestTransformHooks(ctx, routed.Call, prepared, &attemptReq, protocol); transformErr != nil {
 				return struct{}{}, Usage{}, transformErr
 			}
