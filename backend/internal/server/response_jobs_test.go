@@ -234,6 +234,7 @@ func TestBackgroundResponsesPrivacyPreHookCanRewriteInputBeforeProvider(t *testi
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-background-privacy",
 		HookID:        "mask-background-input",
+		Scope:         pluginmeta.GatewayHookScope{RouteProtocols: []string{providerRouteProtocolResponses}},
 		Stage:         pluginmeta.StagePrivacyPre,
 		Priority:      1000,
 		Reads:         []pluginmeta.GatewayDataClass{pluginmeta.DataRequestBody},

@@ -74,7 +74,7 @@ func (s *Server) compatibleAnthropicRoutes(routed RoutedCall, req anthropicMessa
 }
 
 func (s *Server) validateAnthropicRouteCompatibility(route RouteSelection, req anthropicMessagesRequest) error {
-	if routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolAnthropic) {
+	if routeSupportsProviderProtocol(s.adapterRegistry, route, providerRouteProtocolAnthropic) || s.hasGatewayProviderCallHookForRoute(route, providerRouteProtocolAnthropic) {
 		return nil
 	}
 	if bridge, ok := s.anthropicRouteBridge(route); ok {

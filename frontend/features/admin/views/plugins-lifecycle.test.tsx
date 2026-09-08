@@ -93,7 +93,8 @@ describe("PluginsView lifecycle controls", () => {
     }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<PluginsView api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={data} />);
+    const onReload = vi.fn().mockResolvedValue(undefined);
+    render(<PluginsView onReload={onReload} api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }} data={data} />);
     fireEvent.click(screen.getByRole("button", { name: "回滚" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -102,6 +103,7 @@ describe("PluginsView lifecycle controls", () => {
     expect(init.method).toBe("POST");
     expect(init.body).toBeUndefined();
     await waitFor(() => expect(screen.getByText("插件已回滚至 1.0.0，重启后生效")).toBeInTheDocument());
+    await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1));
   });
 
   it("allows built-in plugins to be disabled from the installed list", () => {

@@ -144,7 +144,8 @@ describe("PluginsView", () => {
     }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<PluginsView api={api} data={emptyData()} />);
+    const onReload = vi.fn().mockResolvedValue(undefined);
+    render(<PluginsView onReload={onReload} api={api} data={emptyData()} />);
     fireEvent.click(screen.getByRole("button", { name: "安装本地插件" }));
     fireEvent.change(screen.getByLabelText("下载 URL"), { target: { value: "https://plugins.example/plugin.zip" } });
     fireEvent.change(screen.getByLabelText("SHA-256 校验"), { target: { value: "a".repeat(64) } });
@@ -161,6 +162,7 @@ describe("PluginsView", () => {
       enable: false,
     });
     expect(await screen.findByText("tokenhub.example 安装完成")).toBeInTheDocument();
+    await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1));
   });
 
   it("updates a marketplace plugin through the unified row action", async () => {
@@ -177,7 +179,8 @@ describe("PluginsView", () => {
     }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<PluginsView api={api} data={data} />);
+    const onReload = vi.fn().mockResolvedValue(undefined);
+    render(<PluginsView onReload={onReload} api={api} data={data} />);
     fireEvent.click(screen.getByRole("button", { name: "更新" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -188,6 +191,7 @@ describe("PluginsView", () => {
       download_url: "https://plugins.example/kimi.zip",
       checksum_sha256: "b".repeat(64),
     });
+    await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1));
   });
 
   it("uninstalls a local plugin through the unified row action", async () => {
@@ -200,7 +204,8 @@ describe("PluginsView", () => {
     }), { status: 200, headers: { "content-type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<PluginsView api={api} data={data} />);
+    const onReload = vi.fn().mockResolvedValue(undefined);
+    render(<PluginsView onReload={onReload} api={api} data={data} />);
     fireEvent.click(screen.getByRole("button", { name: "卸载" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -208,6 +213,7 @@ describe("PluginsView", () => {
     expect(url).toBe("http://localhost:8080/api/admin/plugin-packages/tokenhub.local.privacy");
     expect(init.method).toBe("DELETE");
     expect(await screen.findByText("插件 tokenhub.local.privacy 已卸载")).toBeInTheDocument();
+    await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1));
   });
 
   it("shows available catalog entries in Browse without mixing them into Installed", () => {

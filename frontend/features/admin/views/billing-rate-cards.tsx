@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ApiContext, AppData } from "../core/types";
+import { formatStatementAmount } from "../domain/billing-statements";
 import { languageLocale, tx } from "../i18n/runtime";
 import { adminFetch, readAdminError } from "../resources/payloads";
 import { DataSection } from "../shared/ui";
@@ -88,7 +89,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
       <button disabled={busy} type="submit">{tx("预览费用")}</button>
       <button disabled={busy || !preview || previewCard !== JSON.stringify(card)} type="button" onClick={() => void act("publish")}>{tx("发布影子价目")}</button>
     </form>
-    {preview ? <output><p>{preview.charge.amount} {preview.charge.currency}</p><p>{preview.charge.usd ? `${preview.charge.usd} USD` : tx("USD 折算待定")}</p><p>{preview.snapshot.period || tx("默认价格")}</p></output> : null}
+    {preview ? <output><p>{formatStatementAmount(preview.charge.amount, preview.charge.currency, languageLocale())}</p><p>{preview.charge.usd ? formatStatementAmount(preview.charge.usd, "USD", languageLocale()) : tx("USD 折算待定")}</p><p>{preview.snapshot.period || tx("默认价格")}</p></output> : null}
     {error ? <p role="alert">{error}</p> : null}{message ? <p role="status">{message}</p> : null}
     <button type="button" disabled={busy} onClick={() => void act("list")}>{tx("读取已发布版本")}</button>
     <ul>{cards.map((item) => <li key={item.id}>{item.target} · {item.id} · {item.effective_from ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "medium", timeStyle: "medium" }).format(new Date(item.effective_from)) : ""}</li>)}</ul>

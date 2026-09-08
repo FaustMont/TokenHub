@@ -41,6 +41,7 @@ func TestImageGatewayPreflightHooksRewritePromptBeforeJobRuns(t *testing.T) {
 			hook := pluginmeta.GatewayHookDescriptor{
 				PluginID:      "tokenhub.test-image-preflight",
 				HookID:        "rewrite-image-prompt-" + string(stage),
+				Scope:         pluginmeta.GatewayHookScope{RouteProtocols: []string{providerRouteProtocolImageGeneration}},
 				Stage:         stage,
 				Priority:      1000,
 				Reads:         []pluginmeta.GatewayDataClass{pluginmeta.DataRequestBody, pluginmeta.DataNormalizedText},

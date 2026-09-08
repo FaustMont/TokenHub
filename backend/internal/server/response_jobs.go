@@ -430,6 +430,7 @@ func (s *Server) processResponseJob(job ResponseJob, owner string, leaseTTL time
 		return
 	}
 	call.Stream = false
+	call.RouteProtocol = providerRouteProtocolResponses
 	job.RequestID = call.RequestID
 	// The admitted call context is cancelled if either concurrency lease can no
 	// longer be renewed. All expensive work and the provider invocation must
@@ -556,7 +557,7 @@ func (s *Server) processResponseJob(job ResponseJob, owner string, leaseTTL time
 		s.finalizeResponseJob(job, owner, routed.Call, RouteSelection{}, Usage{}, nil, httpErr.Status, httpErr.Code, httpErr.Message, auditPayload, resultTTL)
 		return
 	}
-	routed.Routes = s.routesWithAdapterCapability(routed.Routes, AdapterCapabilityResponses)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
 	if len(routed.Routes) == 0 {
 		if s.stopResponseJobForShutdown(job, owner, resultTTL) {
 			return

@@ -157,6 +157,14 @@ export function PluginsView({
     onActiveTabChange?.(tab);
   }
 
+  async function reloadPlugins() {
+    try {
+      await onReload?.();
+    } catch {
+      // The console reports load failures; an accepted mutation still stands.
+    }
+  }
+
   async function updatePluginState(plugin: PluginDescriptor, status: string) {
     const current = pluginStateDraft(plugin);
     // The row shows the requested status while the request is in flight; the catch below
@@ -178,11 +186,7 @@ export function PluginsView({
       }));
       // The row stays busy until the reloaded list arrives, so a second click cannot race
       // the refetch. A reload that fails leaves the draft in place rather than reverting.
-      try {
-        await onReload?.();
-      } catch {
-        // The console reports its own load failures; the accepted status still stands.
-      }
+      await reloadPlugins();
       setPluginStateDrafts((drafts) => ({
         ...drafts,
         [plugin.id]: { ...(drafts[plugin.id] ?? {}), busy: false },
@@ -206,6 +210,7 @@ export function PluginsView({
       });
       if (!response.ok) throw new Error(await readAdminError(response, tx("安装插件")));
       const payload = await response.json() as { data?: { plugin?: { id?: string }; restart_required?: boolean } };
+      await reloadPlugins();
       const pluginID = payload.data?.plugin?.id ?? tx("插件");
       setInstallDraft((draft) => ({
         ...draft,
@@ -267,6 +272,7 @@ export function PluginsView({
       });
       if (!response.ok) throw new Error(await readAdminError(response, tx("更新插件包")));
       const payload = await response.json() as { data?: { plugin?: { version?: string; name?: string }; restart_required?: boolean } };
+      await reloadPlugins();
       const label = payload.data?.plugin?.version ?? tx("插件");
       setPluginUpdateDrafts((drafts) => ({
         ...drafts,
@@ -303,6 +309,7 @@ export function PluginsView({
       });
       if (!response.ok) throw new Error(await readAdminError(response, tx("卸载插件")));
       const payload = await response.json() as { data?: { plugin_id?: string; restart_required?: boolean } };
+      await reloadPlugins();
       const pluginID = payload.data?.plugin_id ?? plugin.id;
       setPluginDeleteDrafts((drafts) => ({
         ...drafts,
@@ -340,6 +347,7 @@ export function PluginsView({
       });
       if (!response.ok) throw new Error(await readAdminError(response, tx("回滚插件")));
       const payload = await response.json() as { data?: { plugin?: { version?: string }; rollback_version?: string; restart_required?: boolean } };
+      await reloadPlugins();
       const rollbackVersion = payload.data?.rollback_version ?? payload.data?.plugin?.version ?? plugin.version ?? plugin.id;
       setPluginRollbackDrafts((drafts) => ({
         ...drafts,

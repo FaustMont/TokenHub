@@ -215,7 +215,7 @@ test("admin can preview and publish an exact shadow rate card", async ({ page })
   await page.getByLabel("1 小时缓存写入", { exact: true }).fill("0");
   await page.getByLabel("输出", { exact: true }).fill("6");
   await page.getByRole("button", { name: "预览费用", exact: true }).click();
-  await expect(page.getByText("0.860000000000 USD", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("US$0.86", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "发布影子价目", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "影子价目已发布" })).toBeVisible();
   await page.getByRole("button", { name: "读取已发布版本" }).click();

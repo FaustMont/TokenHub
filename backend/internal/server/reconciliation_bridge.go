@@ -154,13 +154,21 @@ func (b *reconciliationBillingBridge) ListRecordsInRange(connectorID string, fro
 	for index, record := range records {
 		result[index] = reconciliation.BillingRecord{
 			ID: record.ID, ExternalID: record.ExternalID, SourceType: record.SourceType,
-			AccountID: record.AccountID, ProviderID: record.Metadata["provider_id"],
-			ProviderResourceID: record.Metadata["provider_resource_id"], ResourceID: record.Metadata["resource_id"],
+			AccountID: record.AccountID, ProviderID: reconciliationAttribution(record.Metadata, "tokenhub_provider_id", "provider_id"),
+			ProviderResourceID: reconciliationAttribution(record.Metadata, "tokenhub_resource_id", "provider_resource_id"), ResourceID: record.Metadata["resource_id"],
 			ProjectID: record.Metadata["project_id"], Model: record.Model, Currency: record.Currency,
 			NetAmount: record.NetAmount, UsageStartAt: record.UsageStartAt, ExternalRequestID: record.ExternalRequestID,
 		}
 	}
 	return result, nil
+}
+
+// A present snapshot is authoritative even when its identity is empty.
+func reconciliationAttribution(metadata map[string]string, snapshot, legacy string) string {
+	if value, exists := metadata[snapshot]; exists {
+		return value
+	}
+	return metadata[legacy]
 }
 
 func domainReconciliationStoreError(err error) error {

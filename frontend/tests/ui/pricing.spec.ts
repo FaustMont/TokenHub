@@ -25,7 +25,7 @@ test("billing price preview and shadow publication are separate actions", async 
   await form.getByLabel("输出", { exact: true }).fill("6");
   await expect(form.getByRole("button", { name: "发布影子价目" })).toBeDisabled();
   await form.getByRole("button", { name: "预览费用" }).click();
-  await expect(form.getByRole("status")).toContainText("0.86 USD");
+  await expect(form.getByRole("status")).toContainText("US$0.86");
   expect(saved).toBeUndefined();
   await capture(page, testInfo, form, "price-preview", "计价预览：固定样本，不验证金额算法");
   await form.getByRole("button", { name: "发布影子价目" }).click();

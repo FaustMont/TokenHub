@@ -482,6 +482,7 @@ func (s *Server) startImageCall(w http.ResponseWriter, r *http.Request, project 
 		writeError(w, r, err)
 		return CallContext{}, false
 	}
+	call.RouteProtocol = providerRouteProtocolImageGeneration
 	w.Header().Set("x-request-id", call.RequestID)
 	writeRateLimitHeaders(w.Header(), call.RateLimitHeaders)
 	return call, true
@@ -491,6 +492,7 @@ func (s *Server) createImageJobForRequest(w http.ResponseWriter, r *http.Request
 	if atomicStore, ok := s.store.(*GormStore); ok {
 		persisted, call, err := atomicStore.CreateImageJobWithAdmission(s.imageContext, project, key, request.Model, EstimateTextTokens(prompt), job, prompt)
 		if err == nil {
+			call.RouteProtocol = providerRouteProtocolImageGeneration
 			w.Header().Set("x-request-id", call.RequestID)
 			writeRateLimitHeaders(w.Header(), call.RateLimitHeaders)
 		}
