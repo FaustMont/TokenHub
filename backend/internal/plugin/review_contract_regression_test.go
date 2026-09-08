@@ -80,6 +80,7 @@ func TestMarketplaceKeepsCompatibleReleaseAlongsideArchivedAndFuture(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	index.Plugins[0].Releases[0].Artifacts[0].Target = "any"
 	release := index.Plugins[0].Releases[0]
 	for _, tc := range []struct{ version, min, max string }{{"0.9.0", "0.1.0", "0.6.0"}, {"9.0.0", "9.0.0", ""}} {
 		other := release
@@ -93,13 +94,19 @@ func TestMarketplaceKeepsCompatibleReleaseAlongsideArchivedAndFuture(t *testing.
 		}
 		index.Plugins[0].Releases = append(index.Plugins[0].Releases, other)
 	}
+	index.Plugins[0].Latest = "9.0.0"
 	descriptors, err := MarketplaceDescriptorsFromChannelIndex(index)
-	if err != nil || len(descriptors) != 1 || descriptors[0].Version != release.Version {
+	if err != nil || len(descriptors) != 1 || descriptors[0].Version != release.Version || descriptors[0].Marketplace.Compatibility.Verdict != MarketplaceCompatibilityCompatible {
 		t.Fatalf("compatible release was lost: %v %v", descriptors, err)
 	}
-	index.Plugins[0].Releases[0].Compatibility.RequiredFeatures = []string{"future_feature"}
+	index.Plugins[0].Latest = release.Version
+	for i := range index.Plugins[0].Releases {
+		if index.Plugins[0].Releases[i].Version == release.Version {
+			index.Plugins[0].Releases[i].Compatibility.RequiredFeatures = []string{"future_feature"}
+		}
+	}
 	descriptors, err = MarketplaceDescriptorsFromChannelIndex(index)
-	if err != nil || descriptors[0].Marketplace.Compatibility.Verdict != MarketplaceCompatibilityIncompatible {
+	if err != nil || len(descriptors) != 1 || descriptors[0].Version != release.Version || descriptors[0].Marketplace.Compatibility.Verdict != MarketplaceCompatibilityIncompatible {
 		t.Fatalf("unknown feature compatibility: %v %v", descriptors, err)
 	}
 }
