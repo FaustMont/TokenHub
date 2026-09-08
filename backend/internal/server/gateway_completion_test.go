@@ -472,7 +472,7 @@ func TestFailoverAttemptsCarryTheirOwnUsage(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_backup", ModelName: "gpt-4.1-mini", ProviderID: backup.ID, ProviderModel: "backup-chat", Priority: 2, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 
 	server := New(store)
-	registerTestAdapter(server, "partial_usage_mock", partialUsageFailingAdapter{})
+	server.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 	emitter := &recordingTraceEmitter{}
 	server.traceEmitter = emitter
 

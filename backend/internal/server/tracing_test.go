@@ -431,7 +431,7 @@ func TestTracingRecordsFailoverPerCandidate(t *testing.T) {
 	store.AddRoute(ModelRoute{ID: "route_backup", ModelName: "gpt-4.1-mini", ProviderID: backup.ID, ProviderModel: "backup-chat", Priority: 2, Weight: 100, Status: StatusActive, Strategy: "priority_only"})
 
 	app := NewWithConfig(store, tracingTestConfig(endpoint.tracesURL()))
-	registerTestAdapter(app, "partial_usage_mock", partialUsageFailingAdapter{})
+	app.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":    "gpt-4.1-mini",
@@ -485,7 +485,7 @@ func TestTracingFailoverAttemptSpansOmitErrorMessageWhenPayloadCaptureDisabled(t
 	config := tracingTestConfig(endpoint.tracesURL())
 	config.TracingCapturePayloads = false
 	app := NewWithConfig(store, config)
-	registerTestAdapter(app, "partial_usage_mock", partialUsageFailingAdapter{})
+	app.adapterRegistry.Register("partial_usage_mock", partialUsageFailingAdapter{}, AdapterCapabilityChat)
 
 	response := doJSON(t, app.Handler(), http.MethodPost, "/v1/chat/completions", map[string]any{
 		"model":    "gpt-4.1-mini",

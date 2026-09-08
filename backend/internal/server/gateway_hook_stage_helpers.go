@@ -1,6 +1,7 @@
 package server
 
 import (
+	"slices"
 	"strings"
 
 	pluginmeta "tokenhub/backend/internal/plugin"
@@ -13,18 +14,32 @@ func (s *Server) hasGatewayHookStage(stage pluginmeta.GatewayHookStage) bool {
 func (s *Server) routesWithAdapterCapabilityOrProviderCall(call CallContext, routes []RouteSelection, capability AdapterCapability, protocol string) []RouteSelection {
 	filtered := make([]RouteSelection, 0, len(routes))
 	for _, route := range routes {
-		if s.routeSupportsAdapterCapability(route, capability) || s.hasGatewayProviderCallHookForRoute(call, route, protocol) {
+		if s.routeSupportsAdapterCapabilityOrProviderCall(call, route, capability, protocol) {
 			filtered = append(filtered, route)
 		}
 	}
 	return filtered
 }
 
-func (s *Server) hasGatewayProviderCallHookForRoute(call CallContext, route RouteSelection, protocol string) bool {
-	return len(s.gatewayProviderCallHooksForRoute(call, route, protocol)) > 0
+func (s *Server) routeSupportsAdapterCapabilityOrProviderCall(call CallContext, route RouteSelection, capability AdapterCapability, protocol string) bool {
+	call.Stream = call.Stream || capability == AdapterCapabilityChatStream || capability == AdapterCapabilityResponseStream
+	return s.routeSupportsAdapterCapability(route, capability) || s.hasGatewayProviderCallHookForRoute(call, route, protocol)
 }
 
-func (s *Server) gatewayProviderCallHooksForRoute(call CallContext, route RouteSelection, protocol string) []pluginmeta.GatewayHookDescriptor {
+func (s *Server) hasGatewayProviderCallHookForRoute(call CallContext, route RouteSelection, protocol string) bool {
+	output := pluginmeta.DataProviderResponse
+	if call.Stream {
+		output = pluginmeta.DataStreamEvents
+	}
+	for _, hook := range s.gatewayProviderCallHooksForRoute(call, route, protocol, call.Stream) {
+		if slices.Contains(hook.Writes, output) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) gatewayProviderCallHooksForRoute(call CallContext, route RouteSelection, protocol string, stream bool) []pluginmeta.GatewayHookDescriptor {
 	if !s.hasGatewayHookStage(pluginmeta.StageProviderCall) {
 		return nil
 	}
@@ -36,6 +51,12 @@ func (s *Server) gatewayProviderCallHooksForRoute(call CallContext, route RouteS
 	}
 	hooks := []pluginmeta.GatewayHookDescriptor{}
 	for _, hook := range s.gatewayChain.Hooks(pluginmeta.StageProviderCall) {
+		responseOutput := slices.Contains(hook.Writes, pluginmeta.DataProviderResponse)
+		streamOutput := slices.Contains(hook.Writes, pluginmeta.DataStreamEvents)
+		// Non-response hooks still participate, but cannot establish route capability.
+		if (responseOutput || streamOutput) && !(stream && streamOutput || !stream && responseOutput) {
+			continue
+		}
 		if hook.PluginID != tokenHubCoreGatewayChainPluginID && pluginmeta.GatewayHookScopeMatches(hook, target) {
 			hooks = append(hooks, hook)
 		}

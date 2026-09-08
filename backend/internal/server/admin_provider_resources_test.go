@@ -326,7 +326,7 @@ func TestProviderCredentialsAreEncryptedAndUsable(t *testing.T) {
 	})
 	adapter := &captureAdapter{}
 	server := New(store)
-	registerTestAdapter(server, "capture", adapter)
+	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	app := server.Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -388,7 +388,7 @@ func TestOpenAISubscriptionResourceSuppliesRouteCredentials(t *testing.T) {
 	})
 	adapter := &captureAdapter{}
 	server := New(store)
-	registerTestAdapter(server, "capture", adapter)
+	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	app := server.Handler()
 
 	resp := doJSON(t, app, http.MethodPost, "/v1/chat/completions", map[string]any{
@@ -587,7 +587,7 @@ func TestOpenAISubscriptionResourceRefreshesBeforeGatewayCall(t *testing.T) {
 	})
 	adapter := &captureAdapter{}
 	server := New(store)
-	registerTestAdapter(server, "capture", adapter)
+	server.adapterRegistry.Register("capture", adapter, AdapterCapabilityChat)
 	store.ConfigureProviderResourceTypePolicy(map[string][]string{"capture": {ProviderResourceOpenAISubscription}})
 	store.ConfigureProviderCredentialRefreshHandlers([]providerResourceCredentialRefreshRegistration{{
 		ProviderType:        "capture",

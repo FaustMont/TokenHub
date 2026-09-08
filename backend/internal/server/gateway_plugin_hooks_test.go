@@ -353,7 +353,7 @@ func TestContextOptimizeHookRewritesGatewayChatRequestBeforeUpstream(t *testing.
 	store.AddRoute(ModelRoute{ID: "route_context_plugin", ModelName: "gpt-context", ProviderID: provider.ID, ProviderModel: "upstream-context", Status: StatusActive, Priority: 1, Weight: 100})
 	server := New(store)
 	adapter := &contextOptimizeCaptureAdapter{}
-	registerTestAdapter(server, "context_capture", adapter)
+	server.adapterRegistry.Register("context_capture", adapter, AdapterCapabilityChat)
 
 	hook := pluginmeta.GatewayHookDescriptor{
 		PluginID:      "tokenhub.test-context",

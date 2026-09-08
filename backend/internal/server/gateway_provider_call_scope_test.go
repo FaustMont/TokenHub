@@ -12,8 +12,8 @@ import (
 )
 
 func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
-	for _, endpoint := range []string{"responses", "responses-stream", "responses-background", "anthropic", "anthropic-stream", "gemini", "gemini-stream", "images"} {
-		for _, scopeCase := range []string{"matching", "unscoped", "project-mismatch", "key-mismatch", "operation-mismatch", "legacy-matching", "legacy-mismatch", "split-matches"} {
+	for _, endpoint := range []string{"chat", "chat-stream", "embeddings", "responses", "responses-stream", "responses-background", "anthropic", "anthropic-stream", "gemini", "gemini-stream", "images"} {
+		for _, scopeCase := range []string{"matching", "unscoped", "project-mismatch", "key-mismatch", "operation-mismatch", "legacy-matching", "legacy-mismatch", "split-matches", "response-only", "stream-only", "no-response", "separate-mode-hooks", "output-scope-split"} {
 			t.Run(endpoint+"/"+scopeCase, func(t *testing.T) {
 				config := responseJobTestConfig()
 				config.ImageStorageDir = t.TempDir()
@@ -38,6 +38,11 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 				stream := strings.HasSuffix(endpoint, "-stream")
 				payload := map[string]any{"model": "gpt-background", "input": "hello", "stream": stream}
 				switch {
+				case strings.HasPrefix(endpoint, "chat"):
+					protocol, path = providerRouteProtocolChatCompletions, "/v1/chat/completions"
+					payload = map[string]any{"model": "gpt-background", "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "hello"}}}
+				case endpoint == "embeddings":
+					protocol, path = providerRouteProtocolEmbeddings, "/v1/embeddings"
 				case strings.HasPrefix(endpoint, "anthropic"):
 					protocol, path = providerRouteProtocolAnthropic, "/v1/messages"
 					payload = map[string]any{"model": "gpt-background", "max_tokens": 32, "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "hello"}}}
@@ -58,7 +63,21 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 				}
 				var metadata map[string]string
 				matching := scopeCase == "matching" || scopeCase == "unscoped" || scopeCase == "legacy-matching"
+				outputs := []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse, pluginmeta.DataStreamEvents}
 				switch scopeCase {
+				case "response-only":
+					outputs, matching = []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse}, !stream
+				case "stream-only":
+					outputs, matching = []pluginmeta.GatewayDataClass{pluginmeta.DataStreamEvents}, stream
+				case "no-response":
+					outputs = nil
+				case "separate-mode-hooks":
+					outputs, matching = []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse}, true
+				case "output-scope-split":
+					outputs = []pluginmeta.GatewayDataClass{pluginmeta.DataStreamEvents}
+					if stream {
+						outputs = []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse}
+					}
 				case "unscoped":
 					scope = pluginmeta.GatewayHookScope{}
 				case "project-mismatch", "split-matches":
@@ -80,9 +99,9 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 				}
 				var calls atomic.Int32
 				imageBytes := realPNGFixture(t)
-				register := func(id string, scope pluginmeta.GatewayHookScope) {
+				register := func(id string, scope pluginmeta.GatewayHookScope, outputs []pluginmeta.GatewayDataClass) {
 					t.Helper()
-					hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.provider-scope", HookID: id, Stage: pluginmeta.StageProviderCall, Priority: 2000, Scope: scope, Metadata: metadata, Writes: []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse, pluginmeta.DataStreamEvents, pluginmeta.DataUsage}}
+					hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.provider-scope", HookID: id, Stage: pluginmeta.StageProviderCall, Priority: 2000, Scope: scope, Metadata: metadata, Writes: append([]pluginmeta.GatewayDataClass{pluginmeta.DataUsage}, outputs...)}
 					if err := server.gatewayChain.RegisterHook(hook); err != nil {
 						t.Fatal(err)
 					}
@@ -91,7 +110,10 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 						if input.Envelope.Operation != "provider_call" || input.Envelope.RouteProtocol != protocol {
 							t.Errorf("unexpected provider call envelope: %+v", input.Envelope)
 						}
-						if stream {
+						if len(outputs) == 0 {
+							return pluginmeta.GatewayHookResult{Decision: pluginmeta.HookDecisionContinue}, nil
+						}
+						if len(outputs) == 1 && outputs[0] == pluginmeta.DataStreamEvents || len(outputs) == 2 && stream {
 							return pluginmeta.GatewayHookResult{Decision: pluginmeta.HookDecisionShortCircuit, Writes: map[pluginmeta.GatewayDataClass]pluginmeta.RawPatch{
 								pluginmeta.DataStreamEvents: {Value: json.RawMessage(`[{"data":"{\"text\":\"scope-result\"}"}]`)},
 								pluginmeta.DataUsage:        {Value: json.RawMessage(`{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}`)},
@@ -106,10 +128,17 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				register("provider", scope)
+				register("provider", scope, outputs)
 				if scopeCase == "split-matches" {
 					scope.ProjectIDs, scope.APIKeyIDs = []string{key.ProjectID}, []string{"another-key"}
-					register("other-provider", scope)
+					register("other-provider", scope, outputs)
+				}
+				if scopeCase == "separate-mode-hooks" {
+					register("stream-provider", scope, []pluginmeta.GatewayDataClass{pluginmeta.DataStreamEvents})
+				}
+				if scopeCase == "output-scope-split" {
+					scope.ProjectIDs = []string{"another-project"}
+					register("other-provider", scope, []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse, pluginmeta.DataStreamEvents})
 				}
 				status, body := 0, ""
 				if endpoint == "responses-background" {
@@ -133,7 +162,14 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 						wantCode = ErrProviderMissing.Code
 					}
 					if calls.Load() != 0 || !strings.Contains(body, wantCode) || strings.Contains(body, "provider_adapter_missing") {
-						t.Fatalf("unsupported route admitted: calls=%d status=%d body=%s", calls.Load(), status, body)
+						t.Errorf("unsupported route admitted: calls=%d status=%d body=%s", calls.Load(), status, body)
+					}
+					var attempts int64
+					if err := store.db.Model(&RouteAttemptLog{}).Count(&attempts).Error; err != nil {
+						t.Fatal(err)
+					}
+					if attempts != 0 {
+						t.Errorf("unsupported route recorded %d attempts", attempts)
 					}
 				}
 				for _, resource := range store.ListProviderResources() {

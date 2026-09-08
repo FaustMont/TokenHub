@@ -145,17 +145,22 @@ func (s *Server) compatibleChatRoutes(routed RoutedCall, req ChatCompletionReque
 	compatible := routed
 	compatible.Routes = make([]RouteSelection, 0, len(routed.Routes))
 	var firstErr error
-	checkedBridge := false
-	droppedBridge := false
+	capability := AdapterCapabilityChat
+	if req.Stream {
+		capability = AdapterCapabilityChatStream
+	}
 	for _, route := range routed.Routes {
 		bridge, ok := s.chatRouteBridge(route)
-		if !ok || bridge.ChatCompatible == nil {
-			compatible.Routes = append(compatible.Routes, route)
-			continue
+		if req.Stream {
+			bridge, ok = s.streamChatRouteBridge(route)
 		}
-		checkedBridge = true
-		if err := bridge.ChatCompatible(req); err != nil {
-			droppedBridge = true
+		var err error
+		if ok && bridge.ChatCompatible != nil {
+			err = bridge.ChatCompatible(req)
+		} else if !ok && !s.routeSupportsAdapterCapabilityOrProviderCall(routed.Call, route, capability, providerRouteProtocolChatCompletions) {
+			err = NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "Provider does not support the requested Chat Completions mode")
+		}
+		if err != nil {
 			if firstErr == nil {
 				firstErr = err
 			}
@@ -163,10 +168,10 @@ func (s *Server) compatibleChatRoutes(routed RoutedCall, req ChatCompletionReque
 		}
 		compatible.Routes = append(compatible.Routes, route)
 	}
-	if !checkedBridge || !droppedBridge {
-		return routed, nil
-	}
 	if len(compatible.Routes) == 0 {
+		if firstErr == nil {
+			firstErr = ErrProviderMissing
+		}
 		return compatible, firstErr
 	}
 	return compatible, nil

@@ -703,6 +703,8 @@ shasum -a 256 background-heartbeat-go.zip
 
 只有完整 scope 与当前请求匹配时，`provider_call` Hook 才能为路由提供能力：包括项目、API Key、Provider、资源、路由协议和 `provider_call` 操作。能力筛选与 Hook 执行共用匹配规则，并兼容旧版 scope metadata。无关 Hook 不会让纯插件路由成为可用候选；不支持的路由会在调用前排除，且不会惩罚 Provider 资源。内置适配器支持的能力仍独立于插件 Hook 可用。
 
+能力准入覆盖 Chat（含流式）、Embeddings、Responses（含流式和后台任务）、Anthropic、Gemini 及图片生成，并保留支持的协议桥接路由。提供响应的 Hook 必须为流式调用声明 `stream_events`，为非流式调用声明 `provider_response`；两者都声明时可支持两种模式。两者都未声明的 Hook 仍可在存在可用适配器或响应 Hook 时参与执行，但不能提供 Provider 能力。仅声明相反输出模式的 Hook 会在能力筛选和执行时跳过。
+
 频道索引可以保留与当前服务器核心版本范围或所需功能不兼容的历史及未来版本。兼容性语法错误仍会使索引校验失败；版本选择优先采用兼容、审核通过且提供当前平台构建产物的最高 SemVer。只有严格更新的版本才显示为可更新。尚未安装的市场插件支持详情概览，并按市场分类展示。
 
 流式 `provider_call` Hook 通过 `stream_events` 返回 `{event, data}` 对象数组，并可返回 `usage`。每个事件输出前依次执行 `stream_transform`、`response_post` 和 `guardrail_post`；拒绝时会在写出该事件前终止流。`stream_transform` 支持事件数据和审计输出，不支持完整 `provider_response` 或最终 `usage` 写入，相关声明会在校验时被拒绝。Provider 用量通过 `provider_call` 返回，完成时的用量修正使用用量归属阶段。

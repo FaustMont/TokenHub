@@ -14,7 +14,7 @@ func (s *Server) runGatewayProviderCallHooks(ctx context.Context, call CallConte
 }
 
 func (s *Server) runGatewayProviderCallHooksOutput(ctx context.Context, call CallContext, route RouteSelection, payload any, protocol string, stream io.Writer) (any, Usage, bool, error) {
-	hooks := s.gatewayProviderCallHooksForRoute(call, route, protocol)
+	hooks := s.gatewayProviderCallHooksForRoute(call, route, protocol, stream != nil)
 	if len(hooks) == 0 {
 		return nil, Usage{}, false, nil
 	}
