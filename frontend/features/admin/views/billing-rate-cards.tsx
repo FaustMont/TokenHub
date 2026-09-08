@@ -30,7 +30,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
   const [evidence, setEvidence] = useState<unknown>(null);
   async function request(path: string, body?: unknown) {
     const response = await adminFetch(api, path, body ? { method: "POST", body: JSON.stringify(body) } : undefined);
-    if (!response.ok) throw new Error(await readAdminError(response, "计费操作失败"));
+    if (!response.ok) throw new Error(await readAdminError(response, tx("计费操作失败")));
     return response.json();
   }
   async function act(action: "preview" | "publish" | "list" | "evidence") {
