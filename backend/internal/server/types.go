@@ -1323,8 +1323,8 @@ type CallContext struct {
 	// StreamOutputCommitted keeps the reservation when a stream delivered data but
 	// ended before an authoritative usage event was received.
 	StreamOutputCommitted bool
-	// Stream records whether the client asked for a streamed response. It only
-	// labels observability output and never influences routing.
+	// Stream records the requested response mode for observability and
+	// provider hook output capability matching during route admission.
 	Stream bool
 	// GatewayAuthMetadata carries plugin-provided authentication context
 	// annotations. Plugins may enrich downstream gateway hooks with these values,
