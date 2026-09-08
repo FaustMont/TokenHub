@@ -93,6 +93,9 @@ func calculate(run Run, bills []BillingRecord, usages []Usage) (Run, []Item, err
 		if record.CreatedAt.Before(run.PeriodStart) || !record.CreatedAt.Before(run.PeriodEnd) {
 			continue
 		}
+		if !record.ProviderCostKnown && record.ProviderCostUSD == 0 {
+			return run, nil, NewError(ErrorInvalidInput, "reconciliation_provider_cost_unknown", "Provider cost evidence is missing for usage record "+record.ID+"; reconciliation is incomplete")
+		}
 		localCost := record.ProviderCostUSD
 		amount, parseErr := moneyFromFloat(localCost)
 		if parseErr != nil {

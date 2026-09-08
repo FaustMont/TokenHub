@@ -16,6 +16,7 @@ const (
 )
 
 type GatewayEnvelope struct {
+	RouteProtocol  string                     `json:"route_protocol,omitempty"`
 	Version        string                     `json:"version"`
 	Protocol       string                     `json:"protocol"`
 	Operation      string                     `json:"operation"`

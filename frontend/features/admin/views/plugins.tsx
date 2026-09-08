@@ -522,10 +522,10 @@ export function PluginsView({
               <h2>{tx("浏览插件")}</h2>
               <span>{availablePlugins.length}</span>
             </div>
-            <a className="secondary-button plugin-marketplace-link" href={marketplaceWebsiteURL} rel="noreferrer" target="_blank">
+            {marketplaceWebsiteURL ? <a className="secondary-button plugin-marketplace-link" href={marketplaceWebsiteURL} rel="noreferrer" target="_blank">
               <ExternalLink size={14} aria-hidden="true" />
               <span>{tx("浏览插件市场")}</span>
-            </a>
+            </a> : null}
           </div>
           <div className="section-body">
             {availablePlugins.length === 0 ? (
@@ -592,6 +592,10 @@ function extensionCategoryIcon(category: PluginExtensionCategoryKey) {
 }
 
 function pluginExtensionCategory(plugin: PluginDescriptor): PluginExtensionCategoryKey {
+  const categories = new Set(plugin.marketplace?.categories?.map((category) => category.trim().toLowerCase()) ?? []);
+  if (categories.has("provider") || categories.has("provider_integration")) return "provider";
+  if (categories.has("request_pipeline") || categories.has("gateway_chain")) return "chain";
+  if (categories.has("ui_template") || categories.has("admin_ui") || categories.has("sim")) return "ui";
   if (plugin.category === "provider_integration" || plugin.kinds.includes("provider")) return "provider";
   if (plugin.category === "request_pipeline" || plugin.placements.includes("gateway_chain")) return "chain";
   if (plugin.category === "ui_template" || plugin.kinds.includes("sim") || plugin.kinds.includes("admin_ui") || plugin.placements.includes("presentation")) return "ui";

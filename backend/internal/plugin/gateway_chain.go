@@ -179,6 +179,9 @@ func (r *GatewayChainRegistry) RegisterHook(descriptor GatewayHookDescriptor) er
 	if err := validateGatewayStageDataClasses(descriptor.Stage, "write", descriptor.Writes, policy.Writes); err != nil {
 		return err
 	}
+	if err := validateGatewayListStageScope(descriptor); err != nil {
+		return err
+	}
 	if descriptor.TimeoutMillis < 0 {
 		return fmt.Errorf("gateway hook %s/%s timeout_millis cannot be negative", descriptor.PluginID, descriptor.HookID)
 	}
@@ -430,8 +433,8 @@ func GatewayStagePolicy(stage GatewayHookStage) (GatewayHookStagePolicy, bool) {
 		return GatewayHookStagePolicy{
 			DefaultFailurePolicy: FailurePolicyFailOpen,
 			AllowedFailurePolicy: []GatewayHookFailurePolicy{FailurePolicyFailOpen, FailurePolicyFailClosed},
-			Reads:                []GatewayDataClass{DataAuthContext, DataProjectMetadata, DataAPIKeyMetadata, DataProviderCredentials, DataProviderResponse, DataStreamEvents, DataUsage},
-			Writes:               []GatewayDataClass{DataProviderResponse, DataStreamEvents, DataUsage, DataAudit},
+			Reads:                []GatewayDataClass{DataAuthContext, DataProjectMetadata, DataAPIKeyMetadata, DataProviderCredentials, DataStreamEvents},
+			Writes:               []GatewayDataClass{DataStreamEvents, DataAudit},
 			AllowsDeny:           true,
 		}, true
 	case StageResponsePost:
@@ -627,7 +630,7 @@ func gatewayScopeListMatches(allowed []string, value string, caseInsensitive boo
 		value = strings.ToLower(value)
 	}
 	if value == "" {
-		return true
+		return false
 	}
 	for _, candidate := range allowed {
 		if candidate == value {

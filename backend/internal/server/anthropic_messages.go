@@ -1020,28 +1020,29 @@ func (s *Server) handleAnthropicMessagesStream(
 				s.writeRouteHeaders(w, routed.Call, prepared, attempt)
 			}
 
-			var streamUsage Usage
-			var streamErr error
 			streamWriter := io.Writer(tracker)
 			var transformer *gatewayStreamTransformWriter
 			if s.hasGatewayStreamTransformHooksForRoute(prepared, protocol) {
 				transformer = s.newGatewayStreamTransformWriter(ctx, routed.Call, prepared, protocol, tracker)
 				streamWriter = transformer
 			}
-			switch protocol {
-			case providerRouteProtocolAnthropic:
-				streamUsage, streamErr = s.streamNativeAnthropicMessages(ctx, prepared, attemptReq, r.Header, streamWriter)
-			case providerRouteProtocolChatCompletions:
-				streamUsage, streamErr = s.streamOpenAIAsAnthropic(ctx, prepared, attemptReq, streamWriter)
-			default:
-				if bridge, ok := providerRouteBridgeByProtocol(protocol, streamAnthropicRouteBridgeSupported); ok {
-					streamUsage, streamErr = bridge.StreamAnthropic(s, ctx, prepared, attemptReq, r.Header, streamWriter)
-				} else {
-					streamErr = NewHTTPError(
-						http.StatusNotImplemented,
-						"provider_capability_not_supported",
-						"Provider does not support the Anthropic Messages gateway",
-					)
+			_, streamUsage, handled, streamErr := s.runGatewayProviderCallHooksOutput(ctx, routed.Call, prepared, attemptReq, protocol, streamWriter)
+			if !handled && streamErr == nil {
+				switch protocol {
+				case providerRouteProtocolAnthropic:
+					streamUsage, streamErr = s.streamNativeAnthropicMessages(ctx, prepared, attemptReq, r.Header, streamWriter)
+				case providerRouteProtocolChatCompletions:
+					streamUsage, streamErr = s.streamOpenAIAsAnthropic(ctx, prepared, attemptReq, streamWriter)
+				default:
+					if bridge, ok := providerRouteBridgeByProtocol(protocol, streamAnthropicRouteBridgeSupported); ok {
+						streamUsage, streamErr = bridge.StreamAnthropic(s, ctx, prepared, attemptReq, r.Header, streamWriter)
+					} else {
+						streamErr = NewHTTPError(
+							http.StatusNotImplemented,
+							"provider_capability_not_supported",
+							"Provider does not support the Anthropic Messages gateway",
+						)
+					}
 				}
 			}
 			if transformer != nil {

@@ -2,7 +2,7 @@ import { localizeBuiltinContribution } from "../i18n/builtin-admin-ui";
 import { Play } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { type AdminUIContribution, type ApiContext, type PluginActionDescriptor, type Provider, type ProviderResource } from "../core/types";
-import { compactNumber, formatMoney, formatNumber } from "../domain/formatting";
+import { formatAdminUIValue } from "../domain/admin-ui-registry";
 import { pluginActionInputDefaults, pluginActionKey, pluginActionPayload, redactPluginActionResult } from "../domain/plugin-actions";
 import { activeLanguage, tx } from "../i18n/runtime";
 import { adminFetch, readAdminError } from "../resources/payloads";
@@ -251,14 +251,7 @@ export function providerPanelResources(contribution: AdminUIContribution, resour
 
 export function providerPanelFieldValue(context: ProviderPanelContext, field: PanelField) {
   const rawValue = field.value ?? providerPanelSourceValue(context, field.source);
-  if (rawValue === undefined || rawValue === null || rawValue === "") return "-";
-  if (field.format === "money_usd") return `$${formatMoney(Number(rawValue) || 0)}`;
-  if (field.format === "compact") return compactNumber(Number(rawValue) || 0);
-  if (field.format === "percent") return `${formatNumber(Number(rawValue) || 0)}%`;
-  if (typeof rawValue === "number") return formatNumber(rawValue);
-  if (typeof rawValue === "boolean") return rawValue ? "true" : "false";
-  if (field.type === "code_viewer" && typeof rawValue === "object") return JSON.stringify(rawValue, null, 2);
-  return String(rawValue);
+  return formatAdminUIValue(rawValue, field);
 }
 
 function providerPanelFieldType(type: string): PanelField["type"] | "" {
@@ -303,7 +296,7 @@ function defaultPanelState(resources: ProviderResource[], action?: PluginActionD
 }
 
 export function providerPanelContributionKey(panel: AdminUIContribution) {
-  return `${panel.plugin_id}:${panel.id}:${panel.action ?? ""}`;
+  return JSON.stringify([panel.plugin_id, panel.id, panel.action ?? ""]);
 }
 
 export function providerQuotaPanelSelection(

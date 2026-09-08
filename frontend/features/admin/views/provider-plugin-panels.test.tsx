@@ -88,7 +88,7 @@ describe("ProviderPluginPanels", () => {
       provider: { id: "prv_plugin", name: "Plugin Provider", type: "plugin_provider", status: "active", healthy: true, priority: 10 },
       resource: { id: "rsrc_plugin", provider_id: "prv_plugin", name: "Plugin Account", resource_type: "api_key", status: "active", healthy: true, priority: 10, weight: 1, rate_limit_rpm: 1200 },
       resources: [],
-    }, fields[0])).toBe("1.20K");
+    }, fields[0])).toBe("1200");
     expect(providerPanelFieldValue({
       provider: { id: "prv_plugin", name: "Plugin Provider", type: "plugin_provider", status: "active", healthy: true, priority: 10 },
       resource: { id: "rsrc_plugin", provider_id: "prv_plugin", name: "Plugin Account", resource_type: "api_key", status: "active", healthy: true, priority: 10, weight: 1 },
@@ -173,7 +173,7 @@ describe("ProviderPluginPanels", () => {
           schema: { fields: [{ name: "resource_status", type: "text", label: "Resource status", source: "resource.status" }] },
         }]}
         actions={[{ plugin_id: "tokenhub.provider.plugin", action_id: "quota.read", kind: "read", capability: "quota.read", subject: "plugin_provider" }]}
-        handledContributionKeys={["tokenhub.provider.plugin:quota:quota.read"]}
+        handledContributionKeys={[JSON.stringify(["tokenhub.provider.plugin", "quota", "quota.read"])]}
       />,
     );
 

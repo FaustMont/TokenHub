@@ -30,9 +30,9 @@ test("admin UI registry builds plugin pages from nav section contributions", () 
   ];
 
   assert.deepEqual(adminUIContributionsForSlot(contributions, "nav.section"), [contributions[0]]);
-  assert.equal(adminUIPluginPageKey(contributions[0]), "tokenhub.admin.runtime:runtime");
+  assert.equal(adminUIPluginPageKey(contributions[0]), JSON.stringify(["tokenhub.admin.runtime", "runtime"]));
   assert.deepEqual(adminUIPluginPages(contributions), [{
-    key: "tokenhub.admin.runtime:runtime",
+    key: JSON.stringify(["tokenhub.admin.runtime", "runtime"]),
     pluginID: "tokenhub.admin.runtime",
     id: "runtime",
     title: "Runtime",
@@ -74,7 +74,7 @@ test("admin UI registry formats metrics with the selected application locale", (
 });
 
 test("admin UI registry action keys and redaction are shared across surfaces", () => {
-  assert.equal(adminUIActionKey("tokenhub.plugin", "inspect"), "tokenhub.plugin:inspect");
+  assert.equal(adminUIActionKey("tokenhub.plugin", "inspect"), JSON.stringify(["tokenhub.plugin", "inspect"]));
   assert.deepEqual(redactAdminUIResult({
     data: {
       access_token: "secret",
@@ -86,4 +86,10 @@ test("admin UI registry action keys and redaction are shared across surfaces", (
       nested: { api_key: "[redacted]", safe: "visible" },
     },
   });
+});
+
+
+test("admin UI action and contribution keys preserve tuple identity", () => {
+  assert.notEqual(adminUIActionKey("a:b", "c"), adminUIActionKey("a", "b:c"));
+  assert.notEqual(adminUIPluginPageKey({ plugin_id: "a:b", id: "c" }), adminUIPluginPageKey({ plugin_id: "a", id: "b:c" }));
 });

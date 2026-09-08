@@ -95,7 +95,14 @@ func (b *reconciliationStoreBridge) ListUsages(from time.Time, to time.Time, win
 			ID: record.ID, RequestID: record.RequestID, ProjectID: record.ProjectID,
 			ModelName: record.ModelName, ProviderID: record.ProviderID,
 			ProviderResourceID: record.ProviderResourceID, CostUSD: record.CostUSD,
-			ProviderCostUSD: record.ProviderCostUSD, CreatedAt: record.CreatedAt,
+			ProviderCostUSD: record.ProviderCostUSD, ProviderCostKnown: record.ProviderCostUSD != 0, CreatedAt: record.CreatedAt,
+		}
+	}
+	if evidence, ok := b.store.(interface {
+		applyZeroCostEvidence([]reconciliation.Usage) error
+	}); ok {
+		if err := evidence.applyZeroCostEvidence(result); err != nil {
+			return nil, err
 		}
 	}
 	return result, nil

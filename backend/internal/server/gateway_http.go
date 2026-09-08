@@ -339,7 +339,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	routed.Routes = s.routesWithAdapterCapability(routed.Routes, AdapterCapabilityResponses)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponses, providerRouteProtocolResponses)
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(
 			http.StatusNotImplemented,
@@ -351,7 +351,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Stream {
-		routed.Routes = s.routesWithAdapterCapability(routed.Routes, AdapterCapabilityResponseStream)
+		routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, AdapterCapabilityResponseStream, providerRouteProtocolResponses)
 		if len(routed.Routes) == 0 {
 			err := NewHTTPError(
 				http.StatusNotImplemented,
@@ -434,6 +434,7 @@ func (s *Server) handleResponses(w http.ResponseWriter, r *http.Request) {
 func (s *Server) admitRoutedCall(w http.ResponseWriter, r *http.Request, project Project, key APIKey, model string, stream bool, tokenReservation int64) (CallContext, error) {
 	call, err := s.store.StartCall(r.Context(), project, key, model, tokenReservation)
 	call.Stream = stream
+	call.RouteProtocol = gatewayRequestProtocol(r.URL.Path)
 	if err != nil {
 		return CallContext{}, err
 	}

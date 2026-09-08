@@ -227,7 +227,7 @@ function numberValue(value: unknown, fallback: number) {
 }
 
 function adminUIPageContributionKey(contribution: AdminUIContribution) {
-  return `${contribution.plugin_id}:${contribution.id}`;
+  return JSON.stringify([contribution.plugin_id, contribution.id]);
 }
 
 function firstValue(...values: unknown[]) {

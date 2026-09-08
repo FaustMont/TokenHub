@@ -2,7 +2,7 @@ import { localizeBuiltinContribution } from "../i18n/builtin-admin-ui";
 import { PlugZap } from "lucide-react";
 import { type AdminUIContribution, type AppData } from "../core/types";
 import { dashboardCardRegistry } from "../domain/admin-ui-dashboard";
-import { compactNumber, formatMoney, formatNumber } from "../domain/formatting";
+import { formatAdminUIValue } from "../domain/admin-ui-registry";
 
 type DashboardMetricField = {
   name: string;
@@ -76,13 +76,7 @@ export function dashboardMetricFields(contribution: AdminUIContribution): Dashbo
 
 export function dashboardMetricValue(data: AppData, field: DashboardMetricField) {
   const rawValue = field.value ?? dashboardSourceValue(data, field.source);
-  if (rawValue === undefined || rawValue === null || rawValue === "") return "-";
-  if (field.format === "money_usd") return `$${formatMoney(Number(rawValue) || 0)}`;
-  if (field.format === "compact") return compactNumber(Number(rawValue) || 0);
-  if (field.format === "percent") return `${formatNumber(Number(rawValue) || 0)}%`;
-  if (typeof rawValue === "number") return formatNumber(rawValue);
-  if (typeof rawValue === "boolean") return rawValue ? "true" : "false";
-  return String(rawValue);
+  return formatAdminUIValue(rawValue, field);
 }
 
 function dashboardSourceValue(data: AppData, source?: string) {

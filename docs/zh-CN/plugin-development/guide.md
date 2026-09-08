@@ -571,7 +571,7 @@ TokenHub 对 built-in 和 external 插件使用同一种包形态。
 - 许可证
 - 兼容性元数据
 
-插件市场地址默认是 `https://plugins.thinkinai.xyz`。运维可以从 Marketplace 或直接 ZIP URL 安装插件包并校验 checksum。TokenHub 会立即重新评估插件包的校验与生命周期状态；这可以激活受支持的声明式贡献，但不会启用外部命令执行。
+插件市场网站地址默认留空。配置可用的 HTTP 或 HTTPS 市场网站后，界面才会显示外部浏览链接。运维可以从该市场或直接 ZIP URL 安装插件包并校验 checksum。 TokenHub 会立即重新评估插件包的校验与生命周期状态；这可以激活受支持的声明式贡献，但不会启用外部命令执行。
 
 ZIP 可以把 `plugin.yaml` 放在归档根目录，也可以只包一层插件目录；归档中必须且只能发现一个 `plugin.yaml`。不要包含 symlink。运行入口必须保留可执行权限，并且 `entry.backend.command` 必须是插件目录内的相对路径。
 
@@ -698,3 +698,11 @@ shasum -a 256 background-heartbeat-go.zip
 
 如果某个行为可以放进 plugin，就把它留在 plugin 里。
 如果它必须留在 Core，就让 Core 做最后决定，并把实现路径保持稳定。
+
+插件包和签名下载地址必须使用 HTTPS 和公网 IP。每次重定向都必须保持原始协议和主机，建立连接时会解析并验证 DNS。私网、回环和链路本地地址均被阻止，不受 Provider 上游访问设置影响。
+
+频道索引可以保留与当前服务器核心版本范围或所需功能不兼容的历史及未来版本。兼容性语法错误仍会使索引校验失败；版本选择优先采用兼容、审核通过且提供当前平台构建产物的最高 SemVer。只有严格更新的版本才显示为可更新。尚未安装的市场插件支持详情概览，并按市场分类展示。
+
+流式 `provider_call` Hook 通过 `stream_events` 返回 `{event, data}` 对象数组，并可返回 `usage`。每个事件输出前依次执行 `stream_transform`、`response_post` 和 `guardrail_post`；拒绝时会在写出该事件前终止流。`stream_transform` 支持事件数据和审计输出，不支持完整 `provider_response` 或最终 `usage` 写入，相关声明会在校验时被拒绝。Provider 用量通过 `provider_call` 返回，完成时的用量修正使用用量归属阶段。
+
+路由列表阶段（`route_candidates` 和 `route_rank`）支持端点协议、项目、API Key 和操作 scope。由于尚未选定路由，这两个阶段拒绝 Provider 和资源 scope；处理器可以检查完整候选列表。受限制但不可用的维度不会匹配。后台任务仅支持 `@startup`、正数 Go duration 和 `*/N * * * *` 间隔；不支持的语法或溢出值会被拒绝。独立 DevKit 的 Manifest 类型从生产 schema 生成，并使用生产插件样例检查兼容性。

@@ -1280,6 +1280,7 @@ type RoutedCall struct {
 }
 
 type CallContext struct {
+	RouteProtocol         string
 	RequestID             string
 	Project               Project
 	Key                   APIKey

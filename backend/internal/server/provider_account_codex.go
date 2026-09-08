@@ -409,6 +409,27 @@ func (s *Server) handleStreamingResponses(w http.ResponseWriter, r *http.Request
 		if err != nil {
 			return nil, Usage{}, err
 		}
+		upstreamRequest := request
+		if omitReasoningEffort {
+			upstreamRequest = withoutResponsesReasoningEffort(upstreamRequest)
+		}
+		if transformErr := s.runGatewayResponsesRequestTransformHooks(ctx, routed.Call, prepared, &upstreamRequest); transformErr != nil {
+			return nil, Usage{}, transformErr
+		}
+		tracker.onFirstWrite = func() {
+			w.Header().Set("content-type", "text/event-stream")
+			w.Header().Set("cache-control", "no-cache")
+			w.Header().Set("x-request-id", routed.Call.RequestID)
+			s.writeRouteHeaders(w, routed.Call, prepared, attemptNumber)
+		}
+		hookWriter := s.newGatewayStreamTransformWriter(ctx, routed.Call, prepared, providerRouteProtocolResponses, tracker)
+		if response, usage, handled, hookErr := s.runGatewayProviderCallHooksOutput(ctx, routed.Call, prepared, upstreamRequest, providerRouteProtocolResponses, hookWriter); hookErr != nil || handled {
+			if closeErr := hookWriter.Close(); hookErr == nil {
+				hookErr = closeErr
+			}
+			result, _ := response.(map[string]any)
+			return result, usage, classifyStreamError(ctx, hookErr, tracker.Wrote())
+		}
 		adapter, err := s.responsesAdapterForRoute(prepared)
 		if err != nil {
 			return nil, Usage{}, err
@@ -416,13 +437,6 @@ func (s *Server) handleStreamingResponses(w http.ResponseWriter, r *http.Request
 		streamAdapter, ok := adapter.(ResponsesStreamOpener)
 		if !ok {
 			return nil, Usage{}, NewHTTPError(http.StatusBadRequest, "adapter_capability_unsupported", "Provider adapter does not support streaming Responses")
-		}
-		upstreamRequest := request
-		if omitReasoningEffort {
-			upstreamRequest = withoutResponsesReasoningEffort(upstreamRequest)
-		}
-		if transformErr := s.runGatewayResponsesRequestTransformHooks(ctx, routed.Call, prepared, &upstreamRequest); transformErr != nil {
-			return nil, Usage{}, transformErr
 		}
 		opened, err := streamAdapter.OpenResponses(ctx, prepared.Provider, prepared.ProviderModel, upstreamRequest, r.Header)
 		if providerResourceModelUnsupportedError(err) {

@@ -243,7 +243,7 @@ func (s *Server) handleGeminiGenerate(w http.ResponseWriter, r *http.Request, mo
 	if stream {
 		capability = AdapterCapabilityResponseStream
 	}
-	routed.Routes = s.routesWithAdapterCapability(routed.Routes, capability)
+	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Routes, capability, providerRouteProtocolGemini)
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "No route supports the Gemini CLI compatibility protocol")
 		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
@@ -394,7 +394,10 @@ func (s *Server) handleStreamingGemini(w http.ResponseWriter, r *http.Request, r
 			headers = bridge.GeminiHeaders(r.Header, payload)
 		}
 		sink := newCodexGeminiStreamSink(streamWriter, request.Model, reverseNames)
-		usage, err := s.streamCodexCompatibility(ctx, prepared, upstream, headers, sink)
+		_, usage, handled, err := s.runGatewayProviderCallHooksOutput(ctx, routed.Call, prepared, upstream, providerRouteProtocolGemini, streamWriter)
+		if !handled && err == nil {
+			usage, err = s.streamCodexCompatibility(ctx, prepared, upstream, headers, sink)
+		}
 		if transformer != nil {
 			if closeErr := transformer.Close(); err == nil && closeErr != nil {
 				err = closeErr

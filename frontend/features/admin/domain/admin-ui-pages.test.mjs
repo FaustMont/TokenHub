@@ -27,7 +27,7 @@ test("admin UI page registry preserves legacy nav section pages without template
   });
 
   assert.equal(pages.length, 1);
-  assert.equal(pages[0].key, "tokenhub.admin.runtime:runtime");
+  assert.equal(pages[0].key, JSON.stringify(["tokenhub.admin.runtime", "runtime"]));
   assert.equal(pages[0].title, "Runtime");
   assert.equal(pages[0].description, "Runtime status");
   assert.equal(pages[0].template, undefined);

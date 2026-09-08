@@ -25,7 +25,7 @@ func TestAdminPluginInstallPostDownloadsAndInstallsPackage(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"bundle/plugin.yaml": adminPluginManifest("tokenhub.marketplace.kimi", "Marketplace Kimi", "1.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("content-type", "application/zip")
 		_, _ = w.Write(archive)
 	}))
@@ -99,7 +99,7 @@ permissions:
 `,
 		"bin/run": "#!/bin/sh\nprintf '{}'",
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -188,7 +188,7 @@ func TestAdminPluginInstallPostRejectsChecksumMismatch(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.bad-checksum", "Bad Checksum", "1.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -210,7 +210,7 @@ func TestAdminPluginInstallPostVerifiesSignedMarketplaceArtifact(t *testing.T) {
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.signed", "Signed Marketplace", "1.0.0"),
 	})
 	keyID, publicKey, signature := adminPluginArtifactSignatureForTest(t, archive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed.zip":
 			_, _ = w.Write(archive)
@@ -267,7 +267,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceSignatureMismatch(t *test
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.signed", "Signed Marketplace", "1.0.1"),
 	})
 	keyID, publicKey, signature := adminPluginArtifactSignatureForTest(t, signedArchive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed.zip":
 			_, _ = w.Write(tamperedArchive)
@@ -302,7 +302,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceMissingPublicKey(t *testi
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.signed", "Signed Marketplace", "1.0.0"),
 	})
 	keyID, _, signature := adminPluginArtifactSignatureForTest(t, archive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed.zip":
 			_, _ = w.Write(archive)
@@ -339,7 +339,7 @@ func TestAdminPluginInstallPostRejectsSignedMarketplaceTrustFailures(t *testing.
 	otherKeyID := "tokenhub-other-2026"
 	_, otherPublicKey, otherSignature := adminPluginArtifactSignatureForTestWithKeyID(t, archive, otherKeyID)
 	_, mismatchedPublicKey, _ := adminPluginArtifactSignatureForTestWithKeyID(t, archive, keyID)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed.zip":
 			_, _ = w.Write(archive)
@@ -450,7 +450,7 @@ func TestAdminPluginUpdatePostDownloadsAndReplacesPackage(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.kimi", "Marketplace Kimi", "1.1.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -516,7 +516,7 @@ func TestAdminPluginRollbackPostRestoresPreviousPackageAndAudits(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.kimi", "Marketplace Kimi", "1.1.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -631,7 +631,7 @@ func TestAdminPluginUpdatePostVerifiesSignedMarketplaceDistribution(t *testing.T
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.signed", "Signed Marketplace", "1.1.0"),
 	})
 	keyID, publicKey, signature := adminPluginArtifactSignatureForTest(t, archive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed-1.1.0.zip":
 			_, _ = w.Write(archive)
@@ -697,7 +697,7 @@ func TestAdminPluginUpdatePostAcceptsMarketplaceDistributionOverride(t *testing.
 		"plugin.yaml": adminPluginManifest("tokenhub.marketplace.kimi", "Marketplace Kimi", "1.2.0"),
 	})
 	var requestedPath string
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestedPath = r.URL.Path
 		_, _ = w.Write(archive)
 	}))

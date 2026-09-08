@@ -39,7 +39,7 @@ export function adminUIPluginPages(contributions: AdminUIContribution[]): AdminU
 }
 
 export function adminUIPluginPageKey(contribution: AdminUIContribution) {
-  return `${contribution.plugin_id}:${contribution.id}`;
+  return JSON.stringify([contribution.plugin_id, contribution.id]);
 }
 
 export function adminUIFields(contribution: AdminUIContribution): AdminUIField[] {
@@ -65,10 +65,14 @@ export function adminUIFields(contribution: AdminUIContribution): AdminUIField[]
 
 export function adminUIFieldValue(context: unknown, field: AdminUIField, locale = languageLocale()) {
   const rawValue = field.value ?? adminUISourceValue(context, field.source);
+  return formatAdminUIValue(rawValue, field, locale);
+}
+
+export function formatAdminUIValue(rawValue: unknown, field: { format?: string; type?: string }, locale = languageLocale()) {
   if (rawValue === undefined || rawValue === null || rawValue === "") return "-";
   if (field.format === "money_usd") return formatMoney(Number(rawValue) || 0, locale);
   if (field.format === "compact") return compactNumber(Number(rawValue) || 0, locale);
-  if (field.format === "percent") return `${formatNumber(Number(rawValue) || 0, locale)}%`;
+  if (field.format === "percent") return new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 3 }).format((Number(rawValue) || 0) / 100);
   if (typeof rawValue === "number") return formatNumber(rawValue, locale);
   if (typeof rawValue === "boolean") return rawValue ? "true" : "false";
   if (field.type === "code_viewer" && typeof rawValue === "object") return JSON.stringify(rawValue, null, 2);
@@ -76,7 +80,7 @@ export function adminUIFieldValue(context: unknown, field: AdminUIField, locale 
 }
 
 export function adminUIActionKey(pluginID: string, actionID?: string) {
-  return `${pluginID}:${actionID ?? ""}`;
+  return JSON.stringify([pluginID, actionID ?? ""]);
 }
 
 export function redactAdminUIResult(value: unknown): unknown {

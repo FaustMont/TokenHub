@@ -187,7 +187,7 @@ func TestGatewayChainRegistryNormalizesTimeoutPolicyAndScope(t *testing.T) {
 	err := registry.RegisterHook(GatewayHookDescriptor{
 		PluginID: " tokenhub.router ",
 		HookID:   " rank ",
-		Stage:    StageRouteRank,
+		Stage:    StageTraceExport,
 		Subject:  "OpenAI_Codex",
 		Metadata: map[string]string{
 			"protocol":   "codex/responses, openai/chat",
@@ -204,7 +204,7 @@ func TestGatewayChainRegistryNormalizesTimeoutPolicyAndScope(t *testing.T) {
 		t.Fatalf("register hook: %v", err)
 	}
 
-	hook := registry.Hooks(StageRouteRank)[0]
+	hook := registry.Hooks(StageTraceExport)[0]
 	if hook.PluginID != "tokenhub.router" || hook.HookID != "rank" {
 		t.Fatalf("hook identity was not trimmed: %+v", hook)
 	}

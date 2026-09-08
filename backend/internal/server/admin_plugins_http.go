@@ -1114,10 +1114,7 @@ func (s *Server) downloadPluginInstallSignature(r *http.Request, signatureURL st
 }
 
 func (s *Server) downloadAdminPluginInstallAsset(r *http.Request, downloadURL string, maxBytes int, errorCode string, label string) ([]byte, error) {
-	client := s.pluginInstallClient
-	if client == nil {
-		client = http.DefaultClient
-	}
+	client := newPluginDownloadClient(s.pluginInstallClient)
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return nil, NewHTTPError(http.StatusBadRequest, errorCode, label+" URL is invalid")

@@ -15,11 +15,11 @@ type PluginInputSchemaHost = {
 const supportedInputFieldTypes = new Set<PluginActionInputFieldType>(["string", "boolean", "number", "integer"]);
 
 export function pluginActionKey(pluginID: string, actionID?: string) {
-  return `${pluginID}:${actionID ?? ""}`;
+  return JSON.stringify([pluginID, actionID ?? ""]);
 }
 
 export function pluginBackgroundJobKey(pluginID: string, jobID?: string) {
-  return `${pluginID}:${jobID ?? ""}`;
+  return JSON.stringify([pluginID, jobID ?? ""]);
 }
 
 export function pluginActionDeclared(action?: Pick<PluginActionDescriptor, "plugin_id" | "action_id"> | null) {

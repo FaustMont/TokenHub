@@ -136,11 +136,11 @@ func TestValidateMarketplaceIndexRejectsAdversarialRecords(t *testing.T) {
 			want: "artifact sha256 must be a lowercase SHA-256",
 		},
 		{
-			name: "unsupported required feature",
+			name: "invalid required feature syntax",
 			mutate: func(index *MarketplaceChannelIndex) {
-				index.Plugins[0].Releases[0].Compatibility.RequiredFeatures = []string{"telepathy_v9"}
+				index.Plugins[0].Releases[0].Compatibility.RequiredFeatures = []string{"telepathy/v9"}
 			},
-			want: "unsupported required feature",
+			want: "required feature is not a safe token",
 		},
 		{
 			name: "plugin count limit",

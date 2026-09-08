@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	billingstore "tokenhub/backend/internal/billing/persistence"
 	"tokenhub/backend/internal/metering"
 )
 
@@ -155,6 +156,11 @@ func (s *GormStore) BillingStatement(ctx context.Context, q statementQuery) (sta
 	out := statementResult{Query: q, GeneratedAt: time.Now().UTC(), From: from, To: to, TimeBasis: "request_admission", Rows: []statementRow{}, Totals: map[string]string{}}
 	if q.Side == "provider" {
 		out.TimeBasis = "upstream_attempt_start"
+	}
+	if q.Side == "provider" {
+		if err := billingstore.BackfillRecordAttribution(s.db.WithContext(ctx), ""); err != nil {
+			return statementResult{}, err
+		}
 	}
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := buildStatement(tx, &out); err != nil {

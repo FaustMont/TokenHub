@@ -210,7 +210,7 @@ export function ProviderAccountQuotaReset({
   return (
     <div className="provider-quota-details">
       <div className="provider-quota-grid">
-        <QuotaMetric label="剩余重置次数" value={detailsBusy ? "查询中" : availableCount === null ? "-" : String(availableCount)} />
+        <QuotaMetric label="剩余重置次数" value={detailsBusy ? tx("查询中") : availableCount === null ? "-" : String(availableCount)} />
         <QuotaMetric label="最近可用次数过期" value={expiresRelative} />
         <QuotaMetric label="最近可用次数过期时间" value={expiresAbsolute} />
       </div>

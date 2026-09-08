@@ -216,7 +216,7 @@ function compareNumber(left: number, right: number) {
 }
 
 function dashboardContributionKey(contribution: AdminUIContribution) {
-  return `${contribution.plugin_id}:${contribution.id}`;
+  return JSON.stringify([contribution.plugin_id, contribution.id]);
 }
 
 function dashboardLayout(value: unknown): DashboardComposition["layout"] | undefined {

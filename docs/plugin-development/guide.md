@@ -571,7 +571,7 @@ Distribution metadata should include:
 - license
 - compatibility metadata
 
-The plugin marketplace URL defaults to `https://plugins.thinkinai.xyz`. Operators can install a package from that marketplace or from a direct ZIP URL and validate its checksum. TokenHub immediately reevaluates package validation and lifecycle state; this may activate supported declarative contributions, but it does not enable external command execution.
+The plugin marketplace URL is unset by default. Configure a working HTTP or HTTPS marketplace website to show its external Browse link. Operators can install a package from that marketplace or from a direct ZIP URL and validate its checksum. TokenHub immediately reevaluates package validation and lifecycle state; this may activate supported declarative contributions, but it does not enable external command execution.
 
 The ZIP may place `plugin.yaml` at the archive root or inside one top-level plugin directory; exactly one manifest must be discoverable. Do not include symlinks. Preserve executable permissions on the runtime entry, and keep `entry.backend.command` relative to the plugin directory.
 
@@ -698,3 +698,11 @@ When you build a plugin, optimize for:
 
 If a behavior can live in a plugin, keep it there.
 If it must stay in Core, let Core make the final decision and keep the implementation path stable.
+
+Plugin download URLs and signature URLs require HTTPS and public IP addresses. Every redirect must keep the original scheme and authority; DNS is resolved and validated at connection time. Private, loopback, and link-local destinations are blocked independently of Provider upstream access settings.
+
+A channel index can retain archived or future releases whose core ranges or required features do not match this server. Invalid compatibility syntax still rejects the index; release selection prefers the highest compatible approved SemVer with an artifact for this host. Only a strictly newer SemVer is advertised as an update. Marketplace-only entries support overview details and use listing categories for classification.
+
+Streaming `provider_call` hooks return `stream_events` as an array of `{event, data}` objects and may return `usage`. The gateway applies `stream_transform`, `response_post`, and `guardrail_post` before emitting each event. A denial stops the stream before that event is written. `stream_transform` reads and writes event data and audit output; full `provider_response` and final `usage` writes are unsupported and rejected at validation. Use `provider_call` for provider usage or the usage attribution stage for completion-time corrections.
+
+Routing list stages (`route_candidates` and `route_rank`) accept endpoint-protocol, project, API-key, and operation scopes. They reject Provider and resource scopes because there is no selected route; handlers can inspect the complete candidate list. An unavailable constrained dimension does not match. Supported job schedules are `@startup`, positive Go durations, and `*/N * * * *` intervals. Unsupported and overflowing values fail validation. The standalone DevKit manifest types are generated from the production schema and checked against production package fixtures.

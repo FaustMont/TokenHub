@@ -169,7 +169,7 @@ describe("PluginPageView", () => {
     const pages = pluginNavPages(contributions);
     const fields = pluginPageFields(contributions[0]);
 
-    expect(pages[0]).toMatchObject({ key: "tokenhub.admin.runtime:runtime", title: "Runtime", description: "Runtime status" });
+    expect(pages[0]).toMatchObject({ key: JSON.stringify(["tokenhub.admin.runtime", "runtime"]), title: "Runtime", description: "Runtime status" });
     expect(fields).toHaveLength(2);
     expect(pluginPageFieldValue(data, fields[0])).toBe("1200");
     expect(pluginPageFieldValue(data, fields[1])).toContain("request_count");
@@ -214,7 +214,7 @@ describe("PluginPageView", () => {
 
     const { container } = render(
       <PluginPageView
-        activePageKey="tokenhub.admin.runtime:runtime"
+        activePageKey={JSON.stringify(["tokenhub.admin.runtime", "runtime"])}
         api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }}
         data={data}
         onSelectPage={vi.fn()}
@@ -245,7 +245,7 @@ describe("PluginPageView", () => {
 
     const { container } = render(
       <PluginPageView
-        activePageKey="tokenhub.admin.runtime:runtime"
+        activePageKey={JSON.stringify(["tokenhub.admin.runtime", "runtime"])}
         api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }}
         data={data}
         onSelectPage={vi.fn()}
@@ -309,7 +309,7 @@ describe("PluginPageView", () => {
 
     const { container } = render(
       <PluginPageView
-        activePageKey="tokenhub.admin.runtime:runtime"
+        activePageKey={JSON.stringify(["tokenhub.admin.runtime", "runtime"])}
         api={{ baseURL: "http://localhost:8080", adminToken: "admin-token" }}
         data={data}
         onSelectPage={vi.fn()}

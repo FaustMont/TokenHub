@@ -113,7 +113,7 @@ export function ProviderPluginFormSections({
   return (
     <>
       {sections.map(({ contribution, fields }) => (
-        <section className="provider-edit-section" key={`${contribution.plugin_id}:${contribution.id}`}>
+        <section className="provider-edit-section" key={JSON.stringify([contribution.plugin_id, contribution.id])}>
           <div className="wizard-panel-head">
             <h3>{contribution.title || contribution.id}</h3>
             <p>{tx("插件配置")}</p>
@@ -272,11 +272,11 @@ function pluginFormFieldIsAction(field: PluginFormField): field is PluginFormAct
 }
 
 function pluginFormFieldStateKey(contribution: AdminUIContribution, field: PluginFormField) {
-  return `${contribution.plugin_id}:${contribution.id}:${field.name}`;
+  return JSON.stringify([contribution.plugin_id, contribution.id, field.name]);
 }
 
 function pluginFormActionKey(pluginID: string, actionID: string) {
-  return `${pluginID}:${actionID}`;
+  return JSON.stringify([pluginID, actionID]);
 }
 
 function providerFormActionPayload(provider: Provider | undefined, resource: ProviderResource | undefined, values: Record<string, string>, pluginID: string, explicitProviderType?: string, explicitResourceType?: string) {

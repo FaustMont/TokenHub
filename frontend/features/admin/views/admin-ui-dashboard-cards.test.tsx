@@ -155,7 +155,7 @@ describe("AdminUIDashboardCards", () => {
     });
 
     expect(fields).toHaveLength(1);
-    expect(dashboardMetricValue(data, fields[0])).toBe("$12.35");
+    expect(dashboardMetricValue(data, fields[0])).toBe("US$12.35");
   });
 });
 

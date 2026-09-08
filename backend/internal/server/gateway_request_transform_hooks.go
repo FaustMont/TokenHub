@@ -20,11 +20,12 @@ func (s *Server) runGatewayRequestTransformHooks(ctx context.Context, call CallC
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:     "v1",
-			Protocol:    "gateway",
-			Operation:   "request_transform",
-			Model:       call.Model.Name,
-			RequestBody: body,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: protocol,
+			Operation:     "request_transform",
+			Model:         call.Model.Name,
+			RequestBody:   body,
 		},
 		Data: pluginmeta.GatewayHookData{},
 	}

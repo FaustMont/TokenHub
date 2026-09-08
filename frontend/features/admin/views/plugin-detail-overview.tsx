@@ -93,8 +93,8 @@ export function PluginOverview({
       ) : null}
 
       <section className="plugin-overview-facts" aria-label={tx("安装与运行")}>
-        <OverviewFact label={tx("状态")} value={tx(lifecycle.labelKey)} tone={lifecycle.tone} />
-        <OverviewFact label={tx("配置")} value={tx(lifecycle.setupRequired ? "待配置" : lifecycle.configured ? "已配置" : "无需配置")} tone={lifecycle.setupRequired ? "warn" : "neutral"} />
+        <OverviewFact label={tx("状态")} value={tx(lifecycle.installed ? lifecycle.labelKey : "未安装")} tone={lifecycle.installed ? lifecycle.tone : "neutral"} />
+        <OverviewFact label={tx("配置")} value={lifecycle.installed ? tx(lifecycle.setupRequired ? "待配置" : lifecycle.configured ? "已配置" : "无需配置") : "-"} tone={lifecycle.setupRequired ? "warn" : "neutral"} />
         <OverviewFact label={tx("使用状态")} value={tx(lifecycle.inUse ? "使用中" : "未使用")} tone={lifecycle.inUse ? "ok" : "neutral"} />
         <OverviewFact label={tx("版本")} value={lifecycle.installedVersion || plugin.version || "-"} />
         <OverviewFact label={tx("更新")} value={tx(lifecycle.updateAvailable ? "有新版本可用" : plugin.source === "built_in" ? "随 TokenHub 更新" : "暂无可用更新")} tone={lifecycle.updateAvailable ? "warn" : "neutral"} />

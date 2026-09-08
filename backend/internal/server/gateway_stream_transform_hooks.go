@@ -34,11 +34,12 @@ type gatewayStreamTransformWriter struct {
 }
 
 func (s *Server) hasGatewayStreamTransformHooksForRoute(route RouteSelection, protocol string) bool {
-	return len(s.gatewayStreamTransformHooksForRoute(route, protocol)) > 0
-}
-
-func (s *Server) gatewayStreamTransformHooksForRoute(route RouteSelection, protocol string) []pluginmeta.GatewayHookDescriptor {
-	return s.gatewayRouteHooksForRoute(pluginmeta.StageStreamTransform, route, protocol, true)
+	for _, stage := range []pluginmeta.GatewayHookStage{pluginmeta.StageStreamTransform, pluginmeta.StageResponsePost, pluginmeta.StageGuardrailPost} {
+		if len(s.gatewayRouteHooksForRoute(stage, route, protocol, true)) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) newGatewayStreamTransformWriter(ctx context.Context, call CallContext, route RouteSelection, protocol string, sink io.Writer) *gatewayStreamTransformWriter {
@@ -54,7 +55,10 @@ func (s *Server) streamChatRouteWithGatewayTransforms(ctx context.Context, call 
 		transformer = s.newGatewayStreamTransformWriter(ctx, call, route, providerRouteProtocolChatCompletions, writer)
 		streamWriter = transformer
 	}
-	usage, err := s.streamChatRoute(ctx, route, req, headers, streamWriter)
+	_, usage, handled, err := s.runGatewayProviderCallHooksOutput(ctx, call, route, req, providerRouteProtocolChatCompletions, streamWriter)
+	if err == nil && !handled {
+		usage, err = s.streamChatRoute(ctx, route, req, headers, streamWriter)
+	}
 	if transformer != nil {
 		if closeErr := transformer.Close(); err == nil && closeErr != nil {
 			err = closeErr
@@ -100,7 +104,18 @@ func (w *gatewayStreamTransformWriter) handleEvent(event serverSentEvent) error 
 }
 
 func (s *Server) runGatewayStreamTransformHooks(ctx context.Context, call CallContext, route RouteSelection, protocol string, event serverSentEvent) (serverSentEvent, bool, error) {
-	hooks := s.gatewayStreamTransformHooksForRoute(route, protocol)
+	for _, stage := range []pluginmeta.GatewayHookStage{pluginmeta.StageStreamTransform, pluginmeta.StageResponsePost, pluginmeta.StageGuardrailPost} {
+		next, emit, err := s.runGatewayStreamStageHooks(ctx, call, route, protocol, event, stage)
+		if err != nil || !emit {
+			return event, emit, err
+		}
+		event = next
+	}
+	return event, true, nil
+}
+
+func (s *Server) runGatewayStreamStageHooks(ctx context.Context, call CallContext, route RouteSelection, protocol string, event serverSentEvent, stage pluginmeta.GatewayHookStage) (serverSentEvent, bool, error) {
+	hooks := s.gatewayRouteHooksForRoute(stage, route, protocol, true)
 	if len(hooks) == 0 {
 		return event, true, nil
 	}
@@ -111,14 +126,25 @@ func (s *Server) runGatewayStreamTransformHooks(ctx context.Context, call CallCo
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:   "v1",
-			Protocol:  "gateway",
-			Operation: "stream_transform",
-			Model:     call.Model.Name,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: protocol,
+			Operation:     string(stage),
+			Model:         call.Model.Name,
 		},
 		Data: pluginmeta.GatewayHookData{
 			pluginmeta.DataStreamEvents: eventData,
 		},
+	}
+
+	if stage != pluginmeta.StageStreamTransform && json.Valid([]byte(event.Data)) {
+		input.Data[pluginmeta.DataProviderResponse] = json.RawMessage(event.Data)
+		var object map[string]json.RawMessage
+		if json.Unmarshal([]byte(event.Data), &object) == nil {
+			if usage := object["usage"]; len(usage) > 0 {
+				input.Data[pluginmeta.DataUsage] = usage
+			}
+		}
 	}
 	for dataClass, value := range map[pluginmeta.GatewayDataClass]any{
 		pluginmeta.DataAuthContext:         gatewayAuthContextView(call),
@@ -136,6 +162,7 @@ func (s *Server) runGatewayStreamTransformHooks(ctx context.Context, call CallCo
 		ProviderType:     route.Provider.Type,
 		ProviderModel:    route.ProviderModel,
 		ResourceID:       routeResourceID(route),
+		ResourceType:     routeResourceType(route),
 		RoutePriority:    route.Route.Priority,
 		ResourcePriority: routeResourcePriority(route),
 		Weight:           routeEffectiveWeight(route),
@@ -143,13 +170,20 @@ func (s *Server) runGatewayStreamTransformHooks(ctx context.Context, call CallCo
 	}); ok {
 		input.Envelope.Metadata = map[string]json.RawMessage{"route": routeData}
 	}
-	report, err := s.runAuditedGatewayHookStageHooks(ctx, call, pluginmeta.StageStreamTransform, input, hooks)
+	report, err := s.runAuditedGatewayHookStageHooks(ctx, call, stage, input, hooks)
 	if err != nil {
-		return event, true, gatewayHookHTTPError(pluginmeta.StageStreamTransform, err)
+		return event, true, &ProviderInvocationError{Err: gatewayHookHTTPError(stage, err), Disposition: ProviderErrorPolicy}
 	}
 	transformed := event
 	emit := true
 	for _, result := range report.Results {
+
+		if patch, ok := result.Writes[pluginmeta.DataProviderResponse]; ok {
+			if !json.Valid(patch.Value) {
+				return event, true, NewHTTPError(502, "gateway_hook_response_invalid", "Gateway plugin returned an invalid response")
+			}
+			transformed.Data = string(patch.Value)
+		}
 		patch, ok := result.Writes[pluginmeta.DataStreamEvents]
 		if !ok {
 			continue

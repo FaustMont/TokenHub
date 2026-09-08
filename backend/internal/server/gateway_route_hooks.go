@@ -15,10 +15,11 @@ func (s *Server) runGatewayRouteCandidatesHooks(ctx context.Context, call CallCo
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:   "v1",
-			Protocol:  "gateway",
-			Operation: "route_candidates",
-			Model:     call.Model.Name,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: call.RouteProtocol,
+			Operation:     "route_candidates",
+			Model:         call.Model.Name,
 		},
 		Data: pluginmeta.GatewayHookData{},
 	}
@@ -65,10 +66,11 @@ func (s *Server) runGatewayRouteRankHooks(ctx context.Context, call CallContext,
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:   "v1",
-			Protocol:  "gateway",
-			Operation: "route_rank",
-			Model:     call.Model.Name,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: call.RouteProtocol,
+			Operation:     "route_rank",
+			Model:         call.Model.Name,
 		},
 		Data: pluginmeta.GatewayHookData{},
 	}

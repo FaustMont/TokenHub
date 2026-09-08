@@ -571,7 +571,7 @@ distribution metadata には少なくとも次を含めます。
 - license
 - compatibility metadata
 
-plugin marketplace の URL は既定で `https://plugins.thinkinai.xyz` です。運用者は Marketplace または直接の ZIP URL から package を導入して checksum を確認できます。TokenHub は package の検証結果とライフサイクル状態を直ちに再評価します。この処理で対応済みの宣言的な貢献を有効化できますが、外部コマンド実行は有効になりません。
+plugin marketplace の URL は既定では未設定です。有効な HTTP または HTTPS のサイトを設定すると外部リンクを表示します。運用者はその Marketplace または直接の ZIP URL から package を導入して checksum を確認できます。 TokenHub は package の検証結果とライフサイクル状態を直ちに再評価します。この処理で対応済みの宣言的な貢献を有効化できますが、外部コマンド実行は有効になりません。
 
 ZIP では `plugin.yaml` をアーカイブルート、または 1 階層だけの plugin directory に置けます。検出される manifest は必ず 1 つだけにしてください。symlink は含めないでください。runtime entrypoint の実行権限を保持し、`entry.backend.command` は plugin directory からの相対パスにします。
 
@@ -698,3 +698,11 @@ plugin を作るときは、次を優先します。
 
 ある挙動が plugin に置けるなら、plugin に置く。
 Core に残すしかないなら、最後の判断は Core が行い、実装経路は安定させます。
+
+プラグインと署名のダウンロードには HTTPS と公開 IP アドレスが必要です。リダイレクトは元のスキームとホストを維持し、接続時に DNS を解決して検証します。Provider の上流アクセス設定に関係なく、プライベート、ループバック、リンクローカル宛先を拒否します。
+
+チャネル索引には、このサーバーのコアバージョン範囲や必要機能と互換性のない過去・将来のリリースも保持できます。互換性の構文エラーは索引を拒否します。現在のプラットフォーム向け artifact があり、互換性を満たす承認済みの最高 SemVer を優先します。厳密に新しい SemVer のみ更新として表示します。未導入の市場プラグインも概要を表示でき、掲載カテゴリに従って分類します。
+
+ストリーミングの `provider_call` Hook は `stream_events` に `{event, data}` の配列を返し、`usage` も返せます。各イベントを出力する前に `stream_transform`、`response_post`、`guardrail_post` を実行します。拒否されたイベントは出力せずストリームを停止します。`stream_transform` はイベントと監査出力を扱い、完全な `provider_response` や最終 `usage` の書き込み宣言は検証で拒否します。Provider 使用量は `provider_call`、完了時の補正は使用量帰属段階を使用します。
+
+ルート一覧段階（`route_candidates`、`route_rank`）はエンドポイント、プロジェクト、API Key、操作の scope をサポートします。ルート未選択のため Provider・リソース scope は拒否し、ハンドラーは候補全体を確認できます。制約のある不明な次元は一致しません。ジョブの schedule は `@startup`、正の Go duration、`*/N * * * *` の間隔をサポートし、未対応構文やオーバーフローを拒否します。独立 DevKit の Manifest 型は本番 schema から生成し、本番 package fixture で互換性を検証します。

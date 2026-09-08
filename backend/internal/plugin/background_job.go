@@ -131,6 +131,9 @@ func (b *BackgroundJobBroker) register(descriptor BackgroundJobDescriptor, handl
 	if descriptor.Schedule == "" {
 		return fmt.Errorf("plugin background job schedule is required")
 	}
+	if err := validateBackgroundJobSchedule(descriptor.Schedule); err != nil {
+		return err
+	}
 	if descriptor.TimeoutMillis < 0 {
 		return fmt.Errorf("plugin background job timeout_millis cannot be negative")
 	}
@@ -738,7 +741,7 @@ func backgroundJobScheduleInterval(schedule string) (time.Duration, bool) {
 		return 0, false
 	}
 	minutes, err := parsePositiveInt(parts[0][2:])
-	if err != nil {
+	if err != nil || uint64(minutes) > uint64((1<<63-1)/time.Minute) {
 		return 0, false
 	}
 	return time.Duration(minutes) * time.Minute, true
@@ -752,6 +755,9 @@ func parsePositiveInt(value string) (int, error) {
 	for _, ch := range value {
 		if ch < '0' || ch > '9' {
 			return 0, fmt.Errorf("invalid integer %q", value)
+		}
+		if result > (int(^uint(0)>>1)-int(ch-'0'))/10 {
+			return 0, fmt.Errorf("integer overflows")
 		}
 		result = result*10 + int(ch-'0')
 	}

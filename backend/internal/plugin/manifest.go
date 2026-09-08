@@ -410,6 +410,9 @@ func (m Manifest) Validate() error {
 		if descriptor.Schedule == "" {
 			return fmt.Errorf("plugin background job %s schedule is required", descriptor.JobID)
 		}
+		if err := validateBackgroundJobSchedule(descriptor.Schedule); err != nil {
+			return err
+		}
 		if descriptor.TimeoutMillis < 0 {
 			return fmt.Errorf("plugin background job %s timeout_millis cannot be negative", descriptor.JobID)
 		}

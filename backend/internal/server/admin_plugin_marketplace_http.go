@@ -98,7 +98,7 @@ func marketplaceUpdateAvailable(installed pluginmeta.Descriptor, available plugi
 	if strings.TrimSpace(installed.Version) == "" || strings.TrimSpace(available.Version) == "" {
 		return false
 	}
-	if installed.Version == available.Version {
+	if !pluginmeta.MarketplaceVersionGreater(available.Version, installed.Version) {
 		return false
 	}
 	distribution := available.Distribution

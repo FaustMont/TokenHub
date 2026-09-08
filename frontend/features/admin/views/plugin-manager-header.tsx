@@ -28,10 +28,10 @@ export function PluginManagerHeader({
         ))}
       </div>
       <div className="plugin-manager-actions">
-        <a className="secondary-button plugin-marketplace-link" href={marketplaceWebsiteURL} rel="noreferrer" target="_blank">
+        {marketplaceWebsiteURL ? <a className="secondary-button plugin-marketplace-link" href={marketplaceWebsiteURL} rel="noreferrer" target="_blank">
           <ExternalLink size={14} />
           <span>{tx("插件市场")}</span>
-        </a>
+        </a> : null}
         <button className="secondary-button plugin-local-install-button" onClick={() => onTabChange("install")} type="button">
           <Upload size={14} />
           <span>{tx("安装本地插件")}</span>

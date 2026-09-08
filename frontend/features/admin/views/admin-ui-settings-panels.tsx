@@ -2,7 +2,7 @@ import { localizeBuiltinContribution } from "../i18n/builtin-admin-ui";
 import { Play, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { type AdminUIContribution, type ApiContext, type AppData } from "../core/types";
-import { compactNumber, formatMoney, formatNumber } from "../domain/formatting";
+import { formatAdminUIValue } from "../domain/admin-ui-registry";
 import { tx } from "../i18n/runtime";
 import { adminFetch, isAuthExpiredError, readAdminError } from "../resources/payloads";
 
@@ -149,14 +149,7 @@ export function settingsPanelFields(contribution: AdminUIContribution): Settings
 
 export function settingsPanelFieldValue(data: AppData, field: SettingsPanelField) {
   const rawValue = field.value ?? settingsPanelSourceValue(data, field.source);
-  if (rawValue === undefined || rawValue === null || rawValue === "") return "-";
-  if (field.format === "money_usd") return `$${formatMoney(Number(rawValue) || 0)}`;
-  if (field.format === "compact") return compactNumber(Number(rawValue) || 0);
-  if (field.format === "percent") return `${formatNumber(Number(rawValue) || 0)}%`;
-  if (typeof rawValue === "number") return formatNumber(rawValue);
-  if (typeof rawValue === "boolean") return rawValue ? "true" : "false";
-  if (field.type === "code_viewer" && typeof rawValue === "object") return JSON.stringify(rawValue, null, 2);
-  return String(rawValue);
+  return formatAdminUIValue(rawValue, field);
 }
 
 function settingsPanelFieldType(type: string): SettingsPanelField["type"] | "" {
@@ -192,11 +185,11 @@ function settingsPanelSourceValue(data: AppData, source?: string) {
 const arrayIndexPattern = /^\d+$/;
 
 function settingsPanelKey(contribution: AdminUIContribution) {
-  return `${contribution.plugin_id}:${contribution.slot}:${contribution.id}`;
+  return JSON.stringify([contribution.plugin_id, contribution.slot, contribution.id]);
 }
 
 function pluginActionKey(pluginID: string, actionID?: string) {
-  return `${pluginID}:${actionID ?? ""}`;
+  return JSON.stringify([pluginID, actionID ?? ""]);
 }
 
 function emptyPanelState(): PanelState {

@@ -51,10 +51,10 @@ func marketplacePreferredRelease(item MarketplaceIndexPlugin) (MarketplaceIndexR
 	selectedOK := false
 	for _, release := range item.Releases {
 		_, hasArtifact := marketplacePreferredArtifact(release.Artifacts)
-		if !hasArtifact || release.Review.Status != MarketplaceReviewApproved {
+		if marketplaceCompatibilityFromRelease(release, hasArtifact).Verdict != MarketplaceCompatibilityCompatible {
 			continue
 		}
-		if !selectedOK || marketplaceVersionGreater(release.Version, selected.Version) {
+		if !selectedOK || MarketplaceVersionGreater(release.Version, selected.Version) {
 			selected = release
 			selectedOK = true
 		}
@@ -73,15 +73,6 @@ func marketplaceLatestRelease(item MarketplaceIndexPlugin) (MarketplaceIndexRele
 		}
 	}
 	return MarketplaceIndexRelease{}, false
-}
-
-func marketplaceVersionGreater(left string, right string) bool {
-	leftVersion, leftErr := parsePluginCoreVersion(left)
-	rightVersion, rightErr := parsePluginCoreVersion(right)
-	if leftErr == nil && rightErr == nil {
-		return comparePluginCoreVersion(leftVersion, rightVersion) > 0
-	}
-	return strings.TrimSpace(left) > strings.TrimSpace(right)
 }
 
 func marketplacePreferredArtifact(artifacts []MarketplaceArtifact) (MarketplaceArtifact, bool) {
@@ -118,7 +109,7 @@ func marketplaceDistributionFromRelease(release MarketplaceIndexRelease, artifac
 
 func marketplaceCompatibilityFromRelease(release MarketplaceIndexRelease, hasArtifact bool) *MarketplaceCompatibility {
 	verdict := MarketplaceCompatibilityCompatible
-	if !hasArtifact {
+	if !hasArtifact || !marketplaceRequiredFeaturesSupported(release.Compatibility) {
 		verdict = MarketplaceCompatibilityIncompatible
 	} else if err := ValidateManifestCompatibility(ManifestCompatibility{
 		PluginAPI: strings.TrimSpace(release.Compatibility.PluginAPI),

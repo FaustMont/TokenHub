@@ -14,12 +14,14 @@ const (
 )
 
 func (s *Server) runAuditedGatewayHookStage(ctx context.Context, call CallContext, stage pluginmeta.GatewayHookStage, input pluginmeta.GatewayHookInput) (pluginmeta.GatewayHookRunReport, error) {
+	input = gatewayHookInputScope(call, input)
 	report, err := s.gatewayHooks.RunStage(ctx, stage, input)
 	s.recordGatewayHookAuditEvents(call, report)
 	return report, err
 }
 
 func (s *Server) runAuditedGatewayHookStageHooks(ctx context.Context, call CallContext, stage pluginmeta.GatewayHookStage, input pluginmeta.GatewayHookInput, hooks []pluginmeta.GatewayHookDescriptor) (pluginmeta.GatewayHookRunReport, error) {
+	input = gatewayHookInputScope(call, input)
 	report, err := s.gatewayHooks.RunStageHooks(ctx, stage, input, hooks)
 	s.recordGatewayHookAuditEvents(call, report)
 	return report, err
@@ -133,4 +135,16 @@ func decodeGatewayPluginAuditEvent(raw json.RawMessage) any {
 		}
 	}
 	return object
+}
+
+func gatewayHookInputScope(call CallContext, input pluginmeta.GatewayHookInput) pluginmeta.GatewayHookInput {
+	if input.Envelope.RouteProtocol == "" {
+		input.Envelope.RouteProtocol = call.RouteProtocol
+	}
+	if input.Envelope.Metadata == nil {
+		input.Envelope.Metadata = map[string]json.RawMessage{}
+	}
+	scope, _ := json.Marshal(map[string]string{"project_id": call.Project.ID, "api_key_id": call.Key.ID})
+	input.Envelope.Metadata["scope"] = scope
+	return input
 }

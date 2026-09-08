@@ -76,7 +76,7 @@ capabilities:
   background_jobs:
     - id: example.run
       title: Run example
-      schedule: "0 * * * *"
+      schedule: "1h"
   sim:
     theme_tokens:
       - id: command-theme

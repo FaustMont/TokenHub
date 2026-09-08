@@ -21,7 +21,7 @@ export function QuotaMetric({ label, value }: { label: string; value: string }) 
   return (
     <div className="provider-quota-metric">
       <span>{tx(label)}</span>
-      <strong>{tx(value)}</strong>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -44,9 +44,9 @@ export function ProviderAccountDetails({ imageCapabilityProfile, resource }: { i
     ["Token 类型", summary.token_type || options.token_type],
     ["Token 过期时间", formatProviderAccountDate(summary.token_expires_at || options.token_expires_at)],
     ["授权范围", summary.scopes || options.scopes],
-    ["Refresh Token", summary.has_refresh_token === "true" ? "已配置" : "未配置"],
-    ["资源状态", resource.status],
-    ["健康状态", resource.healthy ? "健康" : "异常"],
+    ["Refresh Token", summary.has_refresh_token === "true" ? tx("已配置") : tx("未配置")],
+    ["资源状态", tx(resource.status)],
+    ["健康状态", resource.healthy ? tx("健康") : tx("异常")],
     ["资源组", resource.group],
     ["Base URL", resource.base_url],
     ["区域", resource.region],
@@ -72,9 +72,9 @@ export function ProviderAccountDetails({ imageCapabilityProfile, resource }: { i
 }
 
 export function formatImageGenerationCapability(value?: string, supportedValue = "supported", unsupportedValue = "unsupported") {
-  if (value === supportedValue) return "支持";
-  if (value === unsupportedValue) return "不支持";
-  return "未检测";
+  if (value === supportedValue) return tx("支持");
+  if (value === unsupportedValue) return tx("不支持");
+  return tx("未检测");
 }
 
 export function formatImageGenerationCapabilityTag(value?: string, supportedValue = "supported", unsupportedValue = "unsupported") {

@@ -29,6 +29,7 @@ const (
 )
 
 type GatewayEnvelope struct {
+	RouteProtocol  string                     `json:"route_protocol,omitempty"`
 	Version        string                     `json:"version"`
 	Protocol       string                     `json:"protocol"`
 	Operation      string                     `json:"operation"`
@@ -296,10 +297,11 @@ func clipGatewayHookInput(input GatewayHookInput, reads []GatewayDataClass) Gate
 		RequestID: input.RequestID,
 		Stage:     input.Stage,
 		Envelope: GatewayEnvelope{
-			Version:   input.Envelope.Version,
-			Protocol:  input.Envelope.Protocol,
-			Operation: input.Envelope.Operation,
-			Model:     input.Envelope.Model,
+			Version:       input.Envelope.Version,
+			Protocol:      input.Envelope.Protocol,
+			Operation:     input.Envelope.Operation,
+			RouteProtocol: input.Envelope.RouteProtocol,
+			Model:         input.Envelope.Model,
 		},
 		OriginalEnvelope: cloneGatewayEnvelope(input.OriginalEnvelope),
 		OriginalData:     clipGatewayHookData(input.OriginalData, reads),
@@ -371,9 +373,10 @@ func skippedGatewayHookRunResult(hook GatewayHookDescriptor, status GatewayHookR
 
 func gatewayHookScopeTargetFromInput(input GatewayHookInput) GatewayHookScopeTarget {
 	target := GatewayHookScopeTarget{
-		Operation: input.Envelope.Operation,
+		Operation:     input.Envelope.Operation,
+		RouteProtocol: input.Envelope.RouteProtocol,
 	}
-	if input.Envelope.Protocol != "gateway" {
+	if target.RouteProtocol == "" && input.Envelope.Protocol != "gateway" {
 		target.RouteProtocol = input.Envelope.Protocol
 	}
 	mergeGatewayProjectScopeFromRaw(input.Data[DataProjectMetadata], &target)
@@ -426,6 +429,7 @@ func mergeGatewayRouteScopeFromRaw(raw json.RawMessage, target *GatewayHookScope
 
 func mergeGatewayRouteScopeFromObject(object map[string]json.RawMessage, target *GatewayHookScopeTarget) {
 	setIfPresent(object, "api_key_id", &target.APIKeyID)
+	setIfPresent(object, "project_id", &target.ProjectID)
 	setIfPresent(object, "provider_type", &target.ProviderType)
 	setIfPresent(object, "provider_id", &target.ProviderID)
 	setIfPresent(object, "resource_id", &target.ResourceID)
@@ -511,6 +515,7 @@ func cloneGatewayEnvelope(envelope GatewayEnvelope) GatewayEnvelope {
 		Version:        envelope.Version,
 		Protocol:       envelope.Protocol,
 		Operation:      envelope.Operation,
+		RouteProtocol:  envelope.RouteProtocol,
 		Model:          envelope.Model,
 		RequestBody:    cloneRawMessage(envelope.RequestBody),
 		NormalizedText: append([]TextSegment(nil), envelope.NormalizedText...),

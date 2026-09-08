@@ -55,7 +55,7 @@ func TestAdminPluginUpdateRejectsMismatchedPluginID(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.other", "Other Plugin", "2.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -78,7 +78,7 @@ func TestAdminPluginUpdatePublishesNewActions(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginActionManifest("tokenhub.hot-reload", "1.1.0", "sync.new", "", ""),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -105,7 +105,7 @@ func TestAdminPluginUpdateRecoversQuarantinedPackage(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.recovery", "Recovered Plugin", "2.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -170,7 +170,7 @@ func TestAdminPluginUpdateRecoversStructurallyInvalidManifest(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.invalid-recovery", "Recovered Invalid Plugin", "2.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -223,7 +223,7 @@ func TestAdminPluginUpdateDoesNotPreserveFailedValidationPackageForRollback(t *t
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginManifest("tokenhub.schema-recovery", "Recovered Schema Plugin", "2.0.0"),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -282,7 +282,7 @@ func TestAdminPluginUpdateRetainsLastKnownGoodRollbackWhileRecoveringFailedUpdat
 	})
 	var upstream *httptest.Server
 	failedArchive := []byte(nil)
-	upstream = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream = newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/failed.zip":
 			_, _ = w.Write(failedArchive)
@@ -345,7 +345,7 @@ func TestAdminPluginUpdateRejectsDependencyBreakingVersion(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": serverDependencyManifest("tokenhub.core", "2.0.0", "", ""),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -367,7 +367,7 @@ func TestAdminPluginRollbackRejectsDependencyBreakingVersion(t *testing.T) {
 	archive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": serverDependencyManifest("tokenhub.core", "2.0.0", "", ""),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()

@@ -20,11 +20,12 @@ func (s *Server) runGatewayResponsePostHooks(ctx context.Context, call CallConte
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:     "v1",
-			Protocol:    "gateway",
-			Operation:   "response_post",
-			Model:       call.Model.Name,
-			RequestBody: body,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: protocol,
+			Operation:     "response_post",
+			Model:         call.Model.Name,
+			RequestBody:   body,
 		},
 		Data: pluginmeta.GatewayHookData{
 			pluginmeta.DataProviderResponse: body,
@@ -66,11 +67,12 @@ func (s *Server) runGatewayGuardrailPostHooks(ctx context.Context, call CallCont
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:     "v1",
-			Protocol:    "gateway",
-			Operation:   "guardrail_post",
-			Model:       call.Model.Name,
-			RequestBody: body,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: protocol,
+			Operation:     "guardrail_post",
+			Model:         call.Model.Name,
+			RequestBody:   body,
 		},
 		Data: pluginmeta.GatewayHookData{
 			pluginmeta.DataProviderResponse: body,
@@ -122,10 +124,11 @@ func (s *Server) runGatewayUsageAttributionHooks(ctx context.Context, call CallC
 	input := pluginmeta.GatewayHookInput{
 		RequestID: call.RequestID,
 		Envelope: pluginmeta.GatewayEnvelope{
-			Version:   "v1",
-			Protocol:  "gateway",
-			Operation: "usage_attribution",
-			Model:     call.Model.Name,
+			Version:       "v1",
+			Protocol:      "gateway",
+			RouteProtocol: protocol,
+			Operation:     "usage_attribution",
+			Model:         call.Model.Name,
 		},
 		Data: pluginmeta.GatewayHookData{
 			pluginmeta.DataUsage: usageBody,

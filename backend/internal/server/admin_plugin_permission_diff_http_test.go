@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +23,7 @@ permissions:
       - https://api.example.com/v1?token=download-secret
 `),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(archive)
 	}))
 	defer upstream.Close()
@@ -86,7 +85,7 @@ permissions:
       - request_body
 `),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(candidateArchive)
 	}))
 	defer upstream.Close()
@@ -133,7 +132,7 @@ func TestAdminPluginPermissionDiffUpdatePreviewRejectsPluginIDMismatch(t *testin
 	candidateArchive := adminPluginZip(t, map[string]string{
 		"plugin.yaml": adminPluginPermissionManifest("tokenhub.permission.other", "Permission Other", "1.1.0", ""),
 	})
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(candidateArchive)
 	}))
 	defer upstream.Close()
@@ -166,7 +165,7 @@ func TestAdminPluginPermissionDiffPreviewVerifiesSignedMarketplaceArtifact(t *te
 		"plugin.yaml": adminPluginPermissionManifest("tokenhub.permission.signed", "Permission Signed", "1.0.0", ""),
 	})
 	keyID, publicKey, signature := adminPluginArtifactSignatureForTest(t, archive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/signed.zip":
 			_, _ = w.Write(archive)
@@ -217,7 +216,7 @@ permissions:
 `),
 	})
 	keyID, publicKey, signature := adminPluginArtifactSignatureForTest(t, archive)
-	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := newPluginDownloadTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/redacted.zip":
 			_, _ = w.Write(archive)

@@ -11,18 +11,10 @@ func appendExternalStatementRows(tx *gorm.DB, out *statementResult) error {
 	if len(out.Query.ProjectIDs) > 0 {
 		return nil
 	}
-	var connectors []billingstore.ConnectorRow
-	if err := tx.Select("id", "config").Find(&connectors).Error; err != nil {
-		return err
-	}
-	configs := map[string]map[string]string{}
-	for _, c := range connectors {
-		configs[c.ID] = c.Config
-	}
 	var records []billingstore.RecordRow
-	query := tx.Where("usage_start_at < ? AND usage_end_at >= ? AND created_at <= ?", out.To, out.From, out.GeneratedAt)
-	providerExpr := "COALESCE(NULLIF(" + statementJSON(tx, "metadata", "provider_id") + ", ''), (SELECT " + statementJSON(tx, "config", "provider_id") + " FROM billing_connectors WHERE id = billing_records.connector_id), '')"
-	resourceExpr := "COALESCE(NULLIF(" + statementJSON(tx, "metadata", "provider_resource_id") + ", ''), NULLIF(" + statementJSON(tx, "metadata", "resource_id") + ", ''), (SELECT NULLIF(" + statementJSON(tx, "config", "provider_resource_id") + ", '') FROM billing_connectors WHERE id = billing_records.connector_id), account_id, '')"
+	query := tx.Where("usage_start_at < ? AND (usage_end_at > ? OR (usage_end_at = ? AND usage_start_at = ?)) AND created_at <= ?", out.To, out.From, out.From, out.From, out.GeneratedAt)
+	providerExpr := statementJSON(tx, "metadata", "tokenhub_provider_id")
+	resourceExpr := statementJSON(tx, "metadata", "tokenhub_resource_id")
 	if out.Query.ProviderID != "" {
 		query = query.Where(providerExpr+" = ?", out.Query.ProviderID)
 	}
@@ -39,12 +31,8 @@ func appendExternalStatementRows(tx *gorm.DB, out *statementResult) error {
 		return err
 	}
 	for _, r := range records {
-		if r.UsageEndAt.Equal(out.From) && r.UsageStartAt.Before(out.From) {
-			continue
-		}
-		config := configs[r.ConnectorID]
-		provider := firstNonEmpty(r.Metadata["provider_id"], config["provider_id"])
-		resource := firstNonEmpty(r.Metadata["provider_resource_id"], r.Metadata["resource_id"], config["provider_resource_id"], r.AccountID)
+		provider := r.Metadata["tokenhub_provider_id"]
+		resource := r.Metadata["tokenhub_resource_id"]
 		if out.Query.ProviderID != "" && provider != out.Query.ProviderID || out.Query.ResourceID != "" && resource != out.Query.ResourceID {
 			continue
 		}

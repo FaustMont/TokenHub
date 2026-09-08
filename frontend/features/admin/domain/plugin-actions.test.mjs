@@ -15,10 +15,10 @@ const {
 } = await importTypeScript(new URL("./plugin-actions.ts", import.meta.url));
 
 test("plugin action and background job keys stay stable", () => {
-  assert.equal(pluginActionKey("tokenhub.plugin", "inspect"), "tokenhub.plugin:inspect");
-  assert.equal(pluginActionKey("tokenhub.plugin"), "tokenhub.plugin:");
-  assert.equal(pluginBackgroundJobKey("tokenhub.plugin", "sync"), "tokenhub.plugin:sync");
-  assert.equal(pluginBackgroundJobKey("tokenhub.plugin"), "tokenhub.plugin:");
+  assert.equal(pluginActionKey("tokenhub.plugin", "inspect"), JSON.stringify(["tokenhub.plugin", "inspect"]));
+  assert.equal(pluginActionKey("tokenhub.plugin"), JSON.stringify(["tokenhub.plugin", ""]));
+  assert.equal(pluginBackgroundJobKey("tokenhub.plugin", "sync"), JSON.stringify(["tokenhub.plugin", "sync"]));
+  assert.equal(pluginBackgroundJobKey("tokenhub.plugin"), JSON.stringify(["tokenhub.plugin", ""]));
 });
 
 test("plugin action declaration requires both identifiers", () => {
@@ -138,4 +138,12 @@ test("plugin action result redaction removes nested secret material", () => {
     output_api_key: "[redacted]",
     credentials: "[redacted]",
   });
+});
+
+
+test("plugin and action tuples cannot collide when identifiers contain separators", () => {
+  for (const key of [pluginActionKey, pluginBackgroundJobKey]) {
+    assert.notEqual(key("a:b", "c"), key("a", "b:c"));
+    assert.notEqual(key("a\u0000b", "c"), key("a", "b\u0000c"));
+  }
 });

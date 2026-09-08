@@ -82,7 +82,7 @@ describe("AdminUIReportTemplates", () => {
     });
 
     expect(fields).toHaveLength(3);
-    expect(reportTemplateFieldValue(data, fields[0])).toBe("$8.50");
+    expect(reportTemplateFieldValue(data, fields[0])).toBe("US$8.50");
     expect(reportTemplateFieldValue(data, fields[1])).toBe("usage");
     expect(reportTemplateFieldValue(data, fields[2])).toContain("gpt");
   });

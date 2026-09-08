@@ -235,30 +235,20 @@ func ValidateMarketplaceReleaseManifest(pluginID string, release MarketplaceInde
 }
 
 func validateMarketplaceReleaseCompatibility(compat MarketplaceReleaseCompatibility) error {
+	if compat.PluginAPI != PluginAPIV1 && compat.PluginAPI != PluginAPIV2 {
+		return fmt.Errorf("unsupported tokenhub.plugin_api %q", compat.PluginAPI)
+	}
 	if !supportedManifestSchemaPair(compat.ManifestSchemaVersion, compat.PluginAPI) {
 		return pluginContractErrorf(PluginErrorManifestSchemaUnsupported, "unsupported manifest_schema_version %d", compat.ManifestSchemaVersion)
 	}
-	if err := ValidateManifestCompatibility(ManifestCompatibility{
-		PluginAPI: compat.PluginAPI,
-		MinCore:   compat.MinCore,
-		MaxCore:   compat.MaxCore,
-	}); err != nil {
+	if err := validateMarketplaceCoreRange(compat.MinCore, compat.MaxCore); err != nil {
 		return err
-	}
-	supportedFeatures := map[string]struct{}{}
-	for _, compatibility := range SupportedPluginAPICompatibility() {
-		for _, feature := range compatibility.FeatureFlags {
-			supportedFeatures[feature] = struct{}{}
-		}
 	}
 	seenFeatures := map[string]struct{}{}
 	for _, feature := range compat.RequiredFeatures {
 		feature = strings.TrimSpace(feature)
 		if !marketplaceSafeToken(feature) {
 			return fmt.Errorf("required feature is not a safe token")
-		}
-		if _, ok := supportedFeatures[feature]; !ok {
-			return fmt.Errorf("unsupported required feature %q", feature)
 		}
 		if _, ok := seenFeatures[feature]; ok {
 			return fmt.Errorf("required feature %q is duplicated", feature)

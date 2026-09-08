@@ -64,7 +64,11 @@ export function PluginDetailView({
   const [fileContent, setFileContent] = useState<PackageFileContent | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState("");
-  const fallbackPlugin = data.plugins.find((plugin) => plugin.id === pluginID);
+  const installedPlugin = data.plugins.find((plugin) => plugin.id === pluginID);
+  const marketplaceEntry = data.pluginMarketplace.find((entry) => entry.plugin.id === pluginID);
+  const marketplacePlugin = marketplaceEntry?.plugin;
+  const marketplaceOnly = !installedPlugin && marketplaceEntry?.installed === false;
+  const fallbackPlugin = installedPlugin ?? marketplacePlugin;
   const plugin = detail?.plugin ?? fallbackPlugin;
   const hooks = useMemo(() => (data.pluginChain?.hooks ?? []).filter((hook) => hook.plugin_id === pluginID), [data.pluginChain?.hooks, pluginID]);
   const contributions = useMemo(() => (data.pluginUI ?? []).filter((item) => item.plugin_id === pluginID), [data.pluginUI, pluginID]);
@@ -96,6 +100,11 @@ export function PluginDetailView({
     setFileContent(null);
     setFileError("");
     setFileLoading(false);
+    if (marketplaceOnly && marketplacePlugin) {
+      setDetail({ plugin: marketplacePlugin });
+      setLoading(false);
+      return () => controller.abort();
+    }
     adminFetch(api, `/api/admin/plugins/${encodeURIComponent(pluginID)}/detail`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(await readAdminError(response, tx("读取插件详情")));
@@ -113,7 +122,7 @@ export function PluginDetailView({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [api, pluginID]);
+  }, [api, marketplaceOnly, marketplacePlugin, pluginID]);
 
   useEffect(() => {
     if (section !== "files" || selectedPath || !detail?.package) return;
