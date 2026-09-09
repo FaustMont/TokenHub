@@ -37,7 +37,9 @@ func bootstrapServerPlugins(config Config, adapters map[string]any) (serverPlugi
 	if err := registerBuiltinProviderCatalogFilePlugins(pluginRegistry, adapterRegistry, config.ProviderCatalogFile, pluginRuntime); err != nil {
 		return serverPluginBootstrap{}, fmt.Errorf("register provider catalog plugins: %w", err)
 	}
-	registerBuiltinAdminUIContributions(pluginRegistry, adminUI)
+	if err := registerBuiltinAdminUIContributions(pluginRegistry, adminUI, pluginRuntime); err != nil {
+		return serverPluginBootstrap{}, fmt.Errorf("register built-in admin UI plugins: %w", err)
+	}
 	packages, err := pluginRuntime.LoadIntoWithActionsAndBackground(pluginRegistry, gatewayChain, adminUI, pluginActions, pluginBackgroundJobs, gatewayHooks)
 	if err != nil {
 		return serverPluginBootstrap{}, fmt.Errorf("load TokenHub plugins: %w", err)
@@ -66,8 +68,8 @@ func (s *Server) installServerPluginHandlers(bootstrap *serverPluginBootstrap) {
 	if s == nil || bootstrap == nil {
 		return
 	}
-	registerBuiltinPluginActions(s, bootstrap.pluginActions)
-	registerBuiltinPluginBackgroundJobs(s, bootstrap.pluginBackgroundJobs)
+	registerBuiltinPluginActions(s, enabledBuiltinActions{bootstrap.pluginRegistry, bootstrap.pluginActions})
+	registerBuiltinPluginBackgroundJobs(s, enabledBuiltinBackgroundJobs{bootstrap.pluginRegistry, bootstrap.pluginBackgroundJobs})
 	if s.credentialRefresh != nil && s.credentialRefresh.pluginRefresh == nil {
 		s.credentialRefresh.pluginRefresh = func(ctx context.Context, resource ProviderResource) (bool, error) {
 			s.pluginRuntimeMu.RLock()

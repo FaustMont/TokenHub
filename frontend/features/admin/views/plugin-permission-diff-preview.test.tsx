@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyData } from "../domain/catalog";
 import { setActiveLanguage } from "../i18n/runtime";
@@ -56,7 +56,50 @@ describe("PluginsView permission diff preview", () => {
     expect(screen.getByText("追加された権限：1")).toBeInTheDocument();
   });
 
+  it.each(["url", "checksum", "source"])("invalidates permission evidence when the package %s changes", async (field) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: permissionDiffPayload("install") }), { status: 200 })));
+    const { container } = render(<PluginsView api={{ baseURL: "http://localhost:8080", adminToken: "synthetic-admin" }} data={emptyData()} activeTab="install" />);
+    fillCandidate("a");
+    fireEvent.click(screen.getByRole("button", { name: "预览权限" }));
+    await waitFor(() => expect(container.querySelector("[data-plugin-permission-diff-result]")).not.toBeNull());
+    if (field === "source") fireEvent.click(screen.getByRole("tab", { name: "上传 ZIP" }));
+    else fireEvent.change(screen.getByLabelText(field === "url" ? "下载 URL" : "SHA-256 校验"), { target: { value: field === "url" ? "https://plugins.example/b.zip" : "b".repeat(64) } });
+    expect(container.querySelector("[data-plugin-permission-diff-result]")).toBeNull();
+    if (field === "source") fireEvent.click(screen.getByRole("tab", { name: "URL 安装" }));
+    else fillCandidate("a");
+    expect(container.querySelector("[data-plugin-permission-diff-result]")).toBeNull();
+  });
+
+  it.each([true, false])("ignores a superseded preview that completes with success=%s", async (successful) => {
+    let completeOldPreview!: (response: Response) => void;
+    const oldPreview = new Promise<Response>((resolve) => { completeOldPreview = resolve; });
+    const latestPayload = { ...permissionDiffPayload("install"), candidate_version: "2.0.0" };
+    const fetchMock = vi.fn()
+      .mockReturnValueOnce(oldPreview)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: latestPayload }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<PluginsView api={{ baseURL: "http://localhost:8080", adminToken: "synthetic-admin" }} data={emptyData()} activeTab="install" />);
+    fillCandidate("a");
+    fireEvent.click(screen.getByRole("button", { name: "预览权限" }));
+    expect(screen.getByRole("button", { name: "预览中" })).toBeDisabled();
+    fillCandidate("b");
+    fireEvent.click(screen.getByRole("button", { name: "预览权限" }));
+    await waitFor(() => expect(screen.getByText("候选版本：2.0.0")).toBeVisible());
+    await act(async () => {
+      completeOldPreview(new Response(JSON.stringify(successful ? { data: permissionDiffPayload("install") } : { error: { message: "Obsolete preview rejection" } }), { status: successful ? 200 : 400 }));
+      await oldPreview;
+    });
+    expect(screen.getByText("候选版本：2.0.0")).toBeVisible();
+    expect(screen.queryByText("候选版本：1.1.0")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Obsolete preview rejection/)).not.toBeInTheDocument();
+  });
+
 });
+
+function fillCandidate(name: string) {
+  fireEvent.change(screen.getByLabelText("下载 URL"), { target: { value: `https://plugins.example/${name}.zip` } });
+  fireEvent.change(screen.getByLabelText("SHA-256 校验"), { target: { value: name.repeat(64) } });
+}
 
 function permissionDiffPayload(operation: "install" | "update") {
   return {

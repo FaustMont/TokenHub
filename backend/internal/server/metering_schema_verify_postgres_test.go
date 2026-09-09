@@ -39,9 +39,10 @@ func TestPostgresMeteringSchemaVerification(t *testing.T) {
 			}
 		})
 	}
+	t.Run("audit_correlation_upgrade", testPostgresMeteringMigrationUpgradesAuditCorrelation)
 }
 
-func TestPostgresMeteringMigrationUpgradesAuditCorrelation(t *testing.T) {
+func testPostgresMeteringMigrationUpgradesAuditCorrelation(t *testing.T) {
 	admin, pgURL := openPostgresAdmin(t)
 	schema := createPostgresSchema(t, admin, "tokenhub_pg_audit_upgrade_")
 	dsn, err := withSearchPath(pgURL, schema)

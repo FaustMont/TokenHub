@@ -10,7 +10,7 @@ import (
 	pluginmeta "tokenhub/backend/internal/plugin"
 )
 
-func registerBuiltinPluginActions(server *Server, actions *pluginmeta.ActionBroker) {
+func registerBuiltinPluginActions(server *Server, actions builtinActionRegistrar) {
 	mustRegisterPluginAction(actions, pluginmeta.ActionDescriptor{
 		PluginID:   "tokenhub.provider.openai-codex",
 		ActionID:   "openai_codex.oauth.start",
@@ -619,7 +619,7 @@ func openAICodexImageCapabilityActionDescriptor() pluginmeta.ActionDescriptor {
 	}
 }
 
-func mustRegisterPluginAction(actions *pluginmeta.ActionBroker, descriptor pluginmeta.ActionDescriptor, handler pluginmeta.ActionHandler) {
+func mustRegisterPluginAction(actions builtinActionRegistrar, descriptor pluginmeta.ActionDescriptor, handler pluginmeta.ActionHandler) {
 	if err := actions.Register(descriptor, handler); err != nil {
 		panic(err)
 	}

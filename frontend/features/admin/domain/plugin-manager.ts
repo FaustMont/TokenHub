@@ -65,6 +65,7 @@ export type PluginManagerPluginPayload = PluginManagerLifecyclePayload & {
 };
 
 export type PluginManagerMarketplacePayload = {
+  plugin?: PluginManagerPluginPayload | null;
   installed?: boolean;
   installed_version?: string;
   update_available?: boolean;
@@ -184,9 +185,9 @@ export function pluginManagerDisplayState(input: PluginManagerDisplayInput): Plu
   const builtIn = plugin?.source === "built_in";
   const pluginPresent = Boolean(plugin);
   const installed = pluginPresent
-    ? (marketplace ? Boolean(marketplace.installed) : lifecycle.installed)
+    ? (plugin?.lifecycle?.installed ?? plugin?.installed ?? (marketplace ? Boolean(marketplace.installed) : lifecycle.installed))
     : false;
-  const distributionReady = pluginManagerDistributionReady(plugin);
+  const distributionReady = pluginManagerDistributionReady(marketplace?.plugin ?? plugin);
   const toggleable = installed && !lifecycle.mandatory;
   const mutable = toggleable && !builtIn;
   const updateAvailable = Boolean(marketplace?.update_available) || (!marketplace && distributionReady && !builtIn);

@@ -11,3 +11,5 @@ Security boundaries are deliberate: templates cannot inject arbitrary JavaScript
 Test every contribution in its target renderer; a valid schema does not guarantee that every control is supported by every slot. See the [complete guide](guide.md) for supported layouts, controls, and slots.
 
 Built-in plugin ecosystem panels and core provider/Codex settings follow the console language (Simplified Chinese, English, or Japanese). Translation applies only to known built-in titles, descriptions, labels, and help text. Plugin identifiers, configuration values, and third-party or unknown metadata remain unchanged.
+
+Disabling a built-in template or Admin UI plugin removes its active presentation contributions immediately and preserves the disabled state after restart. Its declarations remain inspectable. A disabled Provider plugin also stops exposing its management actions and scheduled jobs. Re-enabling the plugin restores its supported contributions.

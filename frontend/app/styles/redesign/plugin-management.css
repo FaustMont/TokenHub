@@ -174,6 +174,29 @@
   white-space: nowrap;
 }
 
+.plugin-installed-actions [data-plugin-manager-control="update"],
+.plugin-update-notice {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.plugin-installed-actions [data-plugin-manager-control="update"] [role="alert"],
+.plugin-update-notice [role="alert"] {
+  color: var(--danger);
+}
+
+.plugin-update-notice {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
 .plugin-installed-state [data-plugin-manager-control="lifecycle"] {
   min-width: 0;
   display: flex;
@@ -442,6 +465,7 @@
   .plugin-installed-actions {
     width: 100%;
     display: grid;
+    align-items: start;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-self: stretch;
     justify-content: stretch;

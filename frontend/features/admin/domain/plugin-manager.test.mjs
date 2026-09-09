@@ -252,3 +252,22 @@ test("Plugin Manager display state disables actions when the plugin payload is m
   assert.equal(state.actions.operation.disabledReason, "not_installed");
   assert.equal(state.nextStatus, undefined);
 });
+
+test("Plugin Manager uses candidate distribution without replacing installed lifecycle facts", () => {
+  const plugin = { id: "review.plugin", source: "local_file", installed: true, version: "1.0.0", status: "disabled", distribution: { license: "MIT" } };
+  const marketplace = {
+    installed: false,
+    update_available: true,
+    plugin: { ...plugin, version: "2.0.0", status: "enabled", distribution: { download_url: "https://plugins.example/v2.zip", checksum_sha256: "a".repeat(64) } },
+  };
+  const state = pluginManagerDisplayState({ plugin, marketplace });
+  assert.equal(state.installed, true);
+  assert.equal(state.installedVersion, "1.0.0");
+  assert.equal(state.status, "disabled");
+  assert.equal(state.desiredVersion, "1.0.0");
+  assert.equal(state.activeVersion, "1.0.0");
+  assert.equal(state.actions.enable.available, true);
+  assert.equal(state.actions.update.available, true);
+  const unverified = pluginManagerDisplayState({ plugin, marketplace: { ...marketplace, plugin: { ...marketplace.plugin, distribution: null } } });
+  assert.equal(unverified.actions.update.available, false);
+});

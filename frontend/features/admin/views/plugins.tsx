@@ -1,5 +1,5 @@
 import { Boxes, Clock3, Download, ExternalLink, Layers3, PackageOpen, Search, Settings2, ShieldCheck } from "lucide-react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { type ApiContext, type AppData, type PluginDescriptor } from "../core/types";
 import {
   pluginExtensionCategories,
@@ -48,8 +48,11 @@ export function PluginsView({
   const [pluginUpdateDrafts, setPluginUpdateDrafts] = useState<Record<string, PluginUpdateDraft>>({});
   const [pluginDeleteDrafts, setPluginDeleteDrafts] = useState<Record<string, PluginDeleteDraft>>({});
   const [pluginRollbackDrafts, setPluginRollbackDrafts] = useState<Record<string, PluginRollbackDraft>>({});
-  const [installPermissionPreview, setInstallPermissionPreview] = useState<PluginPermissionDiffPreviewDraft>(emptyPermissionPreviewDraft());
   const [installDraft, setInstallDraft] = useState<PluginInstallDraft>(emptyInstallDraft());
+  const installPreviewKey = JSON.stringify([installDraft.source, installDraft.downloadURL, installDraft.checksumSHA256]);
+  const [installPreviewResult, setInstallPreviewResult] = useState<PluginPermissionDiffPreviewDraft & { key: string }>({ ...emptyPermissionPreviewDraft(), key: "" });
+  const installPermissionPreview = installPreviewResult.key === installPreviewKey ? installPreviewResult : emptyPermissionPreviewDraft();
+  const installPreviewRequest = useRef(0);
   const [localActiveTab, setLocalActiveTab] = useState<PluginManagerTabKey>("installed");
   const activeTab = controlledActiveTab ?? localActiveTab;
   const [activeExtensionCategory, setActiveExtensionCategory] = useState<"all" | PluginExtensionCategoryKey>("all");
@@ -61,6 +64,7 @@ export function PluginsView({
   );
   const locale = languageLocale();
   const marketplaceWebsiteURL = pluginMarketplaceWebsiteURL(data);
+  const marketplaceByPluginID = useMemo(() => new Map(data.pluginMarketplace.map((entry) => [entry.plugin.id, entry])), [data.pluginMarketplace]);
   // The console never polls the plugin list, so an enable or disable that has been
   // accepted by the server is only visible through its draft until the reload lands.
   const effectivePlugins = useMemo(
@@ -96,12 +100,12 @@ export function PluginsView({
     enabled: installedPlugins.filter((plugin) => pluginManagerDisplayState({ plugin }).enabled).length,
     disabled: installedPlugins.filter((plugin) => !pluginManagerDisplayState({ plugin }).enabled).length,
     setup: installedPlugins.filter((plugin) => pluginManagerDisplayState({ plugin }).setupRequired).length,
-    updates: installedPlugins.filter((plugin) => pluginManagerDisplayState({ plugin }).actions.update.available).length,
-  }), [installedPlugins]);
+    updates: installedPlugins.filter((plugin) => pluginManagerDisplayState({ plugin, marketplace: marketplaceByPluginID.get(plugin.id) }).actions.update.available).length,
+  }), [installedPlugins, marketplaceByPluginID]);
   const filteredPlugins = useMemo(() => {
     const normalizedQuery = pluginQuery.trim().toLocaleLowerCase(locale);
     return installedPlugins.filter((plugin) => {
-      const lifecycle = pluginManagerDisplayState({ plugin });
+      const lifecycle = pluginManagerDisplayState({ plugin, marketplace: marketplaceByPluginID.get(plugin.id) });
       const matchesStatus = statusFilter === "all"
         || (statusFilter === "enabled" && lifecycle.enabled)
         || (statusFilter === "disabled" && !lifecycle.enabled)
@@ -118,17 +122,24 @@ export function PluginsView({
       ].join(" ").toLocaleLowerCase(locale);
       return searchable.includes(normalizedQuery);
     });
-  }, [activeExtensionCategory, installedPlugins, locale, pluginQuery, statusFilter]);
+  }, [activeExtensionCategory, installedPlugins, locale, marketplaceByPluginID, pluginQuery, statusFilter]);
   const installedPagination = usePagination(filteredPlugins.length, `${activeExtensionCategory}:${statusFilter}:${pluginQuery}`);
   const paginatedPlugins = useMemo(
     () => filteredPlugins.slice(installedPagination.startIndex, installedPagination.endIndex),
     [filteredPlugins, installedPagination.endIndex, installedPagination.startIndex],
+  );
+  const hiddenUpdateResults = Object.entries(pluginUpdateDrafts).filter(([pluginID, draft]) =>
+    (draft.error || draft.result) && !paginatedPlugins.some((plugin) => plugin.id === pluginID),
   );
   const availablePagination = usePagination(availablePlugins.length, activeTab);
   const paginatedAvailablePlugins = useMemo(
     () => availablePlugins.slice(availablePagination.startIndex, availablePagination.endIndex),
     [availablePagination.endIndex, availablePagination.startIndex, availablePlugins],
   );
+  useEffect(() => {
+    setInstallPreviewResult({ ...emptyPermissionPreviewDraft(), key: installPreviewKey });
+    return () => { installPreviewRequest.current += 1; };
+  }, [installPreviewKey]);
   // A draft only covers the gap between a state change and the reloaded list. Once the
   // server reports the status the draft was holding, the descriptor owns both the status
   // and the restart flag again. A draft that still disagrees is kept, so a failed reload
@@ -232,7 +243,11 @@ export function PluginsView({
   }
 
   async function previewInstallPluginPermissions() {
-    setInstallPermissionPreview({ busy: true, error: "", preview: null });
+    const request = ++installPreviewRequest.current;
+    const setPreview = (draft: PluginPermissionDiffPreviewDraft) => {
+      if (request === installPreviewRequest.current) setInstallPreviewResult({ ...draft, key: installPreviewKey });
+    };
+    setPreview({ busy: true, error: "", preview: null });
     try {
       const response = await adminFetch(api, "/api/admin/plugins/permission-diff", {
         method: "POST",
@@ -243,10 +258,10 @@ export function PluginsView({
       });
       if (!response.ok) throw new Error(await readAdminError(response, tx("预览权限")));
       const payload = await response.json() as { data?: PluginPermissionDiffPreviewPayload };
-      setInstallPermissionPreview({ busy: false, error: "", preview: payload.data ?? null });
+      setPreview({ busy: false, error: "", preview: payload.data ?? null });
     } catch (reason) {
       if (isAuthExpiredError(reason)) return;
-      setInstallPermissionPreview({
+      setPreview({
         busy: false,
         error: reason instanceof Error ? reason.message : tx("权限预览失败"),
         preview: null,
@@ -260,13 +275,15 @@ export function PluginsView({
       [plugin.id]: { ...(drafts[plugin.id] ?? { busy: false, error: "", result: "" }), busy: true, error: "", result: "" },
     }));
     try {
-      const distribution = plugin.distribution;
+      const distribution = marketplaceByPluginID.get(plugin.id)?.plugin.distribution ?? plugin.distribution;
       const response = await adminFetch(api, `/api/admin/plugins/${encodeURIComponent(plugin.id)}/update`, {
         method: "POST",
         body: distribution?.download_url && distribution.checksum_sha256
           ? JSON.stringify({
             download_url: distribution.download_url,
             checksum_sha256: distribution.checksum_sha256,
+            ...(distribution.signature_url ? { signature_url: distribution.signature_url } : {}),
+            ...(distribution.signature_key_id ? { signature_key_id: distribution.signature_key_id } : {}),
           })
           : undefined,
       });
@@ -447,6 +464,13 @@ export function PluginsView({
           ))}
         </div>
         <div className="section-body">
+          {hiddenUpdateResults.map(([pluginID, draft]) => (
+            <div className="stacked-cell plugin-update-notice" key={pluginID}>
+              <strong>{localizedPluginName(effectivePlugins.find((plugin) => plugin.id === pluginID), locale) || pluginID}</strong>
+              {draft.error ? <span className="provider-quota-error" role="alert">{draft.error}</span> : null}
+              {draft.result ? <span role="status">{draft.result}</span> : null}
+            </div>
+          ))}
           {filteredPlugins.length === 0 ? (
             <div className="plugin-installed-empty">
               <span className="plugin-installed-empty-icon" aria-hidden="true">
@@ -458,7 +482,7 @@ export function PluginsView({
             <>
               <div className="plugin-installed-list">
                   {paginatedPlugins.map((plugin) => {
-                    const lifecycle = pluginManagerDisplayState({ plugin });
+                    const lifecycle = pluginManagerDisplayState({ plugin, marketplace: marketplaceByPluginID.get(plugin.id) });
                     return (
                       <article className={`plugin-installed-row${!lifecycle.enabled ? " disabled" : ""}`} key={plugin.id}>
                         <div className="plugin-installed-main">
@@ -492,11 +516,15 @@ export function PluginsView({
                               ) : null}
                             </>
                           ) : null}
-                          {lifecycle.actions.update.available ? (
-                            <button className="secondary-button compact-button" disabled={pluginUpdateDraft(plugin).busy} onClick={() => updatePlugin(plugin)} type="button">
-                              <Download size={14} aria-hidden="true" />
-                              <span>{tx(pluginUpdateDraft(plugin).busy ? "更新中" : "更新")}</span>
-                            </button>
+                          {lifecycle.actions.update.available || pluginUpdateDraft(plugin).error || pluginUpdateDraft(plugin).result ? (
+                            <div className="stacked-cell" data-plugin-manager-control="update">
+                              {lifecycle.actions.update.available ? <button className="secondary-button compact-button" disabled={pluginUpdateDraft(plugin).busy} onClick={() => updatePlugin(plugin)} type="button">
+                                <Download size={14} aria-hidden="true" />
+                                <span>{tx(pluginUpdateDraft(plugin).busy ? "更新中" : "更新")}</span>
+                              </button> : null}
+                              {pluginUpdateDraft(plugin).error ? <span className="provider-quota-error" role="alert">{pluginUpdateDraft(plugin).error}</span> : null}
+                              {pluginUpdateDraft(plugin).result ? <span role="status">{pluginUpdateDraft(plugin).result}</span> : null}
+                            </div>
                           ) : null}
                           {lifecycle.actions.uninstall.available ? (
                             <PluginDeleteControl
@@ -557,9 +585,10 @@ export function PluginsView({
                         {plugin.source === "built_in" || pluginManagerDistributionReady(plugin) ? (
                           <button
                             className="primary-button compact-button"
+                            disabled={installDraft.busy}
                             onClick={() => plugin.source === "built_in"
                               ? updatePluginState(plugin, "enabled")
-                              : setInstallDraft((draft) => ({ ...draft, downloadURL: plugin.distribution?.download_url ?? "", checksumSHA256: plugin.distribution?.checksum_sha256 ?? "" }))}
+                              : setInstallDraft((draft) => ({ ...draft, source: "url", packageFile: null, error: "", result: "", downloadURL: plugin.distribution?.download_url ?? "", checksumSHA256: plugin.distribution?.checksum_sha256 ?? "" }))}
                             type="button"
                           >
                             <Download size={14} aria-hidden="true" /><span>{tx(plugin.source === "built_in" ? "安装" : "准备安装")}</span>

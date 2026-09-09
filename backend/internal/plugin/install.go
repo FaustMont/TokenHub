@@ -73,13 +73,17 @@ func (r Runtime) InstallZipArchive(archive []byte, options InstallOptions) (Pack
 		return Package{}, err
 	}
 	target := filepath.Join(root, packageDirName(manifest.ID))
-	if options.Replace && legacyPackageDirName(manifest.ID) != strings.TrimSpace(manifest.ID) {
+	previous := target
+	if options.Replace {
 		existingTarget, found, err := existingPackageDirByID(root, manifest.ID)
 		if err != nil {
 			return Package{}, err
 		}
 		if found {
-			target = existingTarget
+			previous = existingTarget
+			if legacyPackageDirName(manifest.ID) != strings.TrimSpace(manifest.ID) {
+				target = existingTarget
+			}
 		}
 	}
 	rollbackBackupDir := ""
@@ -89,47 +93,17 @@ func (r Runtime) InstallZipArchive(archive []byte, options InstallOptions) (Pack
 	if err := validateReplacementTarget(target, manifest.ID); err != nil {
 		return Package{}, err
 	}
-	if err := replacePackageDir(packageDir, target, options.Replace, rollbackBackupDir); err != nil {
+	if previous != target {
+		if _, err := os.Stat(target); err == nil {
+			return Package{}, ErrInstallPackageExists
+		} else if !os.IsNotExist(err) {
+			return Package{}, err
+		}
+	}
+	if err := replacePackageDir(packageDir, target, previous, options.Replace, rollbackBackupDir); err != nil {
 		return Package{}, err
 	}
 	return readPackage(target)
-}
-
-func (r Runtime) PreserveRollbackPackage(pluginID string, sourceDir string) error {
-	pluginID = strings.TrimSpace(pluginID)
-	sourceDir = strings.TrimSpace(sourceDir)
-	if pluginID == "" || sourceDir == "" {
-		return ErrPackageNotFound
-	}
-	root, err := r.prepareInstallRoot()
-	if err != nil {
-		return err
-	}
-	rootAbs, err := filepath.Abs(root)
-	if err != nil {
-		return err
-	}
-	sourceAbs, err := filepath.Abs(sourceDir)
-	if err != nil {
-		return err
-	}
-	if sourceAbs == rootAbs || !strings.HasPrefix(sourceAbs, rootAbs+string(os.PathSeparator)) {
-		return fmt.Errorf("plugin package rollback source must be inside plugin directory")
-	}
-	manifest, err := readManifestOnly(sourceAbs)
-	if err != nil {
-		return err
-	}
-	if manifest.ID != pluginID {
-		return ErrPackageNotFound
-	}
-	target := rollbackPackageDir(root, pluginID)
-	_ = os.RemoveAll(target)
-	if err := copyPluginPackageDir(sourceAbs, target); err != nil {
-		_ = os.RemoveAll(target)
-		return err
-	}
-	return nil
 }
 
 func (r Runtime) prepareInstallRoot() (string, error) {
@@ -368,18 +342,28 @@ func existingPackageDirByID(root string, pluginID string) (string, bool, error) 
 	return "", false, nil
 }
 
-func replacePackageDir(source string, target string, replace bool, rollbackBackupDir string) error {
-	if _, err := os.Stat(target); err == nil {
+func replacePackageDir(source string, target string, previous string, replace bool, rollbackBackupDir string) error {
+	if _, err := os.Stat(previous); err == nil {
 		if !replace {
 			return ErrInstallPackageExists
 		}
-		backup := target + ".previous"
-		_ = os.RemoveAll(backup)
-		if err := os.Rename(target, backup); err != nil {
+		// Plugin IDs can end in .previous, so reserve a hidden directory instead
+		// of deriving a backup name that could belong to another package.
+		backupRoot, err := os.MkdirTemp(filepath.Dir(target), ".replace-*")
+		if err != nil {
+			return err
+		}
+		// Only remove the empty reservation. Keep the old package recoverable
+		// if replacement or restoration fails before it can be moved back.
+		defer func() { _ = os.Remove(backupRoot) }()
+		backup := filepath.Join(backupRoot, "package")
+		if err := os.Rename(previous, backup); err != nil {
 			return err
 		}
 		if err := os.Rename(source, target); err != nil {
-			_ = os.Rename(backup, target)
+			if restoreErr := os.Rename(backup, previous); restoreErr != nil {
+				return fmt.Errorf("replace plugin package: %w; restore package from %s: %v", err, backup, restoreErr)
+			}
 			return err
 		}
 		if strings.TrimSpace(rollbackBackupDir) == "" {

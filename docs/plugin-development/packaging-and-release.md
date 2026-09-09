@@ -44,3 +44,7 @@ TokenHub extracts accepted packages into `TOKENHUB_PLUGIN_DIR` and reevaluates t
 - executable behavior with the matching Devkit contract command; real Provider and gateway execution is unavailable through TokenHub
 
 For updates, repeat the same review and verification. Back up relevant TokenHub state before an update that changes persisted data, and keep the previous immutable ZIP available for a controlled rollback.
+
+Permission previews apply to the selected URL and checksum. Changing either value or switching the installation source clears the preview; selecting a Marketplace package prepares URL installation for that package. The installed list uses installable Marketplace releases to show available updates and reports update errors and completion status. Online discovery records without verified distribution metadata remain non-installable.
+
+An update rejected during checksum, trust, or dependency validation preserves the current package and its existing rollback backup. Replacing one plugin also preserves other installed plugins, including IDs ending in `.previous`.

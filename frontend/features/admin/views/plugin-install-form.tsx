@@ -188,7 +188,7 @@ export function PluginInstallFields({
           <h3>{tx("安全校验")}</h3>
           <button
             className="secondary-button compact-button plugin-install-preview-button"
-            disabled={draft.source !== "url" || !draft.downloadURL.trim() || !draft.checksumSHA256.trim()}
+            disabled={draft.busy || permissionPreviewDraft.busy || draft.source !== "url" || !draft.downloadURL.trim() || !draft.checksumSHA256.trim()}
             onClick={onPermissionPreview}
             type="button"
           >

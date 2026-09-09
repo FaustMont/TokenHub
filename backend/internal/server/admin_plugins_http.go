@@ -680,12 +680,6 @@ func (s *Server) handleAdminPluginUpdatePost(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, err)
 		return
 	}
-	if preserveCurrentRollback {
-		if err := runtime.PreserveRollbackPackage(pluginID, current.Dir); err != nil {
-			writeError(w, r, NewHTTPError(http.StatusInternalServerError, "plugin_rollback_prepare_failed", "Plugin rollback package could not be prepared"))
-			return
-		}
-	}
 	pkg, err := s.installPluginArchive(archive, options)
 	if err != nil {
 		writeError(w, r, pluginInstallHTTPError(err))
