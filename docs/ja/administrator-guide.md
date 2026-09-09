@@ -105,7 +105,7 @@ Provider を呼び出す前に、ユーザーのリクエスト数と推定 Toke
 
 OpenAI-compatible アダプターでセルフホストのサービスに接続する場合、上流サービスが認証を要求しなければ認証キーを空欄にできます。接続テスト、モデル検出、推論はいずれもこの方式に対応し、仮の API Key は不要です。認証が必要な場合は実際のキーを入力してください。既存 Provider の編集時に空欄にすると保存済みのキーを保持するため、認証なしに切り替えるには明示的なキー削除オプションを使用します。他のアダプターはそれぞれの認証要件に従います。
 
-ローカルおよび内部 HTTP アドレスは内部 DNS 名を含めて既定で利用できます。既存の非空プライベートリストは制限を維持します。厳格モードとプロキシポリシーはデプロイガイドを参照してください。
+`http://192.168.1.10:8000/v1` のような RFC1918/ULA リテラル HTTP アドレスは既定で利用できます。ループバックには `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` または auto モードが必要です。`host.docker.internal` などの内部 DNS 名には `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto` が必要です。既存の非空プライベートリストは制限を維持します。厳格モードとプロキシポリシーはデプロイガイドを参照してください。
 
 ## Provider カタログの可用性
 
@@ -117,7 +117,7 @@ TokenHub は、最後に正常に読み込んだ Provider カタログをデー�
 
 ### Kronk ローカル推論
 
-**Provider Channels** で **Kronk** を選択すると、独立して実行中の Kronk Model Server に接続できます。既定の Base URL は `http://127.0.0.1:11435/v1` です。Kronk 認証が無効な場合は application token を空欄にし、有効な場合は保存済みの秘密値を `Authorization: Bearer <token>` としてだけ送信します。接続テストは `/v1/liveness`、`/v1/readiness`、`/v1/models` を個別に確認し、プロセス到達性、サービス準備状態、ローカルモデル利用可能性を区別します。
+**Provider Channels** で **Kronk** を選択すると、独立して実行中の Kronk Model Server に接続できます。既定の Base URL は `http://127.0.0.1:11435/v1` で、ループバック許可または auto モードが必要です。Kronk が別ホストで動いている場合は到達可能なプライベート IP を使い、既定の strict モードで利用できます。Kronk 認証が無効な場合は application token を空欄にし、有効な場合は保存済みの秘密値を `Authorization: Bearer <token>` としてだけ送信します。接続テストは `/v1/liveness`、`/v1/readiness`、`/v1/models` を個別に確認し、プロセス到達性、サービス準備状態、ローカルモデル利用可能性を区別します。
 
 モデル選択画面は `GET /v1/models` から現在のインベントリを検出し、`/`、`:`、量子化サフィックスを含む Kronk モデル ID 全体を保持します。選択したインベントリを取り込んだ後、**Model Directory** で外部標準モデル名を作成し、**Routing Policies** で Kronk モデル ID にマッピングします。繰り返し取り込んでも冪等です。後続の検出が成功すると、Kronk から削除されたモデルはインベントリやルートを削除せず利用不可としてマークされます。検出に失敗した場合、既存設定は変更されません。
 

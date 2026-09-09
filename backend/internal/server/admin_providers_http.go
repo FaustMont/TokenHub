@@ -319,11 +319,11 @@ func (s *Server) providerFromCreateRequest(ctx context.Context, req ProviderCrea
 	applyProviderDescriptorDefaults(&provider, adapterDescriptor)
 	provider.BaseURL = normalizeProviderBaseURL(provider.ID, provider.BaseURL)
 	// SSRF guard at the admin persistence boundary: admin create and update both
-	// flow through here, so those untrusted entry points cannot save a base URL
-	// with a literal IP in loopback, private, link-local or curated high-risk/
-	// non-provider ranges. The operator
-	// allowlist (TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS) and the explicit
-	// loopback opt-in apply exactly as they do for upstream model discovery.
+	// flow through here. Loopback, link-local, and curated special-use literals
+	// cannot be saved. RFC1918/ULA literals follow
+	// TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS (empty uses the default ranges).
+	// The explicit loopback opt-in applies exactly as it does for upstream
+	// model discovery.
 	if err := ValidateProviderUpstreamBaseURL(provider.BaseURL); err != nil {
 		return Provider{}, ProviderCatalogEntry{}, catalogSource, err
 	}

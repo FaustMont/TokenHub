@@ -22,14 +22,56 @@ func useAutoLocalUpstreams(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_PROXY_LOCAL", "false")
 }
 
-func TestLocalUpstreamDefaultsToStrictAccess(t *testing.T) {
+func TestLocalUpstreamDefaultsAllowPrivateLiterals(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "")
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK", "false")
-	for _, host := range []string{"localhost", "127.0.0.1", "10.2.3.4", "172.16.0.4", "192.168.2.4", "[fd12::4]"} {
-		if err := ValidateProviderUpstreamBaseURL("http://" + host + "/v1"); err == nil {
-			t.Errorf("default access mode allowed local URL %s", host)
+	for _, host := range []string{"10.2.3.4", "172.16.0.4", "192.168.2.4", "192.168.77.100", "[fd12::4]"} {
+		if err := ValidateProviderUpstreamBaseURL("http://" + host + ":11434/v1"); err != nil {
+			t.Errorf("default access mode rejected private literal %s: %v", host, err)
 		}
+	}
+	for _, host := range []string{"localhost", "127.0.0.1", "::1"} {
+		if err := ValidateProviderUpstreamBaseURL("http://" + host + "/v1"); err == nil {
+			t.Errorf("default access mode allowed loopback URL %s", host)
+		}
+	}
+}
+
+func TestStrictModeRejectsHTTPHostnameEvenWhenPrivate(t *testing.T) {
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
+	request, _ := http.NewRequest(http.MethodGet, "http://models.corp.example:8000/v1/models", nil)
+	_, err := prepareProviderHTTPRequest(request, allowedProviderUpstreamCIDRs(), func(context.Context, string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("192.168.77.100")}}, nil
+	})
+	if err == nil || AsHTTPError(err).Code != "provider_base_url_insecure_scheme" {
+		t.Fatalf("strict mode allowed HTTP hostname that resolved privately: %v", err)
+	}
+}
+
+func TestStrictModeRejectsHostnameDialThatResolvesPrivately(t *testing.T) {
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
+	dialed := false
+	_, err := dialGuardedUpstream(context.Background(), "tcp", "models.corp.example:443", allowedProviderUpstreamCIDRs(), nil, time.Second,
+		func(context.Context, string) ([]net.IPAddr, error) {
+			return []net.IPAddr{{IP: net.ParseIP("192.168.77.100")}}, nil
+		},
+		func(context.Context, string, string) (net.Conn, error) {
+			dialed = true
+			return nil, errors.New("strict mode must not dial a privately resolved hostname")
+		})
+	if dialed || err == nil {
+		t.Fatalf("strict mode dialed hostname that resolved privately: dialed=%v err=%v", dialed, err)
+	}
+}
+
+func TestStrictEmptyCIDRsAllowPrivateLiteralDial(t *testing.T) {
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", "strict")
+	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
+	if err := checkProviderUpstreamLiteralDial(net.ParseIP("192.168.77.100"), allowedProviderUpstreamCIDRs()); err != nil {
+		t.Fatalf("empty CIDRs should allow RFC1918 literals at dial, got %v", err)
 	}
 }
 
@@ -61,10 +103,11 @@ func TestLocalUpstreamAutoModeAndLegacyRestrictions(t *testing.T) {
 	t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS", "")
 	for _, mode := range []string{"strict", "invalid-mode"} {
 		t.Setenv("TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE", mode)
-		for _, host := range []string{"127.0.0.1", "192.168.2.4"} {
-			if err := ValidateProviderUpstreamBaseURL("http://" + host + "/v1"); err == nil {
-				t.Errorf("%s mode allowed %s", mode, host)
-			}
+		if err := ValidateProviderUpstreamBaseURL("http://127.0.0.1/v1"); err == nil {
+			t.Errorf("%s mode allowed loopback", mode)
+		}
+		if err := ValidateProviderUpstreamBaseURL("http://192.168.2.4/v1"); err != nil {
+			t.Errorf("%s mode rejected private literal: %v", mode, err)
 		}
 	}
 }

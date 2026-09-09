@@ -105,7 +105,7 @@ TokenHub 使用与用量统计相同的归属顺序解析用户：先取 API Key
 
 接入使用 OpenAI-compatible 适配器的自托管服务时，如果上游未启用认证，可将认证密钥留空。测试连接、模型发现和推理均支持此方式，无需填写占位 API Key；上游启用认证时应填写真实密钥。编辑已有 Provider 时，留空会保留已保存的密钥，需使用明确的移除密钥选项才能切换为无认证访问。其他适配器仍遵循各自声明的认证要求。
 
-本机与内网 HTTP 地址默认可用，包括内网域名；已有非空私网清单继续限制范围。严格模式及代理规则见部署指南。
+`http://192.168.1.10:8000/v1` 等 RFC1918/ULA 字面量 HTTP 地址默认可用。回环地址仍需 `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` 或自动模式。`host.docker.internal` 等内网域名需要 `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`。已有非空私网清单继续限制范围。严格模式及代理规则见部署指南。
 
 ## Provider 目录可用性
 
@@ -117,7 +117,7 @@ TokenHub 会把最后一次成功加载的 Provider 目录保存在数据库中�
 
 ### Kronk 本地推理
 
-在「Provider 渠道」中选择 **Kronk**，即可连接独立运行的 Kronk Model Server。默认 Base URL 为 `http://127.0.0.1:11435/v1`。Kronk 未启用认证时可将 application token 留空；启用认证后，TokenHub 只会将保存的密钥作为 `Authorization: Bearer <token>` 发送。连接测试会分别检查 `/v1/liveness`、`/v1/readiness` 和 `/v1/models`，从而区分进程可达、服务就绪和本地模型可用状态。
+在「Provider 渠道」中选择 **Kronk**，即可连接独立运行的 Kronk Model Server。默认 Base URL 为 `http://127.0.0.1:11435/v1`，需要回环许可或自动模式。Kronk 运行在其他主机时，应填写可达的私网 IP，默认严格模式即可使用。Kronk 未启用认证时可将 application token 留空；启用认证后，TokenHub 只会将保存的密钥作为 `Authorization: Bearer <token>` 发送。连接测试会分别检查 `/v1/liveness`、`/v1/readiness` 和 `/v1/models`，从而区分进程可达、服务就绪和本地模型可用状态。
 
 模型选择器通过 `GET /v1/models` 发现实时库存，并完整保留 Kronk 模型 ID 中的 `/`、`:` 和量化后缀。引入选中的库存后，在「模型目录」中创建对外标准模型名，再到「路由策略」将其映射到 Kronk 模型 ID。重复引入保持幂等。后续模型发现成功时，已从 Kronk 移除的模型会被标记为不可用，但不会删除其库存或路由；发现失败不会改写现有配置。
 
