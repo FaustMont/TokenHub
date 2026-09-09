@@ -45,6 +45,7 @@ describe("Plugin review regressions", () => {
     const row = container.querySelector('[data-plugin-id="tokenhub.openai-codex"]') ?? screen.getByText("Codex Marketplace").closest("article");
     expect(row).toBeTruthy();
     expect(within(row as HTMLElement).getByText("Provider 集成")).toBeVisible();
+    expect(within(row as HTMLElement).queryByRole("button", { name: "准备安装" })).not.toBeInTheDocument();
   });
 
   it("formats contributions using Chinese and Japanese compact notation", () => {

@@ -9,7 +9,7 @@ import {
   type PluginManagerTabKey,
   type PluginStatusFilterKey,
 } from "../domain/plugin-management";
-import { pluginManagerDisplayState, pluginManagerLifecycleState } from "../domain/plugin-manager";
+import { pluginManagerDisplayState, pluginManagerDistributionReady, pluginManagerLifecycleState } from "../domain/plugin-manager";
 import { localizedPluginName } from "../domain/plugin-localization";
 import { type PluginDetailSection } from "../domain/plugin-detail-route";
 import { type PluginPermissionDiffPreviewPayload } from "../domain/plugin-permission-diff";
@@ -554,15 +554,17 @@ export function PluginsView({
                             <PackageOpen size={14} aria-hidden="true" /><span>{tx("详情")}</span>
                           </button>
                         ) : null}
-                        <button
-                          className="primary-button compact-button"
-                          onClick={() => plugin.source === "built_in"
-                            ? updatePluginState(plugin, "enabled")
-                            : setInstallDraft((draft) => ({ ...draft, downloadURL: plugin.distribution?.download_url ?? "", checksumSHA256: plugin.distribution?.checksum_sha256 ?? "" }))}
-                          type="button"
-                        >
-                          <Download size={14} aria-hidden="true" /><span>{tx(plugin.source === "built_in" ? "安装" : "准备安装")}</span>
-                        </button>
+                        {plugin.source === "built_in" || pluginManagerDistributionReady(plugin) ? (
+                          <button
+                            className="primary-button compact-button"
+                            onClick={() => plugin.source === "built_in"
+                              ? updatePluginState(plugin, "enabled")
+                              : setInstallDraft((draft) => ({ ...draft, downloadURL: plugin.distribution?.download_url ?? "", checksumSHA256: plugin.distribution?.checksum_sha256 ?? "" }))}
+                            type="button"
+                          >
+                            <Download size={14} aria-hidden="true" /><span>{tx(plugin.source === "built_in" ? "安装" : "准备安装")}</span>
+                          </button>
+                        ) : null}
                       </div>
                     </article>
                   ))}

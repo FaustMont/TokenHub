@@ -17,6 +17,28 @@ func TestListStagesRejectSelectedRouteScopes(t *testing.T) {
 	}
 }
 
+func TestListStageScopeChecksAllRouteCandidates(t *testing.T) {
+	hook := GatewayHookDescriptor{PluginID: "test", HookID: "rank", Stage: StageRouteRank, Scope: GatewayHookScope{ProviderIDs: []string{"provider-b"}}}
+	runner := NewGatewayHookRunner(NewGatewayChainRegistry())
+	calls := 0
+	if err := runner.RegisterHandler(hook, GatewayHookHandlerFunc(func(context.Context, GatewayHookInput) (GatewayHookResult, error) {
+		calls++
+		return GatewayHookResult{Decision: HookDecisionContinue}, nil
+	})); err != nil {
+		t.Fatal(err)
+	}
+	_, err := runner.RunStageHooks(t.Context(), StageRouteRank, GatewayHookInput{
+		Envelope: GatewayEnvelope{Protocol: "gateway", Operation: "route_rank"},
+		Data:     GatewayHookData{DataRouteCandidates: json.RawMessage(`[{"provider_id":"provider-a"},{"provider_id":"provider-b"}]`)},
+	}, []GatewayHookDescriptor{hook})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("scope matched %d times, want 1", calls)
+	}
+}
+
 func TestConstrainedScopeRequiresKnownDimension(t *testing.T) {
 	hook := GatewayHookDescriptor{Scope: GatewayHookScope{RouteProtocols: []string{"images/generations"}}}
 	if GatewayHookScopeMatches(hook, GatewayHookScopeTarget{}) {

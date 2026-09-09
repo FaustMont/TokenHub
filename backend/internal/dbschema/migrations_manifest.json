@@ -31,6 +31,15 @@
       "checksum": "tokenhub-schema-metering-evidence-v2",
       "lock_timeout_seconds": 30,
       "statement_budget": 10
+    },
+    {
+      "version": 5,
+      "name": "add-audit-event-correlation",
+      "phase": "expand",
+      "dialect": "",
+      "checksum": "tokenhub-schema-audit-event-correlation-v1",
+      "lock_timeout_seconds": 30,
+      "statement_budget": 10
     }
   ]
 }

@@ -88,6 +88,7 @@ func VerifySchemaSemantics(ctx context.Context, databaseURL string) error {
 func SchemaMigrationRegistry() []dbschema.Migration {
 	return []dbschema.Migration{
 		meteringMigration(),
+		auditCorrelationMigration(),
 		{
 			Version:          2,
 			Name:             "add-granular-billing-columns-sqlite",

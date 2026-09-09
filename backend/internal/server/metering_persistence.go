@@ -19,23 +19,24 @@ type meteringEntry struct {
 }
 
 func meteringMigration() dbschema.Migration {
+	// Version 4 is already present in released ledgers; keep its SQL immutable.
+	return dbschema.Migration{Version: 4, Name: "add-metering-evidence", Statements: []string{
+		`CREATE TABLE IF NOT EXISTS metering_entries (id text PRIMARY KEY, kind text NOT NULL, scope text NOT NULL, payload text NOT NULL, created_at timestamp NOT NULL)`,
+		`CREATE INDEX IF NOT EXISTS idx_metering_entries_scope ON metering_entries (kind, scope, created_at)`,
+	}, ChecksumOverride: "tokenhub-schema-metering-evidence-v2", StatementBudget: 10}
+}
+
+func auditCorrelationMigration() dbschema.Migration {
 	return dbschema.Migration{
-		Version:          4,
-		Name:             "add-metering-evidence",
-		Go:               addMeteringEvidence,
-		ChecksumOverride: "tokenhub-schema-metering-evidence-v2",
+		Version:          5,
+		Name:             "add-audit-event-correlation",
+		Go:               addAuditEventCorrelation,
+		ChecksumOverride: "tokenhub-schema-audit-event-correlation-v1",
 		StatementBudget:  10,
 	}
 }
 
-func addMeteringEvidence(ctx context.Context, db dbschema.MigrationExecer) error {
-	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS metering_entries (id text PRIMARY KEY, kind text NOT NULL, scope text NOT NULL, payload text NOT NULL, created_at timestamp NOT NULL)`); err != nil {
-		return fmt.Errorf("create metering entries: %w", err)
-	}
-	if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_metering_entries_scope ON metering_entries (kind, scope, created_at)`); err != nil {
-		return fmt.Errorf("index metering entries: %w", err)
-	}
-
+func addAuditEventCorrelation(ctx context.Context, db dbschema.MigrationExecer) error {
 	// current_schema() is available on PostgreSQL. SQLite reports an ordinary
 	// statement error without aborting its transaction, so this is a safe,
 	// read-only dialect probe inside the migration callback.

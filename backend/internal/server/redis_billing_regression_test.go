@@ -194,8 +194,16 @@ func newRedisBillingCommitFailureStore(t *testing.T) (*GormStore, *atomic.Bool, 
 		t.Fatal(err)
 	}
 	migration := meteringMigration()
-	if err := migration.Go(context.Background(), directSQLMigrationExecer{DB: sqlDB}); err != nil {
-		t.Fatal(err)
+	if migration.Go != nil {
+		if err := migration.Go(context.Background(), directSQLMigrationExecer{DB: sqlDB}); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		for _, statement := range migration.Statements {
+			if _, err := sqlDB.Exec(statement); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 	billingRedis, err := newRedisBillingCoordinator(context.Background(), "redis://"+redisServer.Addr()+"/0", 2*time.Second)
 	if err != nil {

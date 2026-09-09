@@ -62,7 +62,7 @@ func TestPostgresMeteringMigrationUpgradesAuditCorrelation(t *testing.T) {
 	if _, err := sqlDB.Exec(`ALTER TABLE audit_events DROP COLUMN correlation_id`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sqlDB.Exec(`DELETE FROM schema_migrations WHERE version = 4`); err != nil {
+	if _, err := sqlDB.Exec(`DELETE FROM schema_migrations WHERE version = 5`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := sqlDB.Exec(`INSERT INTO audit_events (id, action, created_at) VALUES ('legacy-audit', 'legacy.read', CURRENT_TIMESTAMP)`); err != nil {

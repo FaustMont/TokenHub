@@ -19,13 +19,14 @@ type CompatibilityManifest struct {
 }
 
 // CurrentCompatibilityManifest is this release's declaration. This release
-// requires the metering evidence expansion. Startup upgrades older databases
-// before requests are admitted; the runtime does not silently skip evidence.
+// requires the metering evidence and audit correlation expansions. Startup
+// upgrades older databases before requests are admitted; the runtime does not
+// silently skip either schema change.
 func CurrentCompatibilityManifest() CompatibilityManifest {
 	return CompatibilityManifest{
-		TargetVersion: 4,
-		MinCompatible: 4,
-		MaxCompatible: 4,
+		TargetVersion: 5,
+		MinCompatible: 5,
+		MaxCompatible: 5,
 	}
 }
 

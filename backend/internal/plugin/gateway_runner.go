@@ -146,7 +146,7 @@ func (r *GatewayHookRunner) RunStageHooks(ctx context.Context, stage GatewayHook
 		if hook.Stage != stage {
 			continue
 		}
-		if !GatewayHookScopeMatches(hook, gatewayHookScopeTargetFromInput(input)) {
+		if !gatewayHookScopeMatchesInput(hook, input) {
 			report.Results = append(report.Results, skippedGatewayHookRunResult(hook, HookRunSkipped, "gateway hook scope did not match"))
 			continue
 		}
@@ -165,6 +165,42 @@ func (r *GatewayHookRunner) RunStageHooks(ctx context.Context, stage GatewayHook
 		}
 	}
 	return report, nil
+}
+
+// List-stage route data contains multiple candidates. A route-scoped hook is
+// eligible when any candidate satisfies its complete scope; using only the
+// first candidate makes execution depend on provider ordering.
+func gatewayHookScopeMatchesInput(hook GatewayHookDescriptor, input GatewayHookInput) bool {
+	target := gatewayHookScopeTargetFromInput(input)
+	if input.Envelope.Operation != "route_candidates" && input.Envelope.Operation != "route_rank" {
+		return GatewayHookScopeMatches(hook, target)
+	}
+	raw := input.Data[DataRouteCandidates]
+	if len(raw) == 0 {
+		return GatewayHookScopeMatches(hook, target)
+	}
+	var candidates []map[string]json.RawMessage
+	if json.Unmarshal(raw, &candidates) != nil || len(candidates) == 0 {
+		return GatewayHookScopeMatches(hook, target)
+	}
+	// Rebuild the non-route dimensions without allowing the first candidate to
+	// seed provider/resource fields for every subsequent candidate.
+	baseInput := input
+	baseInput.Data = make(GatewayHookData, len(input.Data))
+	for key, value := range input.Data {
+		if key != DataRouteCandidates {
+			baseInput.Data[key] = value
+		}
+	}
+	baseTarget := gatewayHookScopeTargetFromInput(baseInput)
+	for _, candidate := range candidates {
+		candidateTarget := baseTarget
+		mergeGatewayRouteScopeFromObject(candidate, &candidateTarget)
+		if GatewayHookScopeMatches(hook, candidateTarget) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *GatewayHookRunner) runHook(ctx context.Context, hook GatewayHookDescriptor, input GatewayHookInput) (GatewayHookRunResult, error) {
