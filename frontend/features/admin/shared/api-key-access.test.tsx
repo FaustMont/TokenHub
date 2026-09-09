@@ -5,6 +5,7 @@ import { apiKeyAccessConfig, apiKeyPlaceholder } from "../domain/api-key-access"
 import { setActiveLanguage } from "../i18n/runtime";
 import { APIKeyAccessDialogs, APIKeyAccessModal, openAPIKeyAccess } from "./api-key-access";
 import type { APIKey } from "../core/types";
+import { ConfirmDialog } from "./ui";
 
 const savedKey: APIKey = { id: "key_test", name: "Test key", project_id: "project_test", allowed_models: [], status: "active", key_prefix: "sk_test", key_suffix: "1234" };
 const secret = "sk_synthetic_access_test_only";
@@ -13,6 +14,15 @@ beforeEach(() => setActiveLanguage("zh-CN"));
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("API key setup", () => {
+  it("keeps keyboard focus inside a busy confirmation", () => {
+    const cancel = vi.fn();
+    render(<ConfirmDialog title="确认轮换 API Key" message="Test confirmation" loading onCancel={cancel} onConfirm={() => undefined} />);
+    const dialog = screen.getByRole("dialog");
+    expect(fireEvent.keyDown(dialog, { key: "Tab" })).toBe(false);
+    expect(dialog).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(cancel).not.toHaveBeenCalled();
+  });
   it.each([
     ["chat", "/v1", "/v1/chat/completions", "Authorization: Bearer"],
     ["responses", "/v1", "/v1/responses", "Authorization: Bearer"],
