@@ -48,6 +48,7 @@ services:
     environment:
       TOKENHUB_ADMIN_TOKEN: admin-token
       TOKENHUB_DATABASE_URL: sqlite://data/tokenhub.db
+      TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE: auto
     ports:
       - "8080:8080"
     healthcheck:
