@@ -25,6 +25,14 @@ Console login tokens cannot call model APIs. Use a project API key from **Key Ma
 
 The console **API Documentation** page remains the guided onboarding view. For the complete interactive and machine-readable gateway contract, open `http://localhost:8080/docs` in a private deployment or import `http://localhost:8080/openapi.json` into an API client, SDK generator, test tool, or enterprise API catalog. The documentation page keeps any entered project key in browser memory only.
 
+## Copy Connection Details and Rotate a Key
+
+In **Key Management**, select **Use** on a key to see the protocol, Base URL, authentication header, and an expandable cURL example. OpenAI Chat Completions and Responses use `/v1`; Anthropic uses the gateway root as its client Base URL and `/v1/messages` for requests; Gemini uses `/v1beta` and `x-goog-api-key`. Use the configured gateway address, not the console's port. Enter a model ID permitted by the project and key before running an example.
+
+Creating a key opens this setup window automatically with the complete key, ready to copy. Save it before closing: the full key is shown only once. Reopening **Use** shows a placeholder; replace it with your saved key. The console does not store the full key in browser storage.
+
+**Rotate** first asks for confirmation and identifies the affected key. Canceling leaves it unchanged. Confirming immediately revokes the old key and opens the setup window with the new key after a successful response. Update applications using the old key. Rotation errors are displayed without a success window.
+
 ## Review One API Key's Usage
 
 In **Key Management**, select **Usage** for a Key to open its dedicated usage page. The page reports requests, success rate, latency, detailed token categories, estimated client cost, model and error breakdowns, and paginated request details. Use the 7-, 30-, or 90-day presets, or select a custom UTC range of up to 366 days.
