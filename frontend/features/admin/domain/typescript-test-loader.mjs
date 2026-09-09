@@ -1,13 +1,14 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, parse, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 
 export async function importTypeScript(moduleURL) {
   const fileName = fileURLToPath(moduleURL);
-  const rootDir = dirname(fileName);
+  // Parent-directory imports must remain inside this invocation's output directory.
+  const rootDir = parse(fileName).root;
   const outputDir = await mkdtemp(join(tmpdir(), "tokenhub-ts-test-"));
   const emitted = await emitTypeScriptModule(fileName, rootDir, outputDir, new Map());
   return import(pathToFileURL(emitted).href);
