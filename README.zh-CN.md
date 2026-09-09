@@ -21,10 +21,12 @@
 
 ## ❤️ 赞助商
 
+> [想出现在这里？](mailto:xiemengjun@gmail.com)
+
 <table>
   <tr>
-    <td width="180"><a href="https://aicoding.inc/"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>感谢 AICoding 赞助了本项目！<a href="https://aicoding.inc/">AICoding</a> —— 全球大模型 API 超值中转服务！Claude Code 1.9 折，GPT 0.1 折，已为数百家企业提供高性价比 AI 服务。支持 Claude Code、GPT、Gemini 及国内主流模型，企业级高并发、极速开票、7×24 专属技术支持，通过<a href="https://aicoding.inc/">此链接</a>注册的 CC Switch 用户，首充可享受九折优惠！</td>
+    <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
+    <td>感谢 AICoding 赞助了本项目！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 全球大模型 API 超值中转服务！Claude Code 1.9 折，GPT 0.1 折，已为数百家企业提供高性价比 AI 服务。支持 Claude Code、GPT、Gemini 及国内主流模型，企业级高并发、极速开票、7×24 专属技术支持，通过<a href="https://aicoding.inc/i/tokhub">此链接</a>注册的 CC Switch 用户，首充可享受九折优惠！</td>
   </tr>
 </table>
 

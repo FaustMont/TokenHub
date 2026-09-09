@@ -21,10 +21,12 @@
 
 ## ❤️ スポンサー
 
+> [ここに掲載しませんか？](mailto:xiemengjun@gmail.com)
+
 <table>
   <tr>
-    <td width="180"><a href="https://aicoding.inc/"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
-    <td>本プロジェクトをご支援いただいている AICoding に感謝いたします！<a href="https://aicoding.inc/">AICoding</a> —— 世界の主要 AI モデルをお得に利用できる API 中継サービス！Claude Code は通常価格の 19%、GPT はわずか 1%！数百社の企業にコストパフォーマンスの高い AI サービスを提供しています。Claude Code、GPT、Gemini、中国の主要モデルに対応し、エンタープライズ向けの高い同時処理性能、迅速な請求書発行、24 時間・年中無休の専任テクニカルサポートを提供します。<a href="https://aicoding.inc/">こちらのリンク</a>から登録した CC Switch ユーザーは、初回チャージが 10% オフになります！</td>
+    <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
+    <td>本プロジェクトをご支援いただいている AICoding に感謝いたします！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 世界の主要 AI モデルをお得に利用できる API 中継サービス！Claude Code は通常価格の 19%、GPT はわずか 1%！数百社の企業にコストパフォーマンスの高い AI サービスを提供しています。Claude Code、GPT、Gemini、中国の主要モデルに対応し、エンタープライズ向けの高い同時処理性能、迅速な請求書発行、24 時間・年中無休の専任テクニカルサポートを提供します。<a href="https://aicoding.inc/i/tokhub">こちらのリンク</a>から登録した CC Switch ユーザーは、初回チャージが 10% オフになります！</td>
   </tr>
 </table>
 
