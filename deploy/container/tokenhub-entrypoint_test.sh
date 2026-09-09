@@ -91,8 +91,9 @@ run_entrypoint "$second_image"
   fail_test "new build identity was not persisted"
 
 # CI's deployment job already runs this entrypoint suite with Docker available.
-# Keep fresh-volume coverage in that same job without a separate workflow step.
+# Keep image-context and fresh-volume coverage in that same job.
 if command -v docker >/dev/null 2>&1; then
+  bash "$script_dir/tokenhub-build-context_test.sh"
   bash "$script_dir/tokenhub-plugin-volume_test.sh"
 fi
 
