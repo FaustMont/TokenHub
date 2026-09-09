@@ -19,6 +19,15 @@
   English | <a href="README.zh-CN.md">简体中文</a> | <a href="README.ja.md">日本語</a>
 </p>
 
+## ❤️ Sponsors
+
+<table>
+  <tr>
+    <td width="180"><a href="https://aicoding.inc/"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
+    <td>Thanks to AICoding for sponsoring this project! <a href="https://aicoding.inc/">AICoding</a> — Global AI Model API Relay Service at Unbeatable Prices! Claude Code at 19% of original price, GPT at just 1%! Trusted by hundreds of enterprises for cost-effective AI services. Supports Claude Code, GPT, Gemini and major domestic models, with enterprise-grade high concurrency, fast invoicing, and 24/7 dedicated technical support. CC Switch users who register via <a href="https://aicoding.inc/">this link</a> get 10% off their first top-up!</td>
+  </tr>
+</table>
+
 ## Enterprise Token Governance
 
 TokenHub gives enterprises a governance layer for the AI model lifecycle, from provider access and project keys to routing policy, usage attribution, budget control, and bill reconciliation.
