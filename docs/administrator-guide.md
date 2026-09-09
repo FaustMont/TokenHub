@@ -105,7 +105,7 @@ Admission reserves user requests and estimated tokens before any Provider call. 
 
 For a self-hosted service using the OpenAI-compatible adapter, leave the credential empty if the service does not require authentication. Connection testing, model discovery, and inference support this mode; no placeholder API Key is needed. If the service requires authentication, provide its real credential. When editing an existing Provider, leaving the field blank retains the saved credential; use the explicit remove-credential option to switch to unauthenticated access. Other adapters retain their declared authentication requirements.
 
-Literal RFC1918/ULA HTTP endpoints such as `http://192.168.1.10:8000/v1` work by default. Loopback still requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK` or auto mode. Internal DNS names such as `host.docker.internal` require `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`. Existing nonempty private allowlists remain restrictive; see the deployment guide for strict mode and proxy policy.
+Literal RFC1918/ULA HTTP endpoints such as `http://192.168.1.10:8000/v1` work by default. Loopback is allowed automatically only in auto mode with an empty private allowlist; otherwise it requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`. Internal DNS names such as `host.docker.internal` require `TOKENHUB_PROVIDER_UPSTREAM_ACCESS_MODE=auto`. Existing nonempty private allowlists remain restrictive; see the deployment guide for strict mode and proxy policy.
 
 ## Provider Catalog Availability
 
@@ -117,7 +117,7 @@ For active OpenAI Codex Subscription accounts that have a saved refresh token, T
 
 ### Kronk local inference
 
-Choose **Kronk** in **Provider Channels** to connect an independently running Kronk Model Server. The default Base URL is `http://127.0.0.1:11435/v1`, which requires loopback permission or auto mode. When Kronk runs on another host, use a reachable private IP; that works in the default strict mode. Leave the application token empty when Kronk authentication is disabled; otherwise TokenHub sends the saved secret only as `Authorization: Bearer <token>`. Connection testing checks `/v1/liveness`, `/v1/readiness`, and `/v1/models` separately so a reachable process, a ready service, and usable local models remain distinct states.
+Choose **Kronk** in **Provider Channels** to connect an independently running Kronk Model Server. The default Base URL is `http://127.0.0.1:11435/v1`, which is allowed automatically only in auto mode with an empty private allowlist; otherwise it requires `TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK`. When Kronk runs on another host, use a reachable private IP; that works in the default strict mode. Leave the application token empty when Kronk authentication is disabled; otherwise TokenHub sends the saved secret only as `Authorization: Bearer <token>`. Connection testing checks `/v1/liveness`, `/v1/readiness`, and `/v1/models` separately so a reachable process, a ready service, and usable local models remain distinct states.
 
 The model picker discovers the live inventory from `GET /v1/models` and preserves each complete Kronk model ID, including `/`, `:`, and quantization suffixes. Import the selected inventory, then create the external standard name in **Model Directory** and map it to the Kronk ID under **Routing Policies**. Repeated imports are idempotent. A successful later discovery marks missing Kronk models unavailable without deleting their inventory or routes; a failed discovery leaves existing configuration unchanged.
 
