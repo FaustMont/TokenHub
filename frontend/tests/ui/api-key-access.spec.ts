@@ -1,10 +1,11 @@
 import type { Page } from "@playwright/test";
-import type { APIKey } from "../../features/admin/core/types";
+import type { APIKey, APIKeyUsageResponse } from "../../features/admin/core/types";
 import { test, expect, capture } from "./harness";
-import { project, user } from "./fixtures/shell";
+import { fixedTime, project, user } from "./fixtures/shell";
 import type { MockAPI } from "./network";
 
 const original: APIKey = { id: "key_ui_access", name: "UI Setup Key", project_id: project.id, owner_user_id: user.id, status: "active", allowed_models: [], model_access_mode: "inherit", key_prefix: "sk_ui", key_suffix: "5678" };
+const usageKey: APIKey = { ...original, id: "key_review_a", name: "UI Usage Key", key_suffix: "aaaa" };
 const newSecret = "sk_ui_synthetic_issued_key_1234";
 const rotatedSecret = "sk_ui_synthetic_rotated_key_9012";
 
@@ -37,6 +38,30 @@ async function openKeys(page: Page) {
   const row = page.getByRole("row").filter({ hasText: original.name });
   await expect(row).toBeVisible();
   return row;
+}
+
+function stubKeyUsagePage(api: MockAPI, key: APIKey) {
+  const emptyMetrics = {
+    request_count: 0, error_count: 0, average_latency_ms: 0, input_tokens: 0, cached_input_tokens: 0,
+    cache_write_input_tokens: 0, input_audio_tokens: 0, output_tokens: 0, reasoning_output_tokens: 0,
+    output_audio_tokens: 0, accepted_prediction_tokens: 0, rejected_prediction_tokens: 0, total_tokens: 0, estimated_cost_usd: 0,
+  };
+  const emptyQuota = { requests: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0 };
+  const usage: APIKeyUsageResponse = {
+    key, range: { from: "2026-08-09T00:00:00.000Z", to: fixedTime }, generated_at: fixedTime, summary: emptyMetrics,
+    quota: {
+      effective_limits: { rate_limit_rpm: 0, token_limit_tpm: 0, daily_requests: 0, monthly_requests: 0, daily_tokens: 0, monthly_tokens: 0, daily_cost_usd: 0, monthly_cost_usd: 0, max_concurrency: 0 },
+      day: { bucket: "2026-09-07", usage: emptyQuota }, month: { bucket: "2026-09", usage: emptyQuota },
+    },
+    timeseries: [], models: [], errors: [],
+  };
+  api.define("GET", `/api/admin/api-keys/${key.id}/usage`, () => ({ json: structuredClone(usage) }), query => {
+    expect(query.has("from")).toBe(true);
+    expect(query.has("to")).toBe(true);
+  });
+  api.define("GET", "/api/admin/audit/requests", () => ({
+    json: { data: [], pagination: { page: 1, page_size: 20, total: 0, total_pages: 0 }, summary: { all: 0, ok: 0, error: 0, average_latency_ms: 0 } },
+  }), () => undefined);
 }
 
 test("api-key-access existing key shows protocol setup without rotating", async ({ page, api }, testInfo) => {
@@ -140,6 +165,25 @@ test("api-key-access browser history navigation dismisses rotation confirmation"
   await expect(confirmation).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/cost-centers$/);
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
+  expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
+});
+
+test("api-key-access browser history dismisses rotation confirmation within Key Management", async ({ page, api }) => {
+  const keys = setup(api);
+  keys.push(structuredClone(usageKey));
+  stubKeyUsagePage(api, usageKey);
+  await page.goto(`/api-keys/${usageKey.id}/usage`);
+  await expect(page.getByRole("heading", { name: usageKey.name })).toBeVisible();
+  await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
+  await expect(page).toHaveURL(/\/api-keys$/);
+  await page.getByRole("row").filter({ hasText: original.name }).getByRole("button", { name: "轮换", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/api-keys/${usageKey.id}/usage$`));
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/api-keys$/);
   await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
   expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
 });

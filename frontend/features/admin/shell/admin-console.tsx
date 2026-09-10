@@ -362,7 +362,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
     setModelCategoryFilter(routeView === "notification-channels" ? notificationChannelDefaultType : "all");
     setActiveView(routeView);
     setActivePluginPageKey(routeView === "plugin-pages" ? pluginPageKeyFromLocation() : "");
-  }, [routeView]);
+  }, [pathname, routeView]);
 
   useEffect(() => {
     function onAuthExpired() {
