@@ -5,8 +5,9 @@ import { type AdminResource, type APIKey, type AppData, type FieldConfig, type P
 import { projectKeyDownloadFilename, projectKeyDownloadTemplates } from "../core/project-key-download-templates";
 import { apiKeyCanManage } from "../domain/api-key-management-authz";
 import { apiKeyOwnerSelectOptions, apiKeyOwnerUserID, costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMemberCanIssueLabel, projectMemberProjectSelectOptions, projectMemberRoleLabel, projectMemberRoleOptions, projectName, projectOwnerLabel, projectSelectOptions, projectTeamLabel, stringifyForm, stringifyValue, teamLabel, teamSelectOptions, truthyValue, userSelectOptions } from "../domain/entities";
-import { tx } from "../i18n/runtime";
-import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, updateAPIKeyStatus } from "./payloads";
+import { formatTranslationTemplate, tx } from "../i18n/runtime";
+import { openAPIKeyAccess } from "../shared/api-key-access";
+import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
 import { StatusPill } from "../shared/ui";
 
 export function projectConfig(): ResourceConfig<Project> {
@@ -217,6 +218,11 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
     canRemove: (item, currentUser, data) => apiKeyCanManage(data, item, currentUser),
     actions: [
       {
+        label: "使用",
+        title: "查看协议、地址和 Key 使用说明",
+        open: openAPIKeyAccess,
+      },
+      {
         label: "用量",
         title: "查看这个 Key 的用量详情",
         href: (item) => `/api-keys/${encodeURIComponent(item.id)}/usage`,
@@ -225,12 +231,17 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
         label: "轮换",
         title: "生成新 Key，并立即吊销旧 Key",
         visible: (item, currentUser, data) => apiKeyCanManage(data, item, currentUser),
+        confirmation: {
+          title: "确认轮换 API Key",
+          message: (item) => formatTranslationTemplate(tx("即将轮换「{name}」（{hint}）。旧 Key 将立即失效，使用它的应用需要更新配置。确认后将打开使用窗口，展示新 Key。"), { name: item.name, hint: `${item.key_prefix}…${item.key_suffix}` }),
+          confirmLabel: "确认轮换",
+        },
         run: async (ctx, item) => {
           const resp = await adminFetch(ctx, `/api/admin/api-keys/${item.id}/rotate`, {
             method: "POST",
             body: JSON.stringify({}),
           });
-          if (!resp.ok) throw new Error(`rotate api key ${resp.status}`);
+          if (!resp.ok) throw new Error(await readAdminError(resp, tx("轮换 API Key")));
           const payload = (await resp.json()) as { api_key: string };
           window.dispatchEvent(new CustomEvent("tokenhub-issued-key", { detail: payload.api_key }));
         },

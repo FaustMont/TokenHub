@@ -1,4 +1,5 @@
 import { Activity } from "lucide-react";
+import type { ResourceAction } from "./resource-action";
 
 export type Summary = {
   request_count: number;
@@ -1403,16 +1404,7 @@ export type ResourceConfig<T> = {
   toForm?: (item: T) => Record<string, string>;
 };
 
-export type ResourceAction<T> = {
-  label: string;
-  title?: string;
-  visible?: (item: T, currentUser: AdminUser | null, data: AppData) => boolean;
-  href?: (item: T) => string;
-  navigate?: (item: T) => ViewKey;
-  run?: (ctx: ApiContext, item: T, data: AppData) => Promise<void>;
-  modal?: (item: T, data: AppData) => ModalState<any>;
-  doneMessage?: (item: T) => string;
-};
+export type { ResourceAction } from "./resource-action";
 
 export type ToolbarAction = {
   label: string;

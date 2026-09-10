@@ -159,29 +159,39 @@ export function PageHeader({
   data,
   meta,
   user,
+  onSelect,
 }: {
   activeView: ViewKey;
   data: AppData;
   meta: { title: string; description: string; eyebrow?: string };
   user: AdminUser;
+  onSelect?: (view: ViewKey) => void;
 }) {
-  const path = navPathForView(user, activeView);
   const chips = pageHeaderChips(activeView, data, user);
-  const pathGroup = path.group || pageHeaderFallbackGroup(activeView, user);
-  const pathSegments = ["TokenHub", pathGroup, path.parent, path.label || meta.title].filter(Boolean);
+  const crumbs = pageHeaderCrumbs(user, activeView, meta);
   return (
     <header className="page-header page-context-header">
       <div className="page-context-main">
-        <div className="page-breadcrumb" aria-label={tx("当前位置")}>
-          {pathSegments.map((segment, index) => (
-            <Fragment key={`${segment}-${index}`}>
-              {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
-              <span className={index === pathSegments.length - 1 ? "current" : undefined}>
-                {tx(segment)}
-              </span>
-            </Fragment>
-          ))}
-        </div>
+        <nav className="page-breadcrumb" aria-label={tx("当前位置")}>
+          {crumbs.map((crumb, index) => {
+            const current = index === crumbs.length - 1;
+            const target = crumb.view;
+            return (
+              <Fragment key={`${crumb.label}-${index}`}>
+                {index > 0 ? <ChevronRight aria-hidden="true" className="page-breadcrumb-separator" size={13} /> : null}
+                {target && onSelect && !current ? (
+                  <button type="button" onClick={() => onSelect(target)}>
+                    {tx(crumb.label)}
+                  </button>
+                ) : (
+                  <span className={current ? "current" : undefined} aria-current={current ? "page" : undefined}>
+                    {tx(crumb.label)}
+                  </span>
+                )}
+              </Fragment>
+            );
+          })}
+        </nav>
       </div>
       <div className="page-context-side">
         <span className="scope-chip">{tx(roleScopeDescription(user))}</span>
@@ -246,6 +256,16 @@ export function navPathForView(user: AdminUser, view: ViewKey) {
     }
   }
   return { group: "", parent: "", label: standaloneViewMeta[view]?.title ?? view };
+}
+
+export function pageHeaderCrumbs(user: AdminUser, view: ViewKey, meta: { title: string }) {
+  const path = navPathForView(user, view);
+  const pathGroup = path.group || pageHeaderFallbackGroup(view, user);
+  const crumbs: { label: string; view?: ViewKey }[] = [{ label: "TokenHub", view: "overview" }];
+  if (pathGroup) crumbs.push({ label: pathGroup });
+  if (path.parent) crumbs.push({ label: path.parent });
+  crumbs.push({ label: path.label || meta.title });
+  return crumbs;
 }
 
 export function pageHeaderFallbackGroup(view: ViewKey, user: AdminUser) {

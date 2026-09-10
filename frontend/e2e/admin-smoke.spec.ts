@@ -4,6 +4,7 @@ import e2eDefaults from "./config.cjs";
 const adminIdentity = e2eDefaults.adminIdentity;
 const adminPassword = process.env.TOKENHUB_E2E_ADMIN_PASSWORD ?? e2eDefaults.adminPassword;
 const upstreamPort = Number(process.env.TOKENHUB_E2E_UPSTREAM_PORT ?? e2eDefaults.upstreamPort);
+const backendURL = `http://127.0.0.1:${process.env.TOKENHUB_E2E_BACKEND_PORT ?? e2eDefaults.backendPort}`;
 const upstreamKey = process.env.TOKENHUB_E2E_UPSTREAM_KEY ?? e2eDefaults.upstreamKey;
 
 async function login(page: Page) {
@@ -67,8 +68,9 @@ test("admin can issue an API Key and open its usage page", async ({ page }) => {
   await page.getByRole("button", { name: "下一步" }).click();
   await page.getByRole("button", { name: "生成 Key" }).click();
 
-  const issuedKeyDialog = page.getByRole("dialog", { name: "新 Key 已生成" });
+  const issuedKeyDialog = page.getByRole("dialog", { name: "使用 API Key" });
   await expect(issuedKeyDialog).toBeVisible();
+  await expect(issuedKeyDialog.getByLabel("接入地址（Base URL）")).toHaveValue(`${backendURL}/v1`);
   await expect(issuedKeyDialog.getByLabel("完整 Key")).toHaveValue(/^sk_/);
   const closeButton = issuedKeyDialog.getByRole("button", { name: "我已保存，关闭" });
   await expect(closeButton).toBeEnabled({ timeout: 5_000 });
@@ -80,6 +82,18 @@ test("admin can issue an API Key and open its usage page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "E2E Regression Key" })).toBeVisible();
   await expect(page.getByText("当前 Key 有效额度", { exact: true })).toBeVisible();
   await expect(page.getByText("所选条件下暂无请求", { exact: true })).toBeVisible();
+
+  await sidebar(page).getByRole("button", { name: "Key 管理", exact: true }).click();
+  await keyRow.getByRole("button", { name: "轮换", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toBeVisible();
+  // Exercise session cleanup independently of the dialog's focus trap.
+  await page.getByTitle("退出登录").press("Enter");
+  await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
+  await page.getByLabel("账号 / 邮箱").fill(adminIdentity);
+  await page.getByLabel("密码", { exact: true }).fill(adminPassword);
+  await page.getByRole("button", { name: "登录控制台" }).click();
+  await expect(page.locator(".app-shell")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
 });
 
 test("admin can inspect plugin details and files without fake settings", async ({ page }) => {
