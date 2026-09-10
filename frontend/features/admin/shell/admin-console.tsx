@@ -956,7 +956,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
 
         <div className={activeView === "playground" ? "content-panel playground-content-panel" : "content-panel"}>
           {activeView === "playground" || activeView === "overview" || apiKeyUsageID ? null : (
-            <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} />
+            <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
           )}
 
           <StatusStack

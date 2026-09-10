@@ -43,6 +43,25 @@ test("billing price preview and shadow publication are separate actions", async 
   expect(api.calls.filter(call => call.method === "POST" && call.path.endsWith("/rate-cards"))).toHaveLength(1);
 });
 
+test("billing exact pricing fields wrap instead of crowding one row", async ({ page }, testInfo) => {
+  await openBilling(page);
+  const trail = page.getByRole("navigation", { name: "当前位置" });
+  await expect(trail.getByRole("button", { name: "TokenHub" })).toBeVisible();
+  await expect(trail).toContainText("成本治理");
+  await expect(trail.locator("[aria-current='page']")).toHaveText("成本账单");
+  const form = section(page, "精确计价与影子核对");
+  await form.scrollIntoViewIfNeeded();
+  const input = form.getByLabel("普通输入", { exact: true });
+  const box = await input.boundingBox();
+  expect(box?.width ?? 0, "rate inputs must stay wide enough to type").toBeGreaterThan(140);
+  const identityHeights = await form.locator(".form-grid").first().locator(":scope > label").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+  expect(identityHeights.length).toBeGreaterThan(0);
+  expect(identityHeights.every((height) => height >= 48), "identity fields stack the label above the control").toBe(true);
+  await capture(page, testInfo, form, "price-form-layout", "精确计价表单：字段分列而不是挤成一行");
+  await page.locator(".page-breadcrumb").scrollIntoViewIfNeeded();
+  await capture(page, testInfo, page.locator(".content-panel"), "price-form-page", "成本账单：面包屑与计价表单", "viewport");
+});
+
 test("billing invalid token counts fail before a request", async ({ page, api }, testInfo) => {
   await openBilling(page);
   const form = section(page, "精确计价与影子核对");
