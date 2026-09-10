@@ -75,7 +75,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
           <label>{tx("开始时间")}<input type="time" value={period.start_time} onChange={(event) => updatePeriod(index, { start_time: event.target.value })} /></label>
           <label>{tx("结束时间")}<input type="time" value={period.end_time} onChange={(event) => updatePeriod(index, { end_time: event.target.value })} /></label>
         </div>
-        <div className="rate-card-weekdays">{["周日", "周一", "周二", "周三", "周四", "周五", "周六"].map((day, number) => <label key={day}><input type="checkbox" checked={period.weekdays.includes(number)} onChange={(event) => updatePeriod(index, { weekdays: event.target.checked ? [...period.weekdays, number] : period.weekdays.filter((value) => value !== number) })} />{tx(day)}</label>)}</div>
+        <div className="rate-card-weekdays">{["周日", "周一", "周二", "周三", "周四", "周五", "周六"].map((day, number) => <label key={day}><input type="checkbox" checked={period.weekdays.includes(number)} onChange={(event) => updatePeriod(index, { weekdays: event.target.checked ? [...period.weekdays, number] : period.weekdays.filter((value) => value !== number) })} /><span>{tx(day)}</span></label>)}</div>
         <RateFields rates={period.rates} update={(key, value) => updatePeriod(index, { rates: { ...period.rates, [key]: value } })} />
         <button className="secondary-button" type="button" onClick={() => setCard({ ...card, periods: card.periods.filter((_, i) => i !== index) })}>{tx("删除时段")}</button>
       </fieldset>)}
