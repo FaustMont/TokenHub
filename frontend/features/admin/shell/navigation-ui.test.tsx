@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { emptyData } from "../domain/catalog";
 import { adminConsoleSIMSelectionPreference, adminConsoleShellState, adminConsoleSIMSelectionStorageKey, readAdminConsoleSIMSelectionPreference, saveAdminConsoleSIMSelectionPreference } from "./admin-console";
-import { pageRecordCount, Sidebar } from "./navigation-ui";
+import { PageHeader, pageHeaderCrumbs, pageRecordCount, Sidebar } from "./navigation-ui";
 
 describe("Sidebar", () => {
   it("keeps plugin nav section contributions out of the sidebar", () => {
@@ -237,6 +237,32 @@ describe("Sidebar", () => {
     expect(templateStyles()).toContain('.app-shell[data-sim-plugin-id="tokenhub.sim.knowledge-sidebar"] .nav-title');
     expect(templateStyles()).toContain('.app-shell[data-sim-plugin-id="tokenhub.sim.knowledge-sidebar"] .nav-item.active');
     expect(responsiveStyles()).toContain('.app-shell[data-sim-plugin-id="tokenhub.sim.knowledge-sidebar"].sidebar-collapsed');
+  });
+});
+
+describe("PageHeader breadcrumbs", () => {
+  const admin = { id: "usr_admin", username: "admin", name: "Admin", email: "admin@example.test", role: "admin", status: "active" } as const;
+
+  it("marks the billing page as the current location and returns home from TokenHub", async () => {
+    const onSelect = vi.fn();
+    render(
+      <PageHeader
+        activeView="billing"
+        data={emptyData()}
+        meta={{ title: "成本账单", description: "" }}
+        onSelect={onSelect}
+        user={admin}
+      />,
+    );
+
+    expect(pageHeaderCrumbs(admin, "billing", { title: "成本账单" })).toEqual([
+      { label: "TokenHub", view: "overview" },
+      { label: "成本治理" },
+      { label: "成本账单" },
+    ]);
+    expect(screen.getByText("成本账单")).toHaveAttribute("aria-current", "page");
+    await screen.getByRole("button", { name: "TokenHub" }).click();
+    expect(onSelect).toHaveBeenCalledWith("overview");
   });
 });
 

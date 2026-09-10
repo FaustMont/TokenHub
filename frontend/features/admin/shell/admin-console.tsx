@@ -28,7 +28,8 @@ import { projectMemberConfig, projectMemberInitialValues } from "../resources/pr
 import { resourceConfigFor } from "../resources/settings-config";
 import { usePagination } from "../shared/pagination";
 import { currentOAuthReturnURL, LoginView, ResetPasswordView } from "../shared/auth";
-import { ConfirmDialog, IssuedKeyModal, providerTypeOptionsFromData } from "../shared/ui";
+import { ConfirmDialog, providerTypeOptionsFromData } from "../shared/ui";
+import { APIKeyAccessDialogs } from "../shared/api-key-access";
 import { PageHeader, Sidebar, StatusStack, TopNav } from "./navigation-ui";
 import { ResponsiveVersionStatus } from "./version-status";
 import { AuditView } from "../views/audit";
@@ -92,6 +93,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState<any> | null>(null);
   const [confirmRestoreModels, setConfirmRestoreModels] = useState(false);
   const [issuedKey, setIssuedKey] = useState("");
+  const [pendingAction, setPendingAction] = useState<{ action: ResourceAction<any>; item: any } | null>(null);
   const loadRef = useRef<(view?: ViewKey) => Promise<void>>(async () => undefined);
   const [reportHistory, setReportHistory] = useState<ReportExportHistoryItem[]>([]);
   const [resetToken, setResetToken] = useState("");
@@ -146,6 +148,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
 
   const selectView = useCallback((view: ViewKey, options: { replace?: boolean; routeModelQuery?: string; pluginPageKey?: string } = {}) => {
     if (view !== activeView) {
+      setPendingAction(null);
       setNotice("");
       setError("");
       setIssuedKey("");
@@ -352,12 +355,14 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
   useEffect(() => {
     if (isOAuthAuthorizationResponse()) return;
     if (readOAuthLoginResult()) return;
+    setPendingAction(null);
+    setIssuedKey("");
     setNotice("");
     setError("");
     setModelCategoryFilter(routeView === "notification-channels" ? notificationChannelDefaultType : "all");
     setActiveView(routeView);
     setActivePluginPageKey(routeView === "plugin-pages" ? pluginPageKeyFromLocation() : "");
-  }, [routeView]);
+  }, [pathname, routeView]);
 
   useEffect(() => {
     function onAuthExpired() {
@@ -374,6 +379,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
       setUserImportOpen(false);
       setConfirmDelete(null);
       setConfirmRestoreModels(false);
+      setPendingAction(null);
       setIssuedKey("");
       setNotice("");
       setError("");
@@ -631,6 +637,8 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
   }
 
   async function logout() {
+    setPendingAction(null);
+    setIssuedKey("");
     if (adminToken) {
       await adminFetch(api, "/api/admin/auth/logout", { method: "POST" }).catch(() => undefined);
     }
@@ -956,7 +964,7 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
 
         <div className={activeView === "playground" ? "content-panel playground-content-panel" : "content-panel"}>
           {activeView === "playground" || activeView === "overview" || apiKeyUsageID ? null : (
-            <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} />
+            <PageHeader activeView={activeView} data={data} meta={activeMeta} user={currentUser} onSelect={selectView} />
           )}
 
           <StatusStack
@@ -1309,17 +1317,25 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
         />
       ) : null}
 
-      {issuedKey ? (
-        <IssuedKeyModal
-          value={issuedKey}
-          onClose={() => setIssuedKey("")}
+      {pendingAction?.action.confirmation ? (
+        <ConfirmDialog
+          title={pendingAction.action.confirmation.title}
+          message={pendingAction.action.confirmation.message(pendingAction.item)}
+          confirmLabel={pendingAction.action.confirmation.confirmLabel}
+          loading={loading}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() => { const pending = pendingAction; setPendingAction(null); void runResourceAction(pending.action, pending.item, data, true); }}
         />
       ) : null}
+      <APIKeyAccessDialogs key={currentUser.id} baseURL={api.baseURL} issuedKey={issuedKey} onCloseIssuedKey={() => setIssuedKey("")} />
 
     </main>
   );
 
-  async function runResourceAction<T>(action: ResourceAction<T>, item: T, appData: AppData) {
+  async function runResourceAction<T>(action: ResourceAction<T>, item: T, appData: AppData, confirmed = false) {
+    if (loading) return;
+    if (action.open) { action.open(item); return; }
+    if (action.confirmation && !confirmed) { setPendingAction({ action, item }); return; }
     if (action.navigate) {
       selectView(action.navigate(item));
       return;

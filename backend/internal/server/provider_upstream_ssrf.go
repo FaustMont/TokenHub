@@ -13,10 +13,10 @@ import (
 )
 
 // validateProviderUpstreamBaseURL validates administrator-configured upstreams.
-// Auto mode permits local literals and defers HTTP hostname classification to
-// DNS preflight before sending. Strict mode keeps literal-only local
-// exceptions. Public plaintext, embedded credentials and special-use addresses
-// remain blocked. Redirects must keep the original scheme and authority.
+// Strict and auto both allow RFC1918/ULA literals when the CIDR list is empty.
+// Auto also defers HTTP hostname classification to DNS preflight before sending.
+// Public plaintext, embedded credentials and special-use addresses remain
+// blocked. Redirects must keep the original scheme and authority.
 func validateProviderUpstreamBaseURL(endpoint *url.URL, allowedPrivate []*net.IPNet, allowLocalhost bool) error {
 	if err := validateProviderUpstreamURLSyntax(endpoint); err != nil {
 		return err
@@ -93,12 +93,14 @@ func providerUpstreamLoopbackAllowed() bool {
 	return getenvBool("TOKENHUB_PROVIDER_UPSTREAM_ALLOW_LOOPBACK", false)
 }
 
-// An empty allowlist in auto mode permits ordinary private ranges. A nonempty
+// An empty allowlist permits ordinary RFC1918/ULA private ranges. A nonempty
 // list remains restrictive, including when every entry is invalid. Special-use
-// ranges cannot be permitted by a broad CIDR in either mode.
+// ranges cannot be permitted by a broad CIDR in either mode. Hostname results
+// still require auto mode; this default only covers administrator-entered
+// literals and the matching dial guard.
 func allowedProviderUpstreamCIDRs() []*net.IPNet {
 	entries := getenvList("TOKENHUB_PROVIDER_UPSTREAM_ALLOWED_CIDRS")
-	if len(entries) == 0 && providerUpstreamAutoAccess() {
+	if len(entries) == 0 {
 		entries = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7"}
 	}
 	blocks := make([]*net.IPNet, 0, len(entries))
