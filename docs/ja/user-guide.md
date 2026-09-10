@@ -27,7 +27,7 @@ Language: [English](../user-guide.md) | [简体中文](../zh-CN/user-guide.md) |
 
 ## 接続情報のコピーと Key のローテーション
 
-**Key Management** で Key の **使用** を選ぶと、プロトコル、Base URL、認証ヘッダー、展開可能な cURL 例が表示されます。OpenAI Chat Completions と Responses は `/v1`、Anthropic クライアントの Base URL はゲートウェイのルート、リクエスト先は `/v1/messages` です。Gemini は `/v1beta` と `x-goog-api-key` を使用します。コンソールのポートではなく、設定されたゲートウェイのアドレスを使用してください。例を実行する前に、Project と Key で許可されたモデル ID を入力します。
+**Key Management** で Key の **使用** を選ぶと、プロトコル、Base URL、認証ヘッダー、展開可能な cURL 例が表示されます。OpenAI Chat Completions と Responses は `/v1`、Anthropic クライアントの Base URL はゲートウェイのルート、リクエスト先は `/v1/messages` です。Gemini クライアントの Base URL はゲートウェイのルート（`/v1beta` は付けない）、リクエスト先は `/v1beta`、認証ヘッダーは `x-goog-api-key` です。コンソールのポートではなく、設定されたゲートウェイのアドレスを使用してください。例を実行する前に、Project と Key で許可されたモデル ID を入力します。
 
 Key を作成すると使用ウィンドウが自動で開き、完全な Key をコピーできます。完全な Key は一度だけ表示されるため、閉じる前に保存してください。後から **使用** を開くとプレースホルダーが表示されます。保存済みの Key で置き換えてください。コンソールは完全な Key をブラウザーのストレージに保存しません。
 

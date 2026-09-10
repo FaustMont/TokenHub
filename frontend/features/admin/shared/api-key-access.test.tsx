@@ -27,7 +27,7 @@ describe("API key setup", () => {
     ["chat", "/v1", "/v1/chat/completions", "Authorization: Bearer"],
     ["responses", "/v1", "/v1/responses", "Authorization: Bearer"],
     ["anthropic", "", "/v1/messages", "x-api-key:"],
-    ["gemini", "/v1beta", "/v1beta/models/test-model:generateContent", "x-goog-api-key:"],
+    ["gemini", "", "/v1beta/models/test-model:generateContent", "x-goog-api-key:"],
   ] as const)("builds %s setup with protocol-specific paths and authentication", (protocol, suffix, endpoint, header) => {
     const config = apiKeyAccessConfig("https://gateway.example.test/prefix/v1/", protocol, secret, "test-model");
     expect(config.base).toBe(`https://gateway.example.test/prefix${suffix}`);
@@ -44,6 +44,7 @@ describe("API key setup", () => {
     const config = apiKeyAccessConfig("https://gateway.example.test", "chat", "key'$(echo unsafe)", "model'$(echo unsafe)");
     expect(config.example).toContain("key'\\''$(echo unsafe)");
     expect(config.example).toContain("model'\\''$(echo unsafe)");
+    expect(apiKeyAccessConfig("https://gateway.example.test/v1beta/", "gemini", "", "folder/model").base).toBe("https://gateway.example.test");
     expect(apiKeyAccessConfig("https://gateway.example.test/v1beta/", "gemini", "", "folder/model").endpoint).toBe("https://gateway.example.test/v1beta/models/folder%2Fmodel:generateContent");
   });
 

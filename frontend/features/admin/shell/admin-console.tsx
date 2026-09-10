@@ -355,6 +355,8 @@ export function AdminConsole({ defaultBaseURL }: { defaultBaseURL: string }) {
   useEffect(() => {
     if (isOAuthAuthorizationResponse()) return;
     if (readOAuthLoginResult()) return;
+    setPendingAction(null);
+    setIssuedKey("");
     setNotice("");
     setError("");
     setModelCategoryFilter(routeView === "notification-channels" ? notificationChannelDefaultType : "all");

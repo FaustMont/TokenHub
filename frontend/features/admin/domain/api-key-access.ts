@@ -16,7 +16,7 @@ export function apiKeyAccessConfig(baseURL: string, protocol: AccessProtocol, se
   const root = baseURL.trim().replace(/\/+$/, "").replace(/\/(v1|v1beta)$/, "");
   const modelID = model.trim() || modelPlaceholder;
   const key = secret || apiKeyPlaceholder;
-  const base = protocol === "anthropic" ? root : `${root}/${protocol === "gemini" ? "v1beta" : "v1"}`;
+  const base = protocol === "anthropic" || protocol === "gemini" ? root : `${root}/v1`;
   const path = protocol === "chat" ? "/v1/chat/completions" : protocol === "responses" ? "/v1/responses"
     : protocol === "anthropic" ? "/v1/messages" : `/v1beta/models/${encodeURIComponent(modelID)}:generateContent`;
   const authHeader = protocol === "anthropic" ? "x-api-key" : protocol === "gemini" ? "x-goog-api-key" : "Authorization";

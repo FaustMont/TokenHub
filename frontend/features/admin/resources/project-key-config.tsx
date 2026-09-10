@@ -7,7 +7,7 @@ import { apiKeyCanManage } from "../domain/api-key-management-authz";
 import { apiKeyOwnerSelectOptions, apiKeyOwnerUserID, costCenterLabel, costCenterSelectOptions, ownerUserLabel, projectMemberCanIssueLabel, projectMemberProjectSelectOptions, projectMemberRoleLabel, projectMemberRoleOptions, projectName, projectOwnerLabel, projectSelectOptions, projectTeamLabel, stringifyForm, stringifyValue, teamLabel, teamSelectOptions, truthyValue, userSelectOptions } from "../domain/entities";
 import { formatTranslationTemplate, tx } from "../i18n/runtime";
 import { openAPIKeyAccess } from "../shared/api-key-access";
-import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, updateAPIKeyStatus } from "./payloads";
+import { adminDelete, adminFetch, adminMutate, keyPatchPayload, projectQuotaSummary, readAdminError, updateAPIKeyStatus } from "./payloads";
 import { StatusPill } from "../shared/ui";
 
 export function projectConfig(): ResourceConfig<Project> {
@@ -241,7 +241,7 @@ export function apiKeyConfig(): ResourceConfig<APIKey> {
             method: "POST",
             body: JSON.stringify({}),
           });
-          if (!resp.ok) throw new Error(`rotate api key ${resp.status}`);
+          if (!resp.ok) throw new Error(await readAdminError(resp, tx("轮换 API Key")));
           const payload = (await resp.json()) as { api_key: string };
           window.dispatchEvent(new CustomEvent("tokenhub-issued-key", { detail: payload.api_key }));
         },

@@ -51,7 +51,7 @@ test("api-key-access existing key shows protocol setup without rotating", async 
   await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid");
   await expect(dialog).toContainText("x-api-key");
   await dialog.getByLabel("接入协议").selectOption("gemini");
-  await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid/v1beta");
+  await expect(dialog.getByLabel("接入地址（Base URL）")).toHaveValue("http://tokenhub-ui.invalid");
   await dialog.locator("summary").click();
   await dialog.getByLabel("模型 ID", { exact: true }).fill("ui-review-model");
   await expect(dialog.getByLabel("请求地址", { exact: true })).toHaveValue("http://tokenhub-ui.invalid/v1beta/models/ui-review-model:generateContent");
@@ -122,9 +122,26 @@ test("api-key-access failed rotation keeps the existing key and shows an error",
   await row.getByRole("button", { name: "轮换", exact: true }).click();
   await page.getByRole("button", { name: "确认轮换", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "使用 API Key" })).toHaveCount(0);
-  await expect(page.getByText("rotate api key 503", { exact: true })).toBeVisible();
+  await expect(page.getByText("Synthetic rotation unavailable", { exact: true })).toBeVisible();
   expect(keys[0].status).toBe("active");
   await capture(page, testInfo, page.locator(".app-shell"), "key-rotation-failure", "轮换失败：显示错误，不展示新 Key", "viewport");
+});
+
+test("api-key-access browser history navigation dismisses rotation confirmation", async ({ page, api }) => {
+  setup(api);
+  api.respond("GET", "/api/admin/resources/cost-centers", { data: [] });
+  await page.goto("/cost-centers");
+  await expect(page).toHaveURL(/\/cost-centers$/);
+  await page.getByRole("complementary").getByRole("button", { name: "Key 管理", exact: true }).click();
+  await expect(page).toHaveURL(/\/api-keys$/);
+  const row = page.getByRole("row").filter({ hasText: original.name });
+  await row.getByRole("button", { name: "轮换", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "确认轮换 API Key" });
+  await expect(confirmation).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/cost-centers$/);
+  await expect(page.getByRole("dialog", { name: "确认轮换 API Key" })).toHaveCount(0);
+  expect(api.calls.filter(call => call.method === "POST")).toHaveLength(0);
 });
 
 test("api-key-access mobile setup keeps the close action visible", async ({ page, api }, testInfo) => {

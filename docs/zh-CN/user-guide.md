@@ -27,7 +27,7 @@ Language: [English](../user-guide.md) | 简体中文 | [日本語](../ja/user-gu
 
 ## 复制接入信息与轮换 Key
 
-在 **Key 管理** 中点击某个 Key 的「使用」，查看协议、Base URL、认证请求头，并展开 cURL 示例。OpenAI Chat Completions 和 Responses 使用 `/v1`；Anthropic 客户端 Base URL 使用网关根地址，请求发送到 `/v1/messages`；Gemini 使用 `/v1beta` 和 `x-goog-api-key`。应使用配置中的网关地址，而非控制台端口。运行示例前，请填写项目和 Key 权限允许的模型 ID。
+在 **Key 管理** 中点击某个 Key 的「使用」，查看协议、Base URL、认证请求头，并展开 cURL 示例。OpenAI Chat Completions 和 Responses 使用 `/v1`；Anthropic 客户端 Base URL 使用网关根地址，请求发送到 `/v1/messages`；Gemini 客户端 Base URL 使用网关根地址（不要追加 `/v1beta`），请求路径使用 `/v1beta`，认证头为 `x-goog-api-key`。应使用配置中的网关地址，而非控制台端口。运行示例前，请填写项目和 Key 权限允许的模型 ID。
 
 创建 Key 成功后会自动打开这个使用窗口，并带入完整 Key，方便直接复制。关闭前请保存：完整 Key 只展示一次。日后再次点击「使用」会显示占位符，请替换为此前保存的 Key。控制台不会将完整 Key 写入浏览器存储。
 

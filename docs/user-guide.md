@@ -27,7 +27,7 @@ The console **API Documentation** page remains the guided onboarding view. For t
 
 ## Copy Connection Details and Rotate a Key
 
-In **Key Management**, select **Use** on a key to see the protocol, Base URL, authentication header, and an expandable cURL example. OpenAI Chat Completions and Responses use `/v1`; Anthropic uses the gateway root as its client Base URL and `/v1/messages` for requests; Gemini uses `/v1beta` and `x-goog-api-key`. Use the configured gateway address, not the console's port. Enter a model ID permitted by the project and key before running an example.
+In **Key Management**, select **Use** on a key to see the protocol, Base URL, authentication header, and an expandable cURL example. OpenAI Chat Completions and Responses use `/v1`; Anthropic uses the gateway root as its client Base URL and `/v1/messages` for requests; Gemini uses the gateway root as its client Base URL, `/v1beta` request paths, and `x-goog-api-key`. Do not append `/v1beta` to the Gemini client Base URL. Use the configured gateway address, not the console's port. Enter a model ID permitted by the project and key before running an example.
 
 Creating a key opens this setup window automatically with the complete key, ready to copy. Save it before closing: the full key is shown only once. Reopening **Use** shows a placeholder; replace it with your saved key. The console does not store the full key in browser storage.
 
