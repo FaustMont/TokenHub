@@ -181,13 +181,159 @@ export function formatLocaleNumber(value: number) {
   return new Intl.NumberFormat(languageLocale()).format(value);
 }
 
+const ruPluralRules = new Intl.PluralRules("ru");
+
+export interface RussianPluralUnit {
+  one: string;
+  few: string;
+  many: string;
+}
+
+export function formatRussianPlural(count: number, forms: RussianPluralUnit): string {
+  const rule = ruPluralRules.select(count);
+  if (rule === "one") return forms.one;
+  if (rule === "few") return forms.few;
+  return forms.many;
+}
+
+const RUSSIAN_UNIT_MAP: Record<string, RussianPluralUnit> = {
+  "人": { one: "участник", few: "участника", many: "участников" },
+  "member": { one: "участник", few: "участника", many: "участников" },
+  "members": { one: "участник", few: "участника", many: "участников" },
+  "个成员": { one: "участник", few: "участника", many: "участников" },
+  "участник": { one: "участник", few: "участника", many: "участников" },
+  "человек": { one: "человек", few: "человека", many: "человек" },
+  "person": { one: "человек", few: "человека", many: "человек" },
+
+  "个模型": { one: "модель", few: "модели", many: "моделей" },
+  "model": { one: "модель", few: "модели", many: "моделей" },
+  "models": { one: "модель", few: "модели", many: "моделей" },
+  "модель": { one: "модель", few: "модели", many: "моделей" },
+  "个可引入模型": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "importable model": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "importable models": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "个待引入模型": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "model to import": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "models to import": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "个可选上游模型": { one: "доступная модель", few: "доступные модели", many: "доступных моделей" },
+  "available upstream model": { one: "доступная модель", few: "доступные модели", many: "доступных моделей" },
+  "available upstream models": { one: "доступная модель", few: "доступные модели", many: "доступных моделей" },
+  "个已引入模型": { one: "импортированная модель", few: "импортированные модели", many: "импортированных моделей" },
+  "imported model": { one: "импортированная модель", few: "импортированные модели", many: "импортированных моделей" },
+  "imported models": { one: "импортированная модель", few: "импортированные модели", many: "импортированных моделей" },
+  "个上游模型": { one: "вышестоящая модель", few: "вышестоящие модели", many: "вышестоящих моделей" },
+  "upstream model": { one: "вышестоящая модель", few: "вышестоящие модели", many: "вышестоящих моделей" },
+  "upstream models": { one: "вышестоящая модель", few: "вышестоящие модели", many: "вышестоящих моделей" },
+
+  "次": { one: "попытка", few: "попытки", many: "попыток" },
+  "attempt": { one: "попытка", few: "попытки", many: "попыток" },
+  "attempts": { one: "попытка", few: "попытки", many: "попыток" },
+  "попытка": { one: "попытка", few: "попытки", many: "попыток" },
+  "次请求": { one: "запрос", few: "запроса", many: "запросов" },
+  "request": { one: "запрос", few: "запроса", many: "запросов" },
+  "requests": { one: "запрос", few: "запроса", many: "запросов" },
+  "запрос": { one: "запрос", few: "запроса", many: "запросов" },
+  "次测试": { one: "тест", few: "теста", many: "тестов" },
+  "test": { one: "тест", few: "теста", many: "тестов" },
+  "tests": { one: "тест", few: "теста", many: "тестов" },
+  "тест": { one: "тест", few: "теста", many: "тестов" },
+  "次失败": { one: "сбой", few: "сбоя", many: "сбоев" },
+  "failed": { one: "сбой", few: "сбоя", many: "сбоев" },
+  "сбой": { one: "сбой", few: "сбоя", many: "сбоев" },
+  "次无延迟记录": { one: "запрос без задержки", few: "запроса без задержки", many: "запросов без задержки" },
+  "zero-latency": { one: "запрос без задержки", few: "запроса без задержки", many: "запросов без задержки" },
+
+  "条用量记录": { one: "запись использования", few: "записи использования", many: "записей использования" },
+  "usage record": { one: "запись использования", few: "записи использования", many: "записей использования" },
+  "usage records": { one: "запись использования", few: "записи использования", many: "записей использования" },
+  "条": { one: "запись", few: "записи", many: "записей" },
+  "条记录": { one: "запись", few: "записи", many: "записей" },
+  "record": { one: "запись", few: "записи", many: "записей" },
+  "records": { one: "запись", few: "записи", many: "записей" },
+  "запись": { one: "запись", few: "записи", many: "записей" },
+
+  "个错误": { one: "ошибка", few: "ошибки", many: "ошибок" },
+  "error": { one: "ошибка", few: "ошибки", many: "ошибок" },
+  "errors": { one: "ошибка", few: "ошибки", many: "ошибок" },
+  "ошибка": { one: "ошибка", few: "ошибки", many: "ошибок" },
+
+  "条路由": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "route": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "routes": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "маршрут": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "条启用路由": { one: "активный маршрут", few: "активных маршрута", many: "активных маршрутов" },
+  "active route": { one: "активный маршрут", few: "активных маршрута", many: "активных маршрутов" },
+  "active routes": { one: "активный маршрут", few: "активных маршрута", many: "активных маршрутов" },
+  "条策略": { one: "политика", few: "политики", many: "политик" },
+  "policy": { one: "политика", few: "политики", many: "политик" },
+  "policies": { one: "политика", few: "политики", many: "политик" },
+  "политика": { one: "политика", few: "политики", many: "политик" },
+
+  "项": { one: "элемент", few: "элемента", many: "элементов" },
+  "item": { one: "элемент", few: "элемента", many: "элементов" },
+  "items": { one: "элемент", few: "элемента", many: "элементов" },
+  "элемент": { one: "элемент", few: "элемента", many: "элементов" },
+  "个选项": { one: "вариант", few: "варианта", many: "вариантов" },
+  "option": { one: "вариант", few: "варианта", many: "вариантов" },
+  "options": { one: "вариант", few: "варианта", many: "вариантов" },
+  "вариант": { one: "вариант", few: "варианта", many: "вариантов" },
+  "个项目": { one: "проект", few: "проекта", many: "проектов" },
+  "project": { one: "проект", few: "проекта", many: "проектов" },
+  "projects": { one: "проект", few: "проекта", many: "проектов" },
+  "проект": { one: "проект", few: "проекта", many: "проектов" },
+  "个团队": { one: "команда", few: "команды", many: "команд" },
+  "team": { one: "команда", few: "команды", many: "команд" },
+  "teams": { one: "команда", few: "команды", many: "команд" },
+  "команда": { one: "команда", few: "команды", many: "команд" },
+  "类": { one: "категория", few: "категории", many: "категорий" },
+  "category": { one: "категория", few: "категории", many: "категорий" },
+  "categories": { one: "категория", few: "категории", many: "категорий" },
+  "категория": { one: "категория", few: "категории", many: "категорий" },
+  "个渠道": { one: "провайдер", few: "провайдера", many: "провайдеров" },
+  "provider": { one: "провайдер", few: "провайдера", many: "провайдеров" },
+  "providers": { one: "провайдер", few: "провайдера", many: "провайдеров" },
+  "провайдер": { one: "провайдер", few: "провайдера", many: "провайдеров" },
+
+  "个 Key": { one: "ключ", few: "ключа", many: "ключей" },
+  "key": { one: "ключ", few: "ключа", many: "ключей" },
+  "keys": { one: "ключ", few: "ключа", many: "ключей" },
+  "ключ": { one: "ключ", few: "ключа", many: "ключей" },
+
+  "个用户": { one: "пользователь", few: "пользователя", many: "пользователей" },
+  "user": { one: "пользователь", few: "пользователя", many: "пользователей" },
+  "users": { one: "пользователь", few: "пользователя", many: "пользователей" },
+  "пользователь": { one: "пользователь", few: "пользователя", many: "пользователей" },
+
+  "条启用线路": { one: "активный маршрут", few: "активных маршрута", many: "активных маршрутов" },
+};
+
+function resolveRussianUnit(count: number, zhUnit: string, enUnit?: string): string | null {
+  const forms = RUSSIAN_UNIT_MAP[zhUnit] ?? (enUnit ? RUSSIAN_UNIT_MAP[enUnit] : undefined);
+  if (forms) {
+    return formatRussianPlural(count, forms);
+  }
+  const upstreamMatch = zhUnit.match(/^个?(.+)上游模型$/);
+  if (upstreamMatch) {
+    const category = tx(upstreamMatch[1]);
+    const forms: RussianPluralUnit = {
+      one: `${category} вышестоящая модель`,
+      few: `${category} вышестоящие модели`,
+      many: `${category} вышестоящих моделей`,
+    };
+    return formatRussianPlural(count, forms);
+  }
+  return null;
+}
+
 export function countWithUnit(count: number, zhUnit: string, enUnit: string, jaUnit: string, enPluralUnit = `${enUnit}s`) {
   const formatted = formatLocaleNumber(count);
   if (activeLanguage === "en") return `${formatted} ${count === 1 ? enUnit : enPluralUnit}`;
   if (activeLanguage === "ja") return `${formatted} ${jaUnit}`;
   if (activeLanguage === "ru") {
-    const ruUnit = tx(zhUnit);
-    return `${formatted} ${ruUnit !== zhUnit ? ruUnit : (count === 1 ? enUnit : enPluralUnit)}`;
+    const ruUnit = resolveRussianUnit(count, zhUnit, enUnit);
+    if (ruUnit) return `${formatted} ${ruUnit}`;
+    const translated = tx(zhUnit);
+    return `${formatted} ${translated !== zhUnit ? translated : (count === 1 ? enUnit : enPluralUnit)}`;
   }
   return `${formatted} ${zhUnit}`;
 }
@@ -197,8 +343,10 @@ export function countRatioWithUnit(current: number, total: number, zhUnit: strin
   if (activeLanguage === "en") return `${ratio} ${current === 1 ? enUnit : enPluralUnit}`;
   if (activeLanguage === "ja") return `${ratio} ${jaUnit}`;
   if (activeLanguage === "ru") {
-    const ruUnit = tx(zhUnit);
-    return `${ratio} ${ruUnit !== zhUnit ? ruUnit : (current === 1 ? enUnit : enPluralUnit)}`;
+    const ruUnit = resolveRussianUnit(current, zhUnit, enUnit);
+    if (ruUnit) return `${ratio} ${ruUnit}`;
+    const translated = tx(zhUnit);
+    return `${ratio} ${translated !== zhUnit ? translated : (current === 1 ? enUnit : enPluralUnit)}`;
   }
   return `${ratio} ${zhUnit}`;
 }
@@ -275,7 +423,7 @@ export function providerSaveMessage(updated: boolean, accountResourceCreated: bo
     return [
       `Provider ${updated ? "обновлен" : "создан"}`,
       accountResourceCreated ? "ресурс аккаунта создан" : "",
-      modelCount ? `импортировано: ${imported}` : "",
+      modelCount ? `импортировано: ${modelCount}` : "",
     ].filter(Boolean).join(", ");
   }
   return [
@@ -286,6 +434,10 @@ export function providerSaveMessage(updated: boolean, accountResourceCreated: bo
 }
 
 export function countWithLabel(count: number, label: string) {
+  if (activeLanguage === "ru") {
+    const ruUnit = resolveRussianUnit(count, label);
+    if (ruUnit) return `${formatLocaleNumber(count)} ${ruUnit}`;
+  }
   if (activeLanguage !== "zh-CN") return `${formatLocaleNumber(count)} ${tx(label)}`;
   return `${formatLocaleNumber(count)} ${label}`;
 }
@@ -355,9 +507,11 @@ export function routeAttemptCountText(count: number) {
   if (count > 1) {
     if (activeLanguage === "en") return `${formatLocaleNumber(count)} attempts, with fallback`;
     if (activeLanguage === "ja") return `${formatLocaleNumber(count)} 回、fallback 含む`;
-    if (activeLanguage === "ru") return `${formatLocaleNumber(count)} попыток, с fallback`;
+    if (activeLanguage === "ru") {
+      const attemptWord = formatRussianPlural(count, RUSSIAN_UNIT_MAP["次"]);
+      return `${formatLocaleNumber(count)} ${attemptWord}, с fallback`;
+    }
     return `${formatLocaleNumber(count)} 次，含 fallback`;
   }
-  if (activeLanguage === "ru") return `${formatLocaleNumber(count)} попытка`;
   return countWithUnit(count, "次", "attempt", "回");
 }

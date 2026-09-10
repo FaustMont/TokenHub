@@ -24,14 +24,21 @@ const TYPE_ANNOTATIONS = [
   " as const",
 ];
 
+export function stripTypeAnnotations(source) {
+  let javascript = source;
+  for (const annotation of TYPE_ANNOTATIONS) javascript = javascript.replaceAll(annotation, "");
+  javascript = javascript.replace(/:\s*Record<[^;{]+>/g, "");
+  javascript = javascript.replace(/\s*satisfies\s+Record<[^;]+>(?=\s*;?)/g, "");
+  return javascript;
+}
+
 async function loadDictionarySource(file) {
   const source = readFileSync(join(i18nDir, file), "utf8");
   assert.ok(
     !/^\s*import\s/m.test(source),
     `${file} now has an import; this loader only handles self-contained dictionaries.`,
   );
-  let javascript = source;
-  for (const annotation of TYPE_ANNOTATIONS) javascript = javascript.replaceAll(annotation, "");
+  const javascript = stripTypeAnnotations(source);
   assert.ok(
     !javascript.includes("Record<"),
     `${file} uses a type annotation this loader does not strip.`,
@@ -181,6 +188,13 @@ describe("dictionary loading", () => {
         assert.notEqual(value.trim(), "", `${label}: ${key} has an empty translation`);
       }
     }
+  });
+
+  it("strips satisfies and colon Record type annotations without syntax errors", () => {
+    const raw = `export const sample = { en: { a: "b" } } satisfies Record< "en" | "ja" | "ru", Record<string, string> >;`;
+    const stripped = stripTypeAnnotations(raw);
+    assert.ok(!stripped.includes("Record<"));
+    assert.equal(stripped.trim(), `export const sample = { en: { a: "b" } };`);
   });
 });
 

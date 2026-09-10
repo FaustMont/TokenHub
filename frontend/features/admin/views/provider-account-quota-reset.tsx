@@ -308,7 +308,7 @@ function hasExpiryValue(value?: string | null) {
   return typeof value === "string" && value.trim() !== "";
 }
 
-function formatResetCreditExpiry(value: string | null | undefined, now: number) {
+export function formatResetCreditExpiry(value: string | null | undefined, now: number) {
   if (!validExpiry(value)) return "-";
   const milliseconds = Date.parse(value!) - now;
   if (milliseconds <= 0) return tx("已过期");
@@ -325,6 +325,16 @@ function formatResetCreditExpiry(value: string | null | undefined, now: number) 
     if (days > 0) return `${days}日${hours}時間後`;
     if (hours > 0) return `${hours}時間${minutes}分後`;
     return `${minutes}分後`;
+  }
+  if (activeLanguage === "ru") {
+    const pluralRules = new Intl.PluralRules("ru");
+    const pluralize = (n: number, one: string, few: string, many: string) => {
+      const rule = pluralRules.select(n);
+      return `${n} ${rule === "one" ? one : rule === "few" ? few : many}`;
+    };
+    if (days > 0) return `через ${pluralize(days, "день", "дня", "дней")} ${pluralize(hours, "час", "часа", "часов")}`;
+    if (hours > 0) return `через ${pluralize(hours, "час", "часа", "часов")} ${pluralize(minutes, "минуту", "минуты", "минут")}`;
+    return `через ${pluralize(minutes, "минуту", "минуты", "минут")}`;
   }
   if (days > 0) return `${days}天${hours}小时后`;
   if (hours > 0) return `${hours}小时${minutes}分钟后`;

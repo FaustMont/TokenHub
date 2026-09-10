@@ -424,4 +424,4 @@ const ru: Record<string, string> = {
   "选择模型实际支持的输入类型。": "Выберите типы ввода, которые фактически поддерживает модель.",
 };
 
-export const modelGovernanceTranslations = { en, ja, ru } ;
+export const modelGovernanceTranslations = { en, ja, ru } satisfies Record<"en" | "ja" | "ru", Record<string, string>>;

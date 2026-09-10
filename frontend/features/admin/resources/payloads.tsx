@@ -856,14 +856,18 @@ export function permissionDeniedMessage(target: string) {
   if (activeLanguage === "ja") {
     return `このアカウントには ${label} へのアクセス権限がありません。権限外のデータは非表示です。必要に応じて管理者にロールまたはプロジェクトメンバー権限の調整を依頼してください。`;
   }
+  if (activeLanguage === "ru") {
+    return `У этой учетной записи нет разрешения на доступ к ${label}. Данные вне вашей области доступа скрыты; обратитесь к администратору для изменения роли или участия в проекте.`;
+  }
   return `当前账号没有访问 ${label} 的权限。页面已隐藏无权限数据；如需查看或管理，请联系管理员调整角色或项目成员权限。`;
 }
 
 export function permissionPartialLoadMessage(labels: string[]) {
   const unique = Array.from(new Set(labels.filter(Boolean))).slice(0, 4);
-  const summary = unique.join("、");
+  const summary = unique.join(activeLanguage === "en" || activeLanguage === "ru" ? ", " : "、");
   if (activeLanguage === "en") return `Hidden due to insufficient permission: ${summary}. This page only shows content you can access.`;
   if (activeLanguage === "ja") return `権限不足のため非表示: ${summary}。このページにはアクセス可能な内容のみ表示します。`;
+  if (activeLanguage === "ru") return `Скрыто из-за недостаточных прав: ${summary}. На этой странице отображается только доступный вам контент.`;
   return `已隐藏无权限数据：${summary}。当前页面只展示你有权限查看的内容。`;
 }
 

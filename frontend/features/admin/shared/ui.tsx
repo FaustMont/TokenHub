@@ -96,6 +96,7 @@ export function IssuedKeyModal({ value, onClose }: { value: string; onClose: () 
 export function issuedKeyCloseCountdownLabel(seconds: number) {
   if (activeLanguage === "en") return `Close in ${seconds}s`;
   if (activeLanguage === "ja") return `${seconds} 秒後に閉じる`;
+  if (activeLanguage === "ru") return `Закрыть через ${seconds} с`;
   return `${seconds}s 后可关闭`;
 }
 
