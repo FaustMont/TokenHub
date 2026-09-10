@@ -332,6 +332,11 @@ function formatResetCreditExpiry(value: string | null | undefined, now: number) 
     if (hours > 0) return `${hours}時間${minutes}分後`;
     return `${minutes}分後`;
   }
+  if (activeLanguage === "ru") {
+    if (days > 0) return `через ${days} дн. ${hours} ч.`;
+    if (hours > 0) return `через ${hours} ч. ${minutes} мин.`;
+    return `через ${minutes} мин.`;
+  }
   if (days > 0) return `${days}天${hours}小时后`;
   if (hours > 0) return `${hours}小时${minutes}分钟后`;
   return `${minutes}分钟后`;

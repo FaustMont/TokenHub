@@ -181,13 +181,61 @@ export function formatLocaleNumber(value: number) {
   return new Intl.NumberFormat(languageLocale()).format(value);
 }
 
+const russianPluralRules = new Intl.PluralRules("ru");
+
+const RUSSIAN_UNIT_MAP: Record<string, { one: string; few: string; many: string }> = {
+  "人": { one: "участник", few: "участника", many: "участников" },
+  "个模型": { one: "модель", few: "модели", many: "моделей" },
+  "条路由": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "条线路": { one: "маршрут", few: "маршрута", many: "маршрутов" },
+  "条启用路由": { one: "активный маршрут", few: "активных маршрута", many: "активных маршрутов" },
+  "条用量记录": { one: "запись использования", few: "записи использования", many: "записей использования" },
+  "条记录": { one: "запись", few: "записи", many: "записей" },
+  "条策略": { one: "политика", few: "политики", many: "политик" },
+  "条": { one: "запись", few: "записи", many: "записей" },
+  "次请求": { one: "запрос", few: "запроса", many: "запросов" },
+  "次测试": { one: "тест", few: "теста", many: "тестов" },
+  "次失败": { one: "ошибка", few: "ошибки", many: "ошибок" },
+  "次无延迟记录": { one: "запись без задержки", few: "записи без задержки", many: "записей без задержки" },
+  "次": { one: "попытка", few: "попытки", many: "попыток" },
+  "个错误": { one: "ошибка", few: "ошибки", many: "ошибок" },
+  "个项目": { one: "проект", few: "проекта", many: "проектов" },
+  "个团队": { one: "команда", few: "команды", many: "команд" },
+  "个渠道": { one: "канал", few: "канала", many: "каналов" },
+  "个待引入模型": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
+  "个可引入模型": { one: "доступная для импорта модель", few: "доступные для импорта модели", many: "доступных для импорта моделей" },
+  "类": { one: "категория", few: "категории", many: "категорий" },
+  "项": { one: "элемент", few: "элемента", many: "элементов" },
+  "个": { one: "объект", few: "объекта", many: "объектов" },
+  "个 Key": { one: "ключ", few: "ключа", many: "ключей" },
+  "个用户": { one: "пользователь", few: "пользователя", many: "пользователей" },
+  "个选项": { one: "вариант", few: "варианта", many: "вариантов" },
+};
+
+function russianUnit(count: number, zhUnit: string, enUnit: string, enPluralUnit: string): string {
+  const mapping = RUSSIAN_UNIT_MAP[zhUnit];
+  if (mapping) {
+    const category = russianPluralRules.select(count);
+    return (category in mapping ? mapping[category as keyof typeof mapping] : undefined) ?? mapping.many;
+  }
+  const dynamicMatch = zhUnit.match(/^个(.+)上游模型$/);
+  if (dynamicMatch) {
+    const category = russianPluralRules.select(count);
+    const label = tx(dynamicMatch[1]);
+    if (category === "one") return `модель провайдера (${label})`;
+    if (category === "few") return `модели провайдера (${label})`;
+    return `моделей провайдера (${label})`;
+  }
+  const ruUnit = tx(zhUnit);
+  return ruUnit !== zhUnit ? ruUnit : (count === 1 ? enUnit : enPluralUnit);
+}
+
 export function countWithUnit(count: number, zhUnit: string, enUnit: string, jaUnit: string, enPluralUnit = `${enUnit}s`) {
   const formatted = formatLocaleNumber(count);
   if (activeLanguage === "en") return `${formatted} ${count === 1 ? enUnit : enPluralUnit}`;
   if (activeLanguage === "ja") return `${formatted} ${jaUnit}`;
   if (activeLanguage === "ru") {
-    const ruUnit = tx(zhUnit);
-    return `${formatted} ${ruUnit !== zhUnit ? ruUnit : (count === 1 ? enUnit : enPluralUnit)}`;
+    return `${formatted} ${russianUnit(count, zhUnit, enUnit, enPluralUnit)}`;
   }
   return `${formatted} ${zhUnit}`;
 }
@@ -197,8 +245,7 @@ export function countRatioWithUnit(current: number, total: number, zhUnit: strin
   if (activeLanguage === "en") return `${ratio} ${current === 1 ? enUnit : enPluralUnit}`;
   if (activeLanguage === "ja") return `${ratio} ${jaUnit}`;
   if (activeLanguage === "ru") {
-    const ruUnit = tx(zhUnit);
-    return `${ratio} ${ruUnit !== zhUnit ? ruUnit : (current === 1 ? enUnit : enPluralUnit)}`;
+    return `${ratio} ${russianUnit(current, zhUnit, enUnit, enPluralUnit)}`;
   }
   return `${ratio} ${zhUnit}`;
 }
@@ -351,22 +398,15 @@ export function bulkDeleteConfirmMessage(count: number) {
   return `删除选中的 ${formatLocaleNumber(count)} 条记录后，当前内存数据会立即移除。`;
 }
 
-function russianPlural(count: number, one: string, few: string, many: string) {
-  const n = Math.abs(count) % 100;
-  const last = n % 10;
-  if (n >= 11 && n <= 14) return many;
-  if (last === 1) return one;
-  if (last >= 2 && last <= 4) return few;
-  return many;
-}
-
 export function routeAttemptCountText(count: number) {
-  if (activeLanguage === "ru") {
-    return `${formatLocaleNumber(count)} ${russianPlural(count, "попытка", "попытки", "попыток")}, с fallback`;
-  }
   if (count > 1) {
     if (activeLanguage === "en") return `${formatLocaleNumber(count)} attempts, with fallback`;
     if (activeLanguage === "ja") return `${formatLocaleNumber(count)} 回、fallback 含む`;
+    if (activeLanguage === "ru") {
+      const category = russianPluralRules.select(count);
+      const unit = category === "few" ? "попытки" : "попыток";
+      return `${formatLocaleNumber(count)} ${unit}, с fallback`;
+    }
     return `${formatLocaleNumber(count)} 次，含 fallback`;
   }
   return countWithUnit(count, "次", "attempt", "回");

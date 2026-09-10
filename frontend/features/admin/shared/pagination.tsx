@@ -54,7 +54,9 @@ export function PaginationControls({ pagination, totalItems }: { pagination: Pag
           ? `第 ${pagination.startIndex + 1}-${pagination.endIndex} 条，共 ${totalItems} 条`
           : activeLanguage === "ja"
             ? `${pagination.startIndex + 1}-${pagination.endIndex} / ${totalItems} 件`
-            : `${pagination.startIndex + 1}-${pagination.endIndex} of ${totalItems}`}
+            : activeLanguage === "ru"
+              ? `${pagination.startIndex + 1}–${pagination.endIndex} из ${totalItems}`
+              : `${pagination.startIndex + 1}-${pagination.endIndex} of ${totalItems}`}
       </div>
       <div className="pagination-controls">
         <label className="page-size">

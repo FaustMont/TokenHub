@@ -28,6 +28,7 @@ const i18nDir = join(
 // the same object tx() reads at runtime.
 const TYPE_ANNOTATIONS = [
   ": Record<string, string>",
+  ' satisfies Record<"en" | "ja" | "ru", Record<string, string>>',
   ' satisfies Record<"en" | "ja", Record<string, string>>',
   " as const",
 ];
@@ -51,8 +52,11 @@ async function loadDictionarySource(file) {
 
 const { enTranslations } = await loadDictionarySource("en.tsx");
 const { jaTranslations } = await loadDictionarySource("ja.tsx");
+const { ruTranslations } = await loadDictionarySource("ru.tsx");
 const { modelGovernanceTranslations } = await loadDictionarySource("model-governance.tsx");
 const { routingTranslations } = await loadDictionarySource("routing.tsx");
+const { adminDomainRuTranslations } = await loadDictionarySource("admin-domain-ru.tsx");
+const { adminResourcesRuTranslations } = await loadDictionarySource("admin-resources-ru.tsx");
 
 // Mirrors the merge order in translations.tsx. It matters: a key defined in two sources
 // resolves to the one merged last, so parity has to be checked on the merged result and
@@ -60,6 +64,12 @@ const { routingTranslations } = await loadDictionarySource("routing.tsx");
 const merged = {
   en: { ...enTranslations, ...routingTranslations.en, ...modelGovernanceTranslations.en },
   ja: { ...jaTranslations, ...routingTranslations.ja, ...modelGovernanceTranslations.ja },
+  ru: {
+    ...ruTranslations,
+    ...adminResourcesRuTranslations,
+    ...adminDomainRuTranslations,
+    ...modelGovernanceTranslations.ru,
+  },
 };
 
 function keysMissingFrom(source, target) {
@@ -71,6 +81,12 @@ function assertSameKeys(label, en, ja) {
   assert.deepEqual(keysMissingFrom(ja, en), [], `${label}: defined in ja, missing from en`);
 }
 
+function assertSameThreeWayKeys(label, en, ja, ru) {
+  assert.deepEqual(keysMissingFrom(en, ja), [], `${label}: defined in en, missing from ja`);
+  assert.deepEqual(keysMissingFrom(ja, en), [], `${label}: defined in ja, missing from en`);
+  assert.deepEqual(keysMissingFrom(en, ru), [], `${label}: defined in en, missing from ru`);
+}
+
 describe("dictionary loading", () => {
   it("parses every dictionary into a non-trivial object", () => {
     // Without this, a transform that silently produced `{}` would make every parity
@@ -78,8 +94,12 @@ describe("dictionary loading", () => {
     const sources = {
       "en.tsx": enTranslations,
       "ja.tsx": jaTranslations,
+      "ru.tsx": ruTranslations,
+      "admin-domain-ru.tsx": adminDomainRuTranslations,
+      "admin-resources-ru.tsx": adminResourcesRuTranslations,
       "model-governance.tsx en": modelGovernanceTranslations.en,
       "model-governance.tsx ja": modelGovernanceTranslations.ja,
+      "model-governance.tsx ru": modelGovernanceTranslations.ru,
       "routing.tsx en": routingTranslations.en,
       "routing.tsx ja": routingTranslations.ja,
     };
@@ -108,6 +128,12 @@ describe("single ownership", () => {
       ["ja.tsx", jaTranslations],
       ["routing.tsx", routingTranslations.ja],
       ["model-governance.tsx", modelGovernanceTranslations.ja],
+    ],
+    ru: [
+      ["ru.tsx", ruTranslations],
+      ["admin-domain-ru.tsx", adminDomainRuTranslations],
+      ["admin-resources-ru.tsx", adminResourcesRuTranslations],
+      ["model-governance.tsx", modelGovernanceTranslations.ru],
     ],
   };
 
@@ -141,10 +167,15 @@ describe("key parity", () => {
   });
 
   it("keeps the model-governance.tsx sections in step", () => {
-    assertSameKeys("model-governance.tsx", modelGovernanceTranslations.en, modelGovernanceTranslations.ja);
+    assertSameThreeWayKeys(
+      "model-governance.tsx",
+      modelGovernanceTranslations.en,
+      modelGovernanceTranslations.ja,
+      modelGovernanceTranslations.ru,
+    );
   });
 
   it("keeps the merged dictionary tx() reads in step", () => {
-    assertSameKeys("merged translations", merged.en, merged.ja);
+    assertSameThreeWayKeys("merged translations", merged.en, merged.ja, merged.ru);
   });
 });
