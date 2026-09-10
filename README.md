@@ -28,6 +28,10 @@
     <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
     <td>Thanks to AICoding for sponsoring this project! <a href="https://aicoding.inc/i/tokhub">AICoding</a> — Global AI Model API Relay Service at Unbeatable Prices! Claude Code at 19% of original price, GPT at just 1%! Trusted by hundreds of enterprises for cost-effective AI services. Supports Claude Code, GPT, Gemini and major domestic models, with enterprise-grade high concurrency, fast invoicing, and 24/7 dedicated technical support. TokenHub users who register via <a href="https://aicoding.inc/i/tokhub">this link</a> get 10% off their first top-up!</td>
   </tr>
+  <tr>
+    <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
+    <td><a href="https://subsub.cn/i/tokhub">SubSub</a> offers subscription upgrades and renewals across ChatGPT plans, with order status tracking. <a href="https://subsub.cn/i/tokhub">Register here</a> to get started!</td>
+  </tr>
 </table>
 
 ## Enterprise Token Governance
