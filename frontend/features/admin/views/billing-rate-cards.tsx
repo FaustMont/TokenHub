@@ -57,6 +57,7 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
   }
   function updatePeriod(index: number, patch: Partial<Period>) { setCard((current) => ({ ...current, periods: current.periods.map((period, i) => i === index ? { ...period, ...patch } : period) })); setPreview(null); }
   return <DataSection title="精确计价与影子核对">
+    <div className="rate-card-form">
     <p>{tx("影子价目用于核对，不改变当前收费与预算。单价单位为原币/百万 Token；填写 0 表示免费，时段留空表示继承。")}</p>
     <form onSubmit={(event) => { event.preventDefault(); void act("preview"); }} onChange={() => setPreview(null)}>
       <div className="form-grid">
@@ -74,11 +75,13 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
           <label>{tx("开始时间")}<input type="time" value={period.start_time} onChange={(event) => updatePeriod(index, { start_time: event.target.value })} /></label>
           <label>{tx("结束时间")}<input type="time" value={period.end_time} onChange={(event) => updatePeriod(index, { end_time: event.target.value })} /></label>
         </div>
-        <div>{["周日", "周一", "周二", "周三", "周四", "周五", "周六"].map((day, number) => <label key={day}><input type="checkbox" checked={period.weekdays.includes(number)} onChange={(event) => updatePeriod(index, { weekdays: event.target.checked ? [...period.weekdays, number] : period.weekdays.filter((value) => value !== number) })} />{tx(day)}</label>)}</div>
+        <div className="rate-card-weekdays">{["周日", "周一", "周二", "周三", "周四", "周五", "周六"].map((day, number) => <label key={day}><input type="checkbox" checked={period.weekdays.includes(number)} onChange={(event) => updatePeriod(index, { weekdays: event.target.checked ? [...period.weekdays, number] : period.weekdays.filter((value) => value !== number) })} /><span>{tx(day)}</span></label>)}</div>
         <RateFields rates={period.rates} update={(key, value) => updatePeriod(index, { rates: { ...period.rates, [key]: value } })} />
-        <button type="button" onClick={() => setCard({ ...card, periods: card.periods.filter((_, i) => i !== index) })}>{tx("删除时段")}</button>
+        <button className="secondary-button" type="button" onClick={() => setCard({ ...card, periods: card.periods.filter((_, i) => i !== index) })}>{tx("删除时段")}</button>
       </fieldset>)}
-      <button type="button" onClick={() => setCard({ ...card, periods: [...card.periods, { name: `period-${card.periods.length + 1}`, timezone: "Asia/Shanghai", weekdays: [1, 2, 3, 4, 5], start_time: "09:00", end_time: "12:00", rates: emptyRates() }] })}>{tx("添加时段")}</button>
+      <div className="rate-card-actions">
+        <button className="secondary-button" type="button" onClick={() => setCard({ ...card, periods: [...card.periods, { name: `period-${card.periods.length + 1}`, timezone: "Asia/Shanghai", weekdays: [1, 2, 3, 4, 5], start_time: "09:00", end_time: "12:00", rates: emptyRates() }] })}>{tx("添加时段")}</button>
+      </div>
       <div className="form-grid">
         <label>{tx("预览时刻（RFC3339）")}<input required value={at} onChange={(event) => setAt(event.target.value)} /></label>
         <label>{tx("总输入 Token")}<input inputMode="numeric" value={usage.prompt_tokens} onChange={(event) => setUsage({ ...usage, prompt_tokens: event.target.value })} /></label>
@@ -86,15 +89,22 @@ export function BillingRateCards({ api, data }: { api: ApiContext; data: AppData
         <label>{tx("输出 Token")}<input inputMode="numeric" value={usage.completion_tokens} onChange={(event) => setUsage({ ...usage, completion_tokens: event.target.value })} /></label>
         <label>{tx("汇率：1 原币兑 USD")}<input inputMode="decimal" value={fx} onChange={(event) => setFX(event.target.value)} /></label>
       </div>
-      <button disabled={busy} type="submit">{tx("预览费用")}</button>
-      <button disabled={busy || !preview || previewCard !== JSON.stringify(card)} type="button" onClick={() => void act("publish")}>{tx("发布影子价目")}</button>
+      <div className="rate-card-actions">
+        <button className="button" disabled={busy} type="submit">{tx("预览费用")}</button>
+        <button className="secondary-button" disabled={busy || !preview || previewCard !== JSON.stringify(card)} type="button" onClick={() => void act("publish")}>{tx("发布影子价目")}</button>
+      </div>
     </form>
     {preview ? <output><p>{formatStatementAmount(preview.charge.amount, preview.charge.currency, languageLocale())}</p><p>{preview.charge.usd ? formatStatementAmount(preview.charge.usd, "USD", languageLocale()) : tx("USD 折算待定")}</p><p>{preview.snapshot.period || tx("默认价格")}</p></output> : null}
     {error ? <p role="alert">{error}</p> : null}{message ? <p role="status">{message}</p> : null}
-    <button type="button" disabled={busy} onClick={() => void act("list")}>{tx("读取已发布版本")}</button>
+    <div className="rate-card-actions">
+      <button className="secondary-button" type="button" disabled={busy} onClick={() => void act("list")}>{tx("读取已发布版本")}</button>
+    </div>
     <ul>{cards.map((item) => <li key={item.id}>{item.target} · {item.id} · {item.effective_from ? new Intl.DateTimeFormat(languageLocale(), { dateStyle: "medium", timeStyle: "medium" }).format(new Date(item.effective_from)) : ""}</li>)}</ul>
-    <label>{tx("请求 ID")}<input value={requestID} onChange={(event) => setRequestID(event.target.value)} /></label>
-    <button type="button" disabled={busy || !requestID.trim()} onClick={() => void act("evidence")}>{tx("读取计费证据")}</button>
+    <div className="rate-card-lookup">
+      <label>{tx("请求 ID")}<input value={requestID} onChange={(event) => setRequestID(event.target.value)} /></label>
+      <button className="secondary-button" type="button" disabled={busy || !requestID.trim()} onClick={() => void act("evidence")}>{tx("读取计费证据")}</button>
+    </div>
     {evidence ? <pre>{JSON.stringify(evidence, null, 2)}</pre> : null}
+    </div>
   </DataSection>;
 }
