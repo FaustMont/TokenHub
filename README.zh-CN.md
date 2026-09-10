@@ -19,6 +19,21 @@
   <a href="README.md">English</a> | 简体中文 | <a href="README.ja.md">日本語</a>
 </p>
 
+## ❤️ 赞助商
+
+> [想出现在这里？](mailto:xiemengjun@gmail.com)
+
+<table>
+  <tr>
+    <td width="180"><a href="https://aicoding.inc/i/tokhub"><img src="docs/assets/sponsors/aicoding.svg" alt="AICoding" width="150" /></a></td>
+    <td>感谢 AICoding 赞助了本项目！<a href="https://aicoding.inc/i/tokhub">AICoding</a> —— 全球大模型 API 超值中转服务！Claude Code 1.9 折，GPT 0.1 折，已为数百家企业提供高性价比 AI 服务。支持 Claude Code、GPT、Gemini 及国内主流模型，企业级高并发、极速开票、7×24 专属技术支持，通过<a href="https://aicoding.inc/i/tokhub">此链接</a>注册的 TokenHub 用户，首充可享受九折优惠！</td>
+  </tr>
+  <tr>
+    <td width="180"><a href="https://subsub.cn/i/tokhub"><img src="docs/assets/sponsors/subsub.svg" alt="SubSub" width="150" /></a></td>
+    <td><a href="https://subsub.cn/i/tokhub">SubSub</a> 提供 ChatGPT 系列订阅升级服务，支持在线开通、套餐续订和进度查询，让订阅升级更方便。欢迎<a href="https://subsub.cn/i/tokhub">点击注册</a>！</td>
+  </tr>
+</table>
+
 ## 企业级 Token 治理
 
 TokenHub 为企业提供 AI 模型生命周期里的治理层：从 Provider 接入、项目 Key、路由策略，到用量归因、预算控制和账单对账。
