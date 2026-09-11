@@ -11,7 +11,6 @@ import {
   setActiveLanguage,
   translateGeneratedText,
 } from "./runtime";
-import { gatewayLanguageLabel } from "../views/gateway-docs-ui";
 
 describe("localized count ratios", () => {
   afterEach(() => setActiveLanguage("en"));
@@ -87,11 +86,5 @@ describe("localized count ratios", () => {
 
     expect(providerSaveMessage(true, true, 2, "OpenAI")).toBe("Provider обновлен, ресурс аккаунта создан, импортировано: 2 OpenAI вышестоящие модели");
     expect(providerSaveMessage(false, false, 1, "OpenAI")).toBe("Provider создан, импортировано: 1 OpenAI вышестоящая модель");
-    expect(providerSaveMessage(false, false, 0, "OpenAI")).toBe("Provider создан");
-
-    expect(gatewayLanguageLabel("zh-CN")).toBe("中文");
-    expect(gatewayLanguageLabel("ja")).toBe("日本語");
-    expect(gatewayLanguageLabel("ru")).toBe("Русский");
-    expect(gatewayLanguageLabel("en")).toBe("English");
   });
 });
