@@ -35,5 +35,8 @@ describe("localized count ratios", () => {
     expect(routeAttemptCountText(1)).toBe("1 попытка");
     expect(routeAttemptCountText(2)).toBe("2 попытки, с fallback");
     expect(routeAttemptCountText(5)).toBe("5 попыток, с fallback");
+    expect(routeAttemptCountText(21)).toBe("21 попытка, с fallback");
+    expect(routeAttemptCountText(22)).toBe("22 попытки, с fallback");
+    expect(routeAttemptCountText(25)).toBe("25 попыток, с fallback");
   });
 });

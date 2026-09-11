@@ -1068,6 +1068,7 @@ export const enTranslations: Record<string, string> = {
     "平台不返回邮箱时，用该 Claim 生成稳定的内部邮箱。": "When the provider omits email, this claim is used to generate a stable internal email.",
     "适合标准 OIDC 服务，填写 Issuer 后一般可自动发现端点。": "Best for standard OIDC services; endpoints can usually be discovered from the issuer.",
     "适合非标准 OAuth2 服务，需要确认授权、Token 和用户信息端点。": "Best for non-standard OAuth2 services; verify authorization, token, and userinfo endpoints.",
+    "适合 {name} 企业应用，常用端点和 Claim 已预置。": "Best for {name} enterprise apps; common endpoints and claims are prefilled.",
     "请先填写至少一项希望提升后的目标额度": "Enter at least one target quota to increase",
     "不限额": "Unlimited",
     "项目空间内配置的专属模型调用额度": "Project-specific model call quota",

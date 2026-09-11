@@ -404,7 +404,7 @@ export function routeAttemptCountText(count: number) {
     if (activeLanguage === "ja") return `${formatLocaleNumber(count)} 回、fallback 含む`;
     if (activeLanguage === "ru") {
       const category = russianPluralRules.select(count);
-      const unit = category === "few" ? "попытки" : "попыток";
+      const unit = category === "one" ? "попытка" : category === "few" ? "попытки" : "попыток";
       return `${formatLocaleNumber(count)} ${unit}, с fallback`;
     }
     return `${formatLocaleNumber(count)} 次，含 fallback`;
