@@ -26,6 +26,9 @@ describe("localized count ratios", () => {
     expect(countWithUnit(1, "条路由", "route", "ルート")).toBe("1 маршрут");
     expect(countWithUnit(2, "条路由", "route", "ルート")).toBe("2 маршрута");
     expect(countWithUnit(5, "条路由", "route", "ルート")).toBe("5 маршрутов");
+    expect(countWithUnit(1, "个团队", "team", "チーム")).toBe("1 команда");
+    expect(countWithUnit(2, "个团队", "team", "チーム")).toBe("2 команды");
+    expect(countWithUnit(5, "个团队", "team", "チーム")).toBe("5 команд");
   });
 
   it("handles routeAttemptCountText in Russian conditionally", async () => {
