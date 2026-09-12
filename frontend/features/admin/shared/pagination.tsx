@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { activeLanguage, tx } from "../i18n/runtime";
+import { formatTranslationTemplate, tx } from "../i18n/runtime";
 
 export type PaginationState = {
   page: number;
@@ -50,13 +50,11 @@ export function PaginationControls({ pagination, totalItems }: { pagination: Pag
   return (
     <div className="pagination">
       <div className="pagination-summary">
-        {activeLanguage === "zh-CN"
-          ? `第 ${pagination.startIndex + 1}-${pagination.endIndex} 条，共 ${totalItems} 条`
-          : activeLanguage === "ja"
-            ? `${pagination.startIndex + 1}-${pagination.endIndex} / ${totalItems} 件`
-            : activeLanguage === "ru"
-              ? `${pagination.startIndex + 1}–${pagination.endIndex} из ${totalItems}`
-              : `${pagination.startIndex + 1}-${pagination.endIndex} of ${totalItems}`}
+        {formatTranslationTemplate(tx("第 {start}-{end} 条，共 {total} 条"), {
+          start: String(pagination.startIndex + 1),
+          end: String(pagination.endIndex),
+          total: String(totalItems),
+        })}
       </div>
       <div className="pagination-controls">
         <label className="page-size">

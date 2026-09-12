@@ -417,3 +417,24 @@ export function routeAttemptCountText(count: number) {
   }
   return countWithUnit(count, "次", "attempt", "回");
 }
+
+export function formatResetExpiryCountdown(days: number, hours: number, minutes: number): string {
+  if (activeLanguage === "en") {
+    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ${hours} ${hours === 1 ? "hour" : "hours"} left`;
+    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ${minutes} ${minutes === 1 ? "minute" : "minutes"} left`;
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} left`;
+  }
+  if (activeLanguage === "ja") {
+    if (days > 0) return `${days}日${hours}時間後`;
+    if (hours > 0) return `${hours}時間${minutes}分後`;
+    return `${minutes}分後`;
+  }
+  if (activeLanguage === "ru") {
+    if (days > 0) return `через ${days} дн. ${hours} ч.`;
+    if (hours > 0) return `через ${hours} ч. ${minutes} мин.`;
+    return `через ${minutes} мин.`;
+  }
+  if (days > 0) return `${days}天${hours}小时后`;
+  if (hours > 0) return `${hours}小时${minutes}分钟后`;
+  return `${minutes}分钟后`;
+}

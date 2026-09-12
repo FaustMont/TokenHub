@@ -7,7 +7,7 @@ import { gatewayLLMUsageDocs } from "./gateway-llm-en";
 describe("gateway Russian docs and labels", () => {
   afterEach(() => setActiveLanguage("en"));
 
-  it("returns Русский for Russian language label", () => {
+  it("returns Russian language label for ru", () => {
     expect(gatewayLanguageLabel("ru")).toBe("Русский");
     expect(gatewayLanguageLabel("zh-CN")).toBe("中文");
     expect(gatewayLanguageLabel("ja")).toBe("日本語");
