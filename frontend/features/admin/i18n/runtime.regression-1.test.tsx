@@ -42,4 +42,27 @@ describe("localized count ratios", () => {
     expect(routeAttemptCountText(22)).toBe("22 попытки, с fallback");
     expect(routeAttemptCountText(25)).toBe("25 попыток, с fallback");
   });
+
+  it("formats counts with active locale grouping rules", async () => {
+    const {
+      formatLocaleNumber,
+      selectedModelsText,
+      selectedOptionsText,
+      importUsersDoneMessage,
+      importUsersSkippedMessage,
+    } = await import("./runtime");
+
+    setActiveLanguage("ru");
+    const count = 1000;
+    const formatted = formatLocaleNumber(count);
+    expect(formatted).toBe("1\u00A0000");
+    expect(selectedModelsText(count)).toBe(`Выбрано моделей: ${formatted}`);
+    expect(selectedOptionsText(count)).toBe(`Выбрано вариантов: ${formatted}`);
+    expect(importUsersDoneMessage(1000, 2000, 3000)).toBe(
+      `Импорт пользователей завершен: создано ${formatLocaleNumber(1000)}, обновлено ${formatLocaleNumber(2000)}, пропущено ${formatLocaleNumber(3000)}`
+    );
+    expect(importUsersSkippedMessage(count, "ошибка")).toBe(
+      `Не импортировано строк: ${formatted}. Ошибки: ошибка`
+    );
+  });
 });

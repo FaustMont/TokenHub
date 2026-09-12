@@ -338,17 +338,19 @@ export function countWithLabel(count: number, label: string) {
 }
 
 export function selectedModelsText(count: number) {
-  if (activeLanguage === "en") return `${count} models selected`;
-  if (activeLanguage === "ja") return `${count} 件のモデルを選択済み`;
-  if (activeLanguage === "ru") return `Выбрано моделей: ${count}`;
-  return `已选择 ${count} 个模型`;
+  const formatted = formatLocaleNumber(count);
+  if (activeLanguage === "en") return `${formatted} models selected`;
+  if (activeLanguage === "ja") return `${formatted} 件のモデルを選択済み`;
+  if (activeLanguage === "ru") return `Выбрано моделей: ${formatted}`;
+  return `已选择 ${formatted} 个模型`;
 }
 
 export function selectedOptionsText(count: number) {
-  if (activeLanguage === "en") return `${count} options selected`;
-  if (activeLanguage === "ja") return `${count} 件の項目を選択済み`;
-  if (activeLanguage === "ru") return `Выбрано вариантов: ${count}`;
-  return `已选择 ${count} 个选项`;
+  const formatted = formatLocaleNumber(count);
+  if (activeLanguage === "en") return `${formatted} options selected`;
+  if (activeLanguage === "ja") return `${formatted} 件の項目を選択済み`;
+  if (activeLanguage === "ru") return `Выбрано вариантов: ${formatted}`;
+  return `已选择 ${formatted} 个选项`;
 }
 
 export function defaultPlaygroundSystemPrompt() {
@@ -365,23 +367,27 @@ export function isDefaultPlaygroundSystemPrompt(value: string) {
 }
 
 export function importUsersDoneMessage(created: number, updated: number, skipped: number) {
+  const fCreated = formatLocaleNumber(created);
+  const fUpdated = formatLocaleNumber(updated);
+  const fSkipped = formatLocaleNumber(skipped);
   if (activeLanguage === "en") {
-    return `User import complete: ${created} created, ${updated} updated${skipped > 0 ? `, ${skipped} skipped` : ""}`;
+    return `User import complete: ${fCreated} created, ${fUpdated} updated${skipped > 0 ? `, ${fSkipped} skipped` : ""}`;
   }
   if (activeLanguage === "ja") {
-    return `ユーザーインポート完了: 作成 ${created}、更新 ${updated}${skipped > 0 ? `、スキップ ${skipped}` : ""}`;
+    return `ユーザーインポート完了: 作成 ${fCreated}、更新 ${fUpdated}${skipped > 0 ? `、スキップ ${fSkipped}` : ""}`;
   }
   if (activeLanguage === "ru") {
-    return `Импорт пользователей завершен: создано ${created}, обновлено ${updated}${skipped > 0 ? `, пропущено ${skipped}` : ""}`;
+    return `Импорт пользователей завершен: создано ${fCreated}, обновлено ${fUpdated}${skipped > 0 ? `, пропущено ${fSkipped}` : ""}`;
   }
-  return `用户导入完成：新增 ${created}，更新 ${updated}${skipped > 0 ? `，跳过 ${skipped}` : ""}`;
+  return `用户导入完成：新增 ${fCreated}，更新 ${fUpdated}${skipped > 0 ? `，跳过 ${fSkipped}` : ""}`;
 }
 
 export function importUsersSkippedMessage(skipped: number, errors: string) {
-  if (activeLanguage === "en") return `${skipped} rows were not imported: ${errors}`;
-  if (activeLanguage === "ja") return `${skipped} 件はインポートされませんでした: ${errors}`;
-  if (activeLanguage === "ru") return `Не импортировано строк: ${skipped}. Ошибки: ${errors}`;
-  return `有 ${skipped} 条未导入：${errors}`;
+  const fSkipped = formatLocaleNumber(skipped);
+  if (activeLanguage === "en") return `${fSkipped} rows were not imported: ${errors}`;
+  if (activeLanguage === "ja") return `${fSkipped} 件はインポートされませんでした: ${errors}`;
+  if (activeLanguage === "ru") return `Не импортировано строк: ${fSkipped}. Ошибки: ${errors}`;
+  return `有 ${fSkipped} 条未导入：${errors}`;
 }
 
 export function deleteConfirmMessage(name: string) {
