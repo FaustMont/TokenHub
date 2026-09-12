@@ -1,6 +1,23 @@
 import { gatewayChineseDocs } from "./gateway-docs-zh";
 import { type GatewayDocBundle } from "./gateway-view";
 
+const russianPluralRules = new Intl.PluralRules("ru");
+
+function russianPluralNoun(count: number, one: string, few: string, many: string) {
+  const category = russianPluralRules.select(count);
+  if (category === "one") return one;
+  if (category === "few") return few;
+  return many;
+}
+
+function localizeCountNoun(text: string, enPattern: RegExp, one: string, few: string, many: string) {
+  const match = text.match(/([\d,]+|\d+)/);
+  if (!match) return text.replace(enPattern, many);
+  const count = Number.parseInt(match[1].replaceAll(",", ""), 10) || 0;
+  const noun = russianPluralNoun(count, one, few, many);
+  return text.replace(enPattern, noun);
+}
+
 export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
   return {
     ...gatewayChineseDocs(stats),
@@ -19,8 +36,20 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
       ...stats.quickCards,
       sampleModel: "Пример модели",
       currentConfig: "Текущая конфигурация",
-      activeRoutes: stats.quickCards.activeRoutes.replace(/active routes?/, "активных маршрутов"),
-      apiKeys: stats.quickCards.apiKeys.replace(/API Keys?/, "API-ключей"),
+      activeRoutes: localizeCountNoun(
+        stats.quickCards.activeRoutes,
+        /active routes?/,
+        "активный маршрут",
+        "активных маршрута",
+        "активных маршрутов",
+      ),
+      apiKeys: localizeCountNoun(
+        stats.quickCards.apiKeys,
+        /API Keys?/,
+        "API-ключ",
+        "API-ключа",
+        "API-ключей",
+      ),
     },
     groups: [
       {

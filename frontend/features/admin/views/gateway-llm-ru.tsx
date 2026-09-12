@@ -14,8 +14,22 @@ import {
 } from "./gateway-llm-en";
 import { type GatewayDocBundle, type GatewayDocStats } from "./gateway-view";
 
+const russianPluralRules = new Intl.PluralRules("ru");
+
+function russianPluralNoun(count: number, one: string, few: string, many: string) {
+  const category = russianPluralRules.select(count);
+  if (category === "one") return one;
+  if (category === "few") return few;
+  return many;
+}
+
 export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole): GatewayDocBundle {
   const teamLeader = role === "team_leader";
+  const modelCount = stats.visibleModelCount || 0;
+  const modelNoun = russianPluralNoun(modelCount, "доступная модель", "доступные модели", "доступных моделей");
+  const keyCount = stats.apiKeyCount || 0;
+  const keyNoun = russianPluralNoun(keyCount, "ключ проекта", "ключа проекта", "ключей проекта");
+
   return {
     defaultDocID: "quickstart",
     nav: {
@@ -36,8 +50,8 @@ export function gatewayRussianLLMUsageDocs(stats: GatewayDocStats, role: AppRole
       authorization: "Авторизация",
       sampleModel: "Пример модели",
       currentConfig: "Текущая область API",
-      activeRoutes: `${formatNumber(stats.visibleModelCount)} доступных моделей`,
-      apiKeys: `${formatNumber(stats.apiKeyCount)} ключей проекта`,
+      activeRoutes: `${formatNumber(modelCount)} ${modelNoun}`,
+      apiKeys: `${formatNumber(keyCount)} ${keyNoun}`,
     },
     groups: [
       {

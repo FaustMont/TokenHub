@@ -62,6 +62,42 @@ describe("gateway Russian docs and labels", () => {
     expect(bundle.groups[2].title).toBe("Справочник API");
   });
 
+  it("correctly pluralizes quick-card nouns in admin doc bundle for 1, 2, and 5", () => {
+    const createAdminBundle = (routes: number, keys: number) =>
+      gatewayDocBundle({
+        language: "ru",
+        baseURL: mockStats.baseURL,
+        referenceURL: mockStats.referenceURL,
+        keyHint: mockStats.keyHint,
+        sampleModel: mockStats.sampleModel,
+        activeRoutes: routes,
+        data: {
+          routes: new Array(routes).fill({ status: "active" }),
+          keys: new Array(keys).fill({}),
+          models: [],
+          providers: [],
+          users: [],
+          projects: [],
+          logs: [],
+          summary: { active_route_count: routes, api_key_count: keys, user_count: 10 },
+        } as any,
+        callableModels: [{ name: "gpt-4.1-mini" }] as any,
+        role: "admin",
+      });
+
+    const bundle1 = createAdminBundle(1, 1);
+    expect(bundle1.quickCards.activeRoutes).toBe("1 активный маршрут");
+    expect(bundle1.quickCards.apiKeys).toBe("1 API-ключ");
+
+    const bundle2 = createAdminBundle(2, 2);
+    expect(bundle2.quickCards.activeRoutes).toBe("2 активных маршрута");
+    expect(bundle2.quickCards.apiKeys).toBe("2 API-ключа");
+
+    const bundle5 = createAdminBundle(5, 5);
+    expect(bundle5.quickCards.activeRoutes).toBe("5 активных маршрутов");
+    expect(bundle5.quickCards.apiKeys).toBe("5 API-ключей");
+  });
+
   it("returns Russian LLM usage doc bundle for user and team_leader roles", () => {
     const userBundle = gatewayLLMUsageDocs({
       language: "ru",
@@ -84,5 +120,28 @@ describe("gateway Russian docs and labels", () => {
 
     expect(leaderBundle.title).toBe("Вызов больших языковых моделей");
     expect(leaderBundle.groups[2].title).toBe("Внедрение в команде");
+  });
+
+  it("correctly pluralizes quick-card nouns in user/team bundle for 1, 2, and 5", () => {
+    const createUserBundle = (models: number, keys: number) =>
+      gatewayLLMUsageDocs({
+        language: "ru",
+        role: "user",
+        ...mockStats,
+        visibleModelCount: models,
+        apiKeyCount: keys,
+      });
+
+    const bundle1 = createUserBundle(1, 1);
+    expect(bundle1.quickCards.activeRoutes).toBe("1 доступная модель");
+    expect(bundle1.quickCards.apiKeys).toBe("1 ключ проекта");
+
+    const bundle2 = createUserBundle(2, 2);
+    expect(bundle2.quickCards.activeRoutes).toBe("2 доступные модели");
+    expect(bundle2.quickCards.apiKeys).toBe("2 ключа проекта");
+
+    const bundle5 = createUserBundle(5, 5);
+    expect(bundle5.quickCards.activeRoutes).toBe("5 доступных моделей");
+    expect(bundle5.quickCards.apiKeys).toBe("5 ключей проекта");
   });
 });
