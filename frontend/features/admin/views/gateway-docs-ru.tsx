@@ -11,9 +11,10 @@ function russianPluralNoun(count: number, one: string, few: string, many: string
 }
 
 function localizeCountNoun(text: string, enPattern: RegExp, one: string, few: string, many: string) {
-  const match = text.match(/([\d,]+|\d+)/);
+  const match = text.match(/([\d\s\u00a0\u202f,]+)/);
   if (!match) return text.replace(enPattern, many);
-  const count = Number.parseInt(match[1].replaceAll(",", ""), 10) || 0;
+  const cleanDigits = match[1].replace(/[,\s\u00a0\u202f]/g, "");
+  const count = Number.parseInt(cleanDigits, 10) || 0;
   const noun = russianPluralNoun(count, one, few, many);
   return text.replace(enPattern, noun);
 }
