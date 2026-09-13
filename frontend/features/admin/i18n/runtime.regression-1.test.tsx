@@ -65,4 +65,41 @@ describe("localized count ratios", () => {
       `Не импортировано строк: ${formatted}. Ошибки: ошибка`
     );
   });
+
+  it("formats countdown quantities with active locale grouping rules", async () => {
+    const { formatResetExpiryCountdown } = await import("./runtime");
+
+    setActiveLanguage("ru");
+    expect(formatResetExpiryCountdown(1000, 2, 30)).toBe("через 1\u00A0000 дн. 2 ч.");
+    expect(formatResetExpiryCountdown(0, 1000, 15)).toBe("через 1\u00A0000 ч. 15 мин.");
+    expect(formatResetExpiryCountdown(0, 0, 1000)).toBe("через 1\u00A0000 мин.");
+
+    setActiveLanguage("en");
+    expect(formatResetExpiryCountdown(1000, 1, 0)).toBe("1,000 days 1 hour left");
+
+    setActiveLanguage("ja");
+    expect(formatResetExpiryCountdown(1000, 2, 0)).toBe("1,000日2時間後");
+
+    setActiveLanguage("zh-CN");
+    expect(formatResetExpiryCountdown(1000, 2, 0)).toBe("1,000天2小时后");
+  });
+
+  it("formats pagination values with active locale grouping rules", async () => {
+    const { render } = await import("@testing-library/react");
+    const { PaginationControls } = await import("../shared/pagination");
+
+    setActiveLanguage("ru");
+    const pagination = {
+      page: 1,
+      pageSize: 20,
+      pageCount: 500,
+      startIndex: 0,
+      endIndex: 20,
+      setPage: () => {},
+      setPageSize: () => {},
+    };
+    const { container } = render(<PaginationControls pagination={pagination} totalItems={10000} />);
+    expect(container.querySelector(".pagination-summary")?.textContent).toBe("1–20 из 10\u00A0000");
+    expect(container.querySelector(".page-buttons span")?.textContent).toBe("1 / 500");
+  });
 });

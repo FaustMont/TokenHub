@@ -419,22 +419,25 @@ export function routeAttemptCountText(count: number) {
 }
 
 export function formatResetExpiryCountdown(days: number, hours: number, minutes: number): string {
+  const fDays = formatLocaleNumber(days);
+  const fHours = formatLocaleNumber(hours);
+  const fMinutes = formatLocaleNumber(minutes);
   if (activeLanguage === "en") {
-    if (days > 0) return `${days} ${days === 1 ? "day" : "days"} ${hours} ${hours === 1 ? "hour" : "hours"} left`;
-    if (hours > 0) return `${hours} ${hours === 1 ? "hour" : "hours"} ${minutes} ${minutes === 1 ? "minute" : "minutes"} left`;
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} left`;
+    if (days > 0) return `${fDays} ${days === 1 ? "day" : "days"} ${fHours} ${hours === 1 ? "hour" : "hours"} left`;
+    if (hours > 0) return `${fHours} ${hours === 1 ? "hour" : "hours"} ${fMinutes} ${minutes === 1 ? "minute" : "minutes"} left`;
+    return `${fMinutes} ${minutes === 1 ? "minute" : "minutes"} left`;
   }
   if (activeLanguage === "ja") {
-    if (days > 0) return `${days}日${hours}時間後`;
-    if (hours > 0) return `${hours}時間${minutes}分後`;
-    return `${minutes}分後`;
+    if (days > 0) return `${fDays}日${fHours}時間後`;
+    if (hours > 0) return `${fHours}時間${fMinutes}分後`;
+    return `${fMinutes}分後`;
   }
   if (activeLanguage === "ru") {
-    if (days > 0) return `через ${days} дн. ${hours} ч.`;
-    if (hours > 0) return `через ${hours} ч. ${minutes} мин.`;
-    return `через ${minutes} мин.`;
+    if (days > 0) return `через ${fDays} дн. ${fHours} ч.`;
+    if (hours > 0) return `через ${fHours} ч. ${fMinutes} мин.`;
+    return `через ${fMinutes} мин.`;
   }
-  if (days > 0) return `${days}天${hours}小时后`;
-  if (hours > 0) return `${hours}小时${minutes}分钟后`;
-  return `${minutes}分钟后`;
+  if (days > 0) return `${fDays}天${fHours}小时后`;
+  if (hours > 0) return `${fHours}小时${fMinutes}分钟后`;
+  return `${fMinutes}分钟后`;
 }
