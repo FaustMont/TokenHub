@@ -21,7 +21,8 @@ helm dependency build deploy/helm/tokenhub
 helm install tokenhub deploy/helm/tokenhub \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
-  --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)"
+  --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
+  --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="$(openssl rand -hex 16)"
 ```
 
 The chart composes the database URL from the subchart service. Without an ingress the pod is reachable through port-forwarding (see the install notes). This mode is not sized or tuned for production.
@@ -35,6 +36,7 @@ helm install tokenhub deploy/helm/tokenhub \
   --set ingress.enabled=true \
   --set ingress.host=tokenhub.example.com \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
+  --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="<stable-bootstrap-password>" \
   --set database.url='postgresql://tokenhub:password@postgres.example.com:5432/tokenhub?sslmode=require' \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
   --set 'extraEnv[0].value=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'

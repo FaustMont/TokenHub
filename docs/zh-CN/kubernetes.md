@@ -21,7 +21,8 @@ helm dependency build deploy/helm/tokenhub
 helm install tokenhub deploy/helm/tokenhub \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
-  --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)"
+  --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
+  --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="$(openssl rand -hex 16)"
 ```
 
 chart 会根据子 chart 的 Service 组合出数据库 URL。没有 Ingress 时通过端口转发访问 Pod(见安装提示)。此模式未针对生产做容量和调优。
@@ -35,6 +36,7 @@ helm install tokenhub deploy/helm/tokenhub \
   --set ingress.enabled=true \
   --set ingress.host=tokenhub.example.com \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
+  --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="<stable-bootstrap-password>" \
   --set database.url='postgresql://tokenhub:password@postgres.example.com:5432/tokenhub?sslmode=require' \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
   --set 'extraEnv[0].value=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
