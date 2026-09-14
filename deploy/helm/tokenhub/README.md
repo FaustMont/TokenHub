@@ -9,11 +9,15 @@ covers chart maintenance.
 ## Quick test (built-in PostgreSQL)
 
 ```bash
+# Chart.lock pins the subchart but does not register its repository.
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 helm dependency build deploy/helm/tokenhub
 helm install tokenhub deploy/helm/tokenhub \
   --set postgresql.enabled=true \
   --set postgresql.auth.password=quick-test-password \
-  --set secretEnv.TOKENHUB_SECRET_KEY=$(openssl rand -hex 32)
+  --set secretEnv.TOKENHUB_SECRET_KEY=$(openssl rand -hex 32) \
+  --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=$(openssl rand -hex 16)
 ```
 
 The chart composes the database URL from the bitnami/postgresql subchart
@@ -34,7 +38,17 @@ client IP attribution is correct.
 - Any `TOKENHUB_*` variable from docs/deployment.md can be added via the
   standard `extraEnv` list; secret values go through `secretEnv` and are
   rendered into the chart-managed secret.
-- Required values (`database`, `secretEnv.TOKENHUB_SECRET_KEY`) fail template rendering with
+- Required values (`database`, `secretEnv.TOKENHUB_SECRET_KEY`,
+  `secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`) fail template rendering with
   actionable messages instead of installing placeholders.
+- The pod environment defaults to `TOKENHUB_ENV=prod` (via `environment`) so
+  the image's development admin token is rejected; `TOKENHUB_API_BASE_URL` is
+  derived from the ingress scheme and host, or set through `apiBaseUrl`.
+- Changing a chart-managed secret rolls the pods through a checksum
+  annotation; externally managed secrets need a manual `kubectl rollout
+  restart` after rotation.
+- Generated image bytes require shared storage across replicas
+  (`imageStorage.type=pvc` or `existingClaim`); the ephemeral default is for
+  single test replicas.
 - `TOKENHUB_MANAGED_UPDATES` is forced off: upgrades happen by changing
   `image.tag` and rolling pods.

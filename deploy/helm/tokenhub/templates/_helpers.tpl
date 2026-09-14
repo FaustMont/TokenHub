@@ -73,3 +73,33 @@ External Secrets Operator.
 postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}?sslmode=disable
 {{- end }}
 {{- end }}
+
+{{/*
+Name of the secret the pod reads TOKENHUB_DATABASE_URL from. Precedence:
+database.existingSecret, then the External Secrets Operator credentials
+secret, then the chart-managed database secret.
+*/}}
+
+{{- define "tokenhub.databaseSecretName" -}}
+{{- if .Values.database.existingSecret -}}
+{{- .Values.database.existingSecret -}}
+{{- else if .Values.externalSecret.enabled -}}
+{{- include "tokenhub.secretName" . -}}
+{{- else -}}
+{{- printf "%s-database" (include "tokenhub.fullname" .) -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Browser-facing API base URL for the admin console: the explicit value wins,
+then the ingress scheme and host. Empty when neither applies (port-forward
+usage keeps the frontend's localhost default).
+*/}}
+
+{{- define "tokenhub.apiBaseURL" -}}
+{{- if .Values.apiBaseUrl -}}
+{{- .Values.apiBaseUrl -}}
+{{- else if and .Values.ingress.enabled .Values.ingress.host -}}
+{{- if .Values.ingress.tls.enabled }}https://{{ .Values.ingress.host }}{{ else }}http://{{ .Values.ingress.host }}{{ end -}}
+{{- end -}}
+{{- end }}

@@ -17,6 +17,9 @@ The backend runs schema AutoMigrate on pod start. Take a PostgreSQL backup befor
 For throwaway clusters and smoke tests, enable the bundled `bitnami/postgresql` subchart:
 
 ```bash
+# Chart.lock pins the subchart but does not register its repository.
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 helm dependency build deploy/helm/tokenhub
 helm install tokenhub deploy/helm/tokenhub \
   --set postgresql.enabled=true \
@@ -38,11 +41,14 @@ helm install tokenhub deploy/helm/tokenhub \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
   --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="<stable-bootstrap-password>" \
   --set database.url='postgresql://tokenhub:password@postgres.example.com:5432/tokenhub?sslmode=require' \
+  --set imageStorage.type=pvc \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
-  --set 'extraEnv[0].value=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+  --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16'
 ```
 
-`TOKENHUB_TRUSTED_PROXY_CIDRS` must cover the ingress controller's source addresses so client IP attribution (rate limits, audit entries) sees real client addresses instead of the controller IP. Private pod/service CIDRs are a reasonable starting point; tighten the list to your cluster.
+`TOKENHUB_TRUSTED_PROXY_CIDRS` must cover the ingress controller's source addresses so client IP attribution (rate limits, audit entries) sees real client addresses instead of the controller IP. Private pod/service CIDRs are a reasonable starting point; tighten the list to your cluster. The commas inside one value must be escaped as `\,` because Helm's `--set` parser treats a bare comma as a list separator; a values file avoids the escaping entirely.
+
+With the ingress enabled the chart derives the console's browser-facing API URL (`TOKENHUB_API_BASE_URL`) from the ingress scheme and host, so browser logins reach the API service instead of the visitor's own machine. Publishing the console another way (a load balancer or remote port-forward) requires setting `apiBaseUrl` explicitly.
 
 The first login is username `admin` with the bootstrap password you configured in `secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`:
 
@@ -51,6 +57,8 @@ kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BO
 ```
 
 The chart never generates this password: set a stable value through `secretEnv` and keep it unchanged across upgrades, since the bootstrap seed only runs on an empty database. Setting it through `extraEnv` instead would duplicate the Secret-backed entry the chart already renders. Change the password in the admin console after first login.
+
+The chart sets `TOKENHUB_ENV=prod` by default. Production startup rejects the built-in development admin token, and an explicit `TOKENHUB_ADMIN_TOKEN` (for machine-to-machine admin API calls) can be supplied through `secretEnv`; startup rejects weak values in this mode.
 
 Credentials can also come from existing secrets instead of inline values:
 
@@ -68,8 +76,9 @@ The referenced auth secret must provide `TOKENHUB_SECRET_KEY` and `TOKENHUB_BOOT
 | Resource | Purpose |
 | --- | --- |
 | Deployment | One pod per replica runs both processes via `tokenhub-run`; environment entries are rendered directly into the pod spec |
-| Secret | `TOKENHUB_SECRET_KEY`, optional admin credentials, database URL, `secretEnv` entries (when the chart manages them) |
+| Secrets | `<release>-credentials` for the auth keys and optional admin credentials, `<release>-database` for the composed database URL (each only when the chart manages it) |
 | Service | `api` port (8080) and `console` port (3000) |
+| PersistentVolumeClaim | Generated image storage, only when `imageStorage.type` is `pvc` (see below) |
 | Ingress | API paths to the `api` port, everything else to the `console` port (disabled by default) |
 | PodMonitor | Only when `podMonitor.enabled` is true (see below) |
 | ExternalSecret | Only when `externalSecret.enabled` is true (see below) |
@@ -100,6 +109,16 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 
 - **Data:** the PostgreSQL server holds all durable state. Back it up with your PostgreSQL tooling; see [PostgreSQL setup](postgresql-setup.md).
 
+## Generated image storage
+
+Generated image bytes live on disk while PostgreSQL stores their metadata, so every replica must see the same directory. `imageStorage` controls where that directory lives:
+
+- `ephemeral` (default): the container filesystem. Acceptable for a single test replica; bytes are lost on pod replacement and peer replicas return 404 for images another replica wrote. The install notes warn when `replicaCount` is above 1.
+- `pvc`: the chart renders a `ReadWriteMany` PersistentVolumeClaim (sized by `imageStorage.size`, storage class `imageStorage.storageClass`) and mounts it in every replica. Requires a storage provider that supports multi-access volumes (NFS, EFS, CephFS, ...).
+- `existingClaim`: mount a claim you manage yourself through `imageStorage.existingClaim`.
+
+The volume mounts at `imageStorage.mountPath` (`/app/data/images`), which the chart exports as `TOKENHUB_IMAGE_STORAGE_DIR`.
+
 ## Monitoring with PodMonitor
 
 When the cluster runs [Prometheus Operator](https://prometheus-operator.dev/), enable a PodMonitor that scrapes `/metrics` on the API port. The metrics endpoint must be switched on through `extraEnv`:
@@ -107,7 +126,7 @@ When the cluster runs [Prometheus Operator](https://prometheus-operator.dev/), e
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-  --set 'extraEnv[0].value=true' \
+  --set-string 'extraEnv[0].value=true' \
   --set podMonitor.enabled=true \
   --set podMonitor.bearerTokenSecret.name=<secret-with-token> \
   --set podMonitor.bearerTokenSecret.key=TOKENHUB_METRICS_TOKEN
@@ -119,12 +138,20 @@ The metrics endpoint requires a bearer token: set a dedicated `TOKENHUB_METRICS_
 
 When the cluster runs the [External Secrets Operator](https://external-secrets.io/), the chart can fill its credentials secret from an external manager such as Vault or AWS Secrets Manager instead of rendering one itself:
 
+Migrating an existing release needs the previously configured credential and database values cleared, because `--reuse-values` keeps them and they conflict with this mode:
+
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set externalSecret.enabled=true \
   --set externalSecret.secretStore=aws-secrets-manager \
-  --set externalSecret.sourceSecretId=tokenhub/prod
+  --set externalSecret.sourceSecretId=tokenhub/prod \
+  --set database.url=null \
+  --set postgresql.enabled=null \
+  --set 'secretEnv.TOKENHUB_SECRET_KEY=null' \
+  --set 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=null'
 ```
+
+On a fresh install without prior values the same command works without the `=null` entries. The chart stops managing the credentials secret during this transition; the operator takes ownership of it on the first sync.
 
 With AWS Secrets Manager as the example, the three values map to:
 
@@ -133,8 +160,8 @@ With AWS Secrets Manager as the example, the three values map to:
    ```bash
    aws secretsmanager create-secret --name tokenhub/prod --secret-string '{
      "TOKENHUB_SECRET_KEY": "0123456789abcdef0123456789abcdef",
-     "TOKENHUB_DATABASE_URL": "postgresql://tokenhub:password@tokenhub.rds.amazonaws.com:5432/tokenhub?sslmode=require",
-     "TOKENHUB_ADMIN_TOKEN": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD": "a-stable-bootstrap-password",
+     "TOKENHUB_DATABASE_URL": "postgresql://tokenhub:password@tokenhub.rds.amazonaws.com:5432/tokenhub?sslmode=require"
    }'
    ```
 
@@ -166,9 +193,9 @@ With AWS Secrets Manager as the example, the three values map to:
 
    Grant the role `secretsmanager:GetSecretValue` on `tokenhub/*`, plus `kms:Decrypt` when a customer-managed KMS key is used.
 
-3. `externalSecret.refreshInterval` controls how often the operator re-extracts the secret (5 minutes by default). Rotating values in AWS takes effect after the next refresh without touching the cluster.
+3. `externalSecret.refreshInterval` controls how often the operator re-extracts the secret (5 minutes by default). Rotating values in AWS updates the Kubernetes secret after the next refresh; because the pod reads the values as environment variables, run `kubectl rollout restart` on the deployment afterwards to pick them up.
 
-The remote secret is extracted 1:1 into the chart credentials secret and must provide `TOKENHUB_SECRET_KEY`, `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`, and `TOKENHUB_DATABASE_URL`; optional keys such as `TOKENHUB_METRICS_TOKEN` are picked up the same way. This mode uses the `external-secrets.io/v1beta1` API and is mutually exclusive with `postgresql.enabled` and `secretEnv`.
+The remote secret is extracted 1:1 into the chart credentials secret and must provide `TOKENHUB_SECRET_KEY`, `TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD`, and `TOKENHUB_DATABASE_URL` — the pod creates non-optional environment references for all three, and a missing key leaves the container in `CreateContainerConfigError` after the first sync. Optional keys such as `TOKENHUB_METRICS_TOKEN` are picked up the same way and are consumed by name; to expose an extra key as a pod environment variable, list it in `secretEnv` with an empty value. This mode uses the `external-secrets.io/v1beta1` API and is mutually exclusive with `postgresql.enabled` and `secretEnv` values.
 
 ## Values
 

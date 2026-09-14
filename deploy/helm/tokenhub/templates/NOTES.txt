@@ -3,8 +3,10 @@
 {{- else }}
 TokenHub has been deployed to namespace {{ .Release.Namespace }}.
 
+{{- $apiBaseURL := include "tokenhub.apiBaseURL" . }}
 {{- if and .Values.ingress.enabled .Values.ingress.host }}- Admin console: {{ if .Values.ingress.tls.enabled }}https://{{ .Values.ingress.host }}{{ else }}http://{{ .Values.ingress.host }}{{ end }}
   API and SDK traffic uses the same host under /v1, /api, and /v1beta.
+  The console calls the API at {{ $apiBaseURL }} (TOKENHUB_API_BASE_URL).
 {{- else }}- The chart did not create an ingress. Port-forward and open the console:
 
     kubectl port-forward svc/{{ include "tokenhub.fullname" . }} 8080:8080 3000:3000 -n {{ .Release.Namespace }}
@@ -12,7 +14,9 @@ TokenHub has been deployed to namespace {{ .Release.Namespace }}.
   Console: http://localhost:3000  API: http://localhost:8080/v1
 
   Set TOKENHUB_PUBLIC_BASE_URL via extraEnv to the URL users will visit so
-  links, CORS, and redirects work.
+  links, CORS, and redirects work. When the console is published beyond this
+  machine, also set apiBaseUrl so browser logins reach the API instead of the
+  visitor's own localhost.
 {{- end }}
 {{- if and .Values.postgresql.enabled (not .Values.database.url) }}- The built-in PostgreSQL subchart is for quick testing only. For production,
   point database.url at a managed PostgreSQL service and disable it.
@@ -30,6 +34,10 @@ TokenHub has been deployed to namespace {{ .Release.Namespace }}.
 {{- end }}
 {{- if .Values.podMonitor.enabled }}- Metrics are scraped by PodMonitor {{ include "tokenhub.fullname" . }} from
   /metrics on the api port.
+{{- end }}
+{{- if and (gt (int .Values.replicaCount) 1) (eq .Values.imageStorage.type "ephemeral") }}- Generated image bytes are stored in each container's filesystem and are
+  not shared between replicas or preserved across pod replacement. Set
+  imageStorage.type=pvc (or existingClaim) for multi-replica installs.
 {{- end }}
 - Plugins are stateless: runtime-installed plugin packages are removed when a
   pod is replaced. Built-in provider plugins ship in the image and always

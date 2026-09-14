@@ -16,6 +16,13 @@ nindent.
 {{- define "tokenhub.podMetadata" -}}
 labels:
   {{- include "tokenhub.selectorLabels" . | nindent 2 }}
+annotations:
+  # Rolls the pods whenever a chart-managed secret changes: Kubernetes does
+  # not refresh env vars from updated Secrets, so a new database password or
+  # secretEnv value only takes effect through a rollout. Externally managed
+  # secrets (credentialsSecret, externalSecret) rotate outside this checksum;
+  # restart the workload after changing them.
+  checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
 {{- end }}
 
 {{- define "tokenhub.podSpec" -}}
@@ -70,6 +77,10 @@ ports:
   - name: console
     containerPort: 3000
     protocol: TCP
+{{- with .Values.resources }}
+resources:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
 {{ include "tokenhub.probes" . }}
 env:
   {{- include "tokenhub.env" . | nindent 2 }}
@@ -107,28 +118,43 @@ livenessProbe:
 
 {{- define "tokenhub.env" -}}
 {{- $authSecret := default (include "tokenhub.secretName" .) .Values.credentialsSecret }}
+{{- $apiBaseURL := include "tokenhub.apiBaseURL" . }}
+- name: TOKENHUB_ENV
+  value: {{ .Values.environment | quote }}
+{{- if $apiBaseURL }}
+- name: TOKENHUB_API_BASE_URL
+  value: {{ $apiBaseURL | quote }}
+{{- end }}
+{{- if ne .Values.imageStorage.type "ephemeral" }}
+- name: TOKENHUB_IMAGE_STORAGE_DIR
+  value: {{ .Values.imageStorage.mountPath | quote }}
+{{- end }}
 {{- with .Values.extraEnv }}
 {{- toYaml . | nindent 0 }}
 {{- end }}
-{{- /* Secret references: one env entry per secretEnv key. Only the secret
-name resolution stays here because it depends on the credentials mode. */}}
+{{- /* Secret references: one env entry per secretEnv key. The database URL
+resolves through its own secret so an existing credentialsSecret can combine
+with any supported database source. */}}
 {{- range $key, $value := .Values.secretEnv }}
 - name: {{ $key }}
   valueFrom:
     secretKeyRef:
-      {{- if and (eq $key "TOKENHUB_DATABASE_URL") $.Values.database.existingSecret }}
-      name: {{ $.Values.database.existingSecret }}
-      key: TOKENHUB_DATABASE_URL
+      {{- if eq $key "TOKENHUB_DATABASE_URL" }}
+      name: {{ include "tokenhub.databaseSecretName" $ }}
       {{- else }}
       name: {{ $authSecret }}
-      key: {{ $key }}
       {{- end }}
+      key: {{ $key }}
 {{- end }}
 {{- end }}
 
 {{- define "tokenhub.volumeMounts" -}}
 - name: plugins
   mountPath: /app/plugins
+{{- if ne .Values.imageStorage.type "ephemeral" }}
+- name: images
+  mountPath: {{ .Values.imageStorage.mountPath }}
+{{- end }}
 {{ end }}
 
 {{- define "tokenhub.volumes" -}}
@@ -137,4 +163,13 @@ volumes:
   # built-in plugins ship inside the image.
   - name: plugins
     emptyDir: {}
+  {{- if eq .Values.imageStorage.type "pvc" }}
+  - name: images
+    persistentVolumeClaim:
+      claimName: {{ include "tokenhub.fullname" . }}-images
+  {{- else if eq .Values.imageStorage.type "existingClaim" }}
+  - name: images
+    persistentVolumeClaim:
+      claimName: {{ required "imageStorage.existingClaim is required" .Values.imageStorage.existingClaim }}
+  {{- end }}
 {{ end }}

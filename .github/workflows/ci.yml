@@ -587,6 +587,7 @@ jobs:
           helm template tokenhub deploy/helm/tokenhub \
             --set ingress.enabled=true \
             --set ingress.host=tokenhub.example.com \
+            --set ingress.tls.enabled=true \
             --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
             --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
             --set database.url='postgresql://tokenhub:test@db.example:5432/tokenhub?sslmode=require' \
@@ -607,17 +608,78 @@ jobs:
           ! grep -q 'kind: PodMonitor' <<<"$rendered"
           ! grep -q 'kind: ExternalSecret' <<<"$rendered"
 
+          # Production hardening: the pod runs in the prod environment (the
+          # built-in development admin token is rejected there) and the console
+          # derives its browser-facing API URL from the ingress host.
+          grep -Fq 'name: TOKENHUB_ENV' <<<"$rendered"
+          grep -Fq 'value: "prod"' <<<"$rendered"
+          grep -Fq 'name: TOKENHUB_API_BASE_URL' <<<"$rendered"
+          grep -Fq 'value: "https://tokenhub.example.com"' <<<"$rendered"
+
+          # Chart-managed secrets: credentials and the database URL render
+          # separately, and the pod template carries a checksum so credential
+          # changes roll the pods.
+          grep -Fq 'name: tokenhub-tokenhub-credentials' <<<"$rendered"
+          grep -Fq 'name: tokenhub-tokenhub-database' <<<"$rendered"
+          grep -Fq 'checksum/secrets:' <<<"$rendered"
+
+          # A comma-separated CIDR list must escape the commas for Helm's
+          # --set parser, matching the documented production command.
+          helm template tokenhub deploy/helm/tokenhub \
+            --set ingress.enabled=true \
+            --set ingress.host=tokenhub.example.com \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.url='postgresql://tokenhub:test@db.example:5432/tokenhub?sslmode=require' \
+            --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
+            --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
+            | grep -Fq 'value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+
+          # Operator sizing must reach the container spec.
+          helm template tokenhub deploy/helm/tokenhub \
+            --set ingress.enabled=false \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set resources.requests.memory=512Mi \
+            --set resources.limits.memory=1Gi \
+            > /tmp/tokenhub-resources.yaml
+          resources_rendered="$(cat /tmp/tokenhub-resources.yaml)"
+          grep -Fq 'requests:' <<<"$resources_rendered"
+          grep -Fq 'memory: 512Mi' <<<"$resources_rendered"
+          grep -Fq 'limits:' <<<"$resources_rendered"
+          grep -Fq 'memory: 1Gi' <<<"$resources_rendered"
+
+          # Shared image storage: the chart renders a ReadWriteMany claim and
+          # points TOKENHUB_IMAGE_STORAGE_DIR at the mounted path.
+          helm template tokenhub deploy/helm/tokenhub \
+            --set ingress.enabled=false \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set imageStorage.type=pvc \
+            --set imageStorage.storageClass=nfs \
+            > /tmp/tokenhub-images.yaml
+          images_rendered="$(cat /tmp/tokenhub-images.yaml)"
+          grep -Fq 'kind: PersistentVolumeClaim' <<<"$images_rendered"
+          grep -Fq 'ReadWriteMany' <<<"$images_rendered"
+          grep -Fq 'name: TOKENHUB_IMAGE_STORAGE_DIR' <<<"$images_rendered"
+          grep -Fq 'mountPath: /app/data/images' <<<"$images_rendered"
+
           # PodMonitor scrapes /metrics; the metrics endpoint must be enabled
-          # through extraEnv.
+          # through extraEnv with a string value (--set would render a YAML
+          # boolean that Kubernetes rejects).
           helm template tokenhub deploy/helm/tokenhub \
             --set ingress.enabled=false \
             --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
             --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
             --set database.existingSecret=tokenhub-database \
             --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-            --set 'extraEnv[0].value=true' \
+            --set-string 'extraEnv[0].value=true' \
             --set podMonitor.enabled=true \
-            | grep -Fq 'kind: PodMonitor'
+            > /tmp/tokenhub-podmonitor.yaml
+          grep -Fq 'kind: PodMonitor' /tmp/tokenhub-podmonitor.yaml
+          grep -Fq 'value: "true"' /tmp/tokenhub-podmonitor.yaml
 
           # ExternalSecret mode replaces the chart-managed credentials secret.
           helm template tokenhub deploy/helm/tokenhub \
@@ -632,6 +694,20 @@ jobs:
           grep -Fq 'key: tokenhub/prod' <<<"$externalsecret_rendered"
           grep -Fq 'creationPolicy: Owner' <<<"$externalsecret_rendered"
           ! grep -q '^kind: Secret$' <<<"$externalsecret_rendered"
+
+          # An existing credentials secret combines with any database source:
+          # only the chart-managed database secret renders, and the pod reads
+          # the auth keys from the referenced secret.
+          helm template tokenhub deploy/helm/tokenhub \
+            --set ingress.enabled=false \
+            --set credentialsSecret=tokenhub-auth \
+            --set database.url='postgresql://tokenhub:test@db.example:5432/tokenhub?sslmode=require' \
+            > /tmp/tokenhub-combo.yaml
+          combo_rendered="$(cat /tmp/tokenhub-combo.yaml)"
+          [ "$(grep -c 'kind: Secret' <<<"$combo_rendered")" -eq 1 ]
+          grep -Fq 'name: tokenhub-tokenhub-database' <<<"$combo_rendered"
+          grep -A3 'name: TOKENHUB_SECRET_KEY' <<<"$combo_rendered" | grep -Fq 'name: tokenhub-auth'
+          grep -A3 'name: TOKENHUB_DATABASE_URL' <<<"$combo_rendered" | grep -Fq 'name: tokenhub-tokenhub-database'
 
           # The built-in PostgreSQL subchart composes the database URL for
           # quick-testing installs.

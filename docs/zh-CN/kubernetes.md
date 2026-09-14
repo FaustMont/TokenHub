@@ -17,6 +17,9 @@ TokenHub 在 `deploy/helm/tokenhub` 提供 Helm chart,用于 Kubernetes 集群�
 对于一次性集群和冒烟测试,启用捆绑的 `bitnami/postgresql` 子 chart:
 
 ```bash
+# Chart.lock 固定了子 chart 版本,但不会注册它的仓库。
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 helm dependency build deploy/helm/tokenhub
 helm install tokenhub deploy/helm/tokenhub \
   --set postgresql.enabled=true \
@@ -38,11 +41,14 @@ helm install tokenhub deploy/helm/tokenhub \
   --set secretEnv.TOKENHUB_SECRET_KEY="$(openssl rand -hex 32)" \
   --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD="<stable-bootstrap-password>" \
   --set database.url='postgresql://tokenhub:password@postgres.example.com:5432/tokenhub?sslmode=require' \
+  --set imageStorage.type=pvc \
   --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
-  --set 'extraEnv[0].value=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+  --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16'
 ```
 
-`TOKENHUB_TRUSTED_PROXY_CIDRS` 必须覆盖 Ingress 控制器的来源地址,这样限流、审计等客户端 IP 归属才能拿到真实客户端地址而不是控制器 IP。私有 Pod/Service CIDR 是合理的起点,之后再收紧到你的集群实际网段。
+`TOKENHUB_TRUSTED_PROXY_CIDRS` 必须覆盖 Ingress 控制器的来源地址,这样限流、审计等客户端 IP 归属才能拿到真实客户端地址而不是控制器 IP。私有 Pod/Service CIDR 是合理的起点,之后再收紧到你的集群实际网段。同一个值内部的逗号要写成 `\,`,因为 Helm 的 `--set` 解析器会把裸逗号当作列表分隔符;放进 values 文件则完全不需要转义。
+
+启用 Ingress 时,chart 会从 Ingress 的协议和主机名推导控制台浏览器侧的 API 地址(`TOKENHUB_API_BASE_URL`),浏览器登录会直接打到 API Service 而不是访问者自己的机器。如果用其他方式发布控制台(负载均衡、远程端口转发),需要显式设置 `apiBaseUrl`。
 
 首次登录使用用户名 `admin` 和你在 `secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 中设置的 bootstrap 密码:
 
@@ -51,6 +57,8 @@ kubectl get secret tokenhub-tokenhub-credentials -o jsonpath='{.data.TOKENHUB_BO
 ```
 
 chart 不会自动生成该密码:请通过 `secretEnv` 设置一个稳定的值,并在后续升级中保持不变,bootstrap 种子只在空数据库上运行。改走 `extraEnv` 会与 chart 已渲染的 Secret 环境项重复。首次登录后在管理后台修改密码。
+
+chart 默认设置 `TOKENHUB_ENV=prod`。生产模式下启动会拒绝内置的开发用 admin token;如需 `TOKENHUB_ADMIN_TOKEN`(供机器间调用管理 API),通过 `secretEnv` 提供,弱值会被启动检查拒绝。
 
 凭据也可以来自已有的 Secret 而不是内联值:
 
@@ -68,8 +76,9 @@ helm install tokenhub deploy/helm/tokenhub \
 | 资源 | 用途 |
 | --- | --- |
 | Deployment | 每个 Pod 副本通过 `tokenhub-run` 同时运行两个进程;环境变量直接渲染进 Pod spec |
-| Secret | `TOKENHUB_SECRET_KEY`、可选的管理凭据、数据库 URL、`secretEnv` 条目(chart 托管时) |
+| Secrets | `<release>-credentials` 存放鉴权密钥和可选管理凭据,`<release>-database` 存放组合出的数据库 URL(各自仅在 chart 托管时创建) |
 | Service | `api` 端口(8080)和 `console` 端口(3000) |
+| PersistentVolumeClaim | 生成图片存储,仅在 `imageStorage.type` 为 `pvc` 时创建(见下文) |
 | Ingress | API 路径指向 `api` 端口,其余路径指向 `console` 端口(默认关闭) |
 | PodMonitor | 仅在 `podMonitor.enabled` 为 true 时创建(见下文) |
 | ExternalSecret | 仅在 `externalSecret.enabled` 为 true 时创建(见下文) |
@@ -100,6 +109,16 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 
 - **数据:** 所有持久状态都在 PostgreSQL 中。使用 PostgreSQL 工具备份,参见 [PostgreSQL 配置](postgresql-setup.md)。
 
+## 生成图片的存储
+
+生成的图片字节存放在磁盘上,PostgreSQL 只保存元数据,所以每个副本必须看到同一个目录。`imageStorage` 控制这个目录的位置:
+
+- `ephemeral`(默认):容器文件系统。单个测试副本可以接受;Pod 被替换后字节丢失,其他副本读到别的副本写入的图片会返回 404。`replicaCount` 大于 1 时安装提示会给出警告。
+- `pvc`:chart 渲染一个 `ReadWriteMany` 的 PersistentVolumeClaim(容量取 `imageStorage.size`,存储类取 `imageStorage.storageClass`)并挂载进每个副本。要求存储后端支持多节点读写(NFS、EFS、CephFS 等)。
+- `existingClaim`:挂载自行管理的 claim,通过 `imageStorage.existingClaim` 指定。
+
+卷挂载在 `imageStorage.mountPath`(`/app/data/images`),chart 会把它导出为 `TOKENHUB_IMAGE_STORAGE_DIR`。
+
 ## 用 PodMonitor 监控
 
 集群运行 [Prometheus Operator](https://prometheus-operator.dev/) 时,可以启用 PodMonitor 抓取 API 端口上的 `/metrics`。metrics 端点需要先通过 `extraEnv` 打开:
@@ -107,7 +126,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-  --set 'extraEnv[0].value=true' \
+  --set-string 'extraEnv[0].value=true' \
   --set podMonitor.enabled=true \
   --set podMonitor.bearerTokenSecret.name=<存放token的secret> \
   --set podMonitor.bearerTokenSecret.key=TOKENHUB_METRICS_TOKEN
@@ -119,12 +138,20 @@ metrics 端点需要 Bearer 鉴权:通过 `secretEnv` 设置专用的 `TOKENHUB_
 
 集群运行 [External Secrets Operator](https://external-secrets.io/) 时,chart 可以从 Vault、AWS Secrets Manager 等外部密钥管理系统同步凭据,而不是自己渲染 Secret:
 
+迁移已有 release 时要先清掉之前配置的凭据和数据库值,否则 `--reuse-values` 会保留它们并与该模式冲突:
+
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set externalSecret.enabled=true \
   --set externalSecret.secretStore=aws-secrets-manager \
-  --set externalSecret.sourceSecretId=tokenhub/prod
+  --set externalSecret.sourceSecretId=tokenhub/prod \
+  --set database.url=null \
+  --set postgresql.enabled=null \
+  --set 'secretEnv.TOKENHUB_SECRET_KEY=null' \
+  --set 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=null'
 ```
+
+全新安装没有旧值时,同样的命令不需要 `=null` 部分。切换过程中 chart 不再管理凭证 secret,首次同步后由 operator 接管其所有权。
 
 以 AWS Secrets Manager 为例,三个值的对应关系如下:
 
@@ -133,8 +160,8 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
    ```bash
    aws secretsmanager create-secret --name tokenhub/prod --secret-string '{
      "TOKENHUB_SECRET_KEY": "0123456789abcdef0123456789abcdef",
-     "TOKENHUB_DATABASE_URL": "postgresql://tokenhub:password@tokenhub.rds.amazonaws.com:5432/tokenhub?sslmode=require",
-     "TOKENHUB_ADMIN_TOKEN": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD": "a-stable-bootstrap-password",
+     "TOKENHUB_DATABASE_URL": "postgresql://tokenhub:password@tokenhub.rds.amazonaws.com:5432/tokenhub?sslmode=require"
    }'
    ```
 
@@ -166,9 +193,9 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
 
    给该 role 授权 `tokenhub/*` 的 `secretsmanager:GetSecretValue`;使用自定义 KMS 密钥时还需要 `kms:Decrypt`。
 
-3. `externalSecret.refreshInterval` 控制 operator 重新提取的频率(默认 5 分钟)。在 AWS 侧轮换值后,下一个刷新周期自动生效,不需要改动集群。
+3. `externalSecret.refreshInterval` 控制 operator 重新提取的频率(默认 5 分钟)。在 AWS 侧轮换值后,下一个刷新周期会更新 Kubernetes Secret;由于 Pod 以环境变量形式读取这些值,之后还要对 deployment 执行 `kubectl rollout restart` 才会生效。
 
-远端 secret 会 1:1 提取进 chart 的凭证 secret,必须包含 `TOKENHUB_SECRET_KEY`、`TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 和 `TOKENHUB_DATABASE_URL`;`TOKENHUB_METRICS_TOKEN` 等可选键按同样方式带上即可。此模式使用 `external-secrets.io/v1beta1` API,与 `postgresql.enabled`、`secretEnv` 互斥。
+远端 secret 会 1:1 提取进 chart 的凭证 secret,必须包含 `TOKENHUB_SECRET_KEY`、`TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD` 和 `TOKENHUB_DATABASE_URL`——Pod 会为三者创建非可选的环境变量引用,首次同步后缺少任一键都会让容器进入 `CreateContainerConfigError`。`TOKENHUB_METRICS_TOKEN` 等可选键按同样方式带上并按名称消费;想把额外的键暴露为 Pod 环境变量,把它以空值列入 `secretEnv` 即可。此模式使用 `external-secrets.io/v1beta1` API,与 `postgresql.enabled`、`secretEnv` 值互斥。
 
 ## Values
 
