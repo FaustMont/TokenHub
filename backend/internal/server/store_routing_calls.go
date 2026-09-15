@@ -1278,18 +1278,40 @@ func (s *GormStore) ListImageJobsForAudit(query ImageJobAuditQuery) []ImageJob {
 	return jobs
 }
 
-func (s *GormStore) FailUnfinishedImageJobs(code string, message string) ([]ImageJob, error) {
+// FailUnfinishedImageJobs fails the unfinished image jobs owned by the named
+// worker instance. Scoping by owner keeps a draining instance from failing a
+// live peer's work: see the Store interface notes.
+func (s *GormStore) FailUnfinishedImageJobs(workerInstance string, code string, message string) ([]ImageJob, error) {
+	return s.failImageJobsWhere(func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("worker_instance = ?", workerInstance)
+	}, code, message)
+}
+
+// FailAbandonedImageJobs fails unfinished image jobs whose owner no longer
+// publishes a live heartbeat. Jobs without a recorded owner predate instance
+// ownership and count as abandoned.
+func (s *GormStore) FailAbandonedImageJobs(code string, message string) ([]ImageJob, error) {
+	cutoff := time.Now().UTC().Add(-InstanceHeartbeatTTL).Format(time.RFC3339)
+	return s.failImageJobsWhere(func(tx *gorm.DB) *gorm.DB {
+		return tx.Where(
+			"worker_instance IS NULL OR worker_instance = '' OR worker_instance NOT IN (SELECT instance_id FROM instance_heartbeats WHERE last_seen >= ?)",
+			cutoff,
+		)
+	}, code, message)
+}
+
+func (s *GormStore) failImageJobsWhere(scope func(tx *gorm.DB) *gorm.DB, code string, message string) ([]ImageJob, error) {
 	now := time.Now().UTC()
 	var jobs []ImageJob
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		unfinished := []string{imageJobStatusQueued, imageJobStatusRunning}
-		if err := tx.Where("status IN ?", unfinished).Find(&jobs).Error; err != nil {
+		if err := scope(tx).Where("status IN ?", unfinished).Find(&jobs).Error; err != nil {
 			return err
 		}
 		if len(jobs) == 0 {
 			return nil
 		}
-		if err := tx.Model(&ImageJob{}).
+		if err := scope(tx.Model(&ImageJob{})).
 			Where("status IN ?", unfinished).
 			Updates(map[string]any{
 				"status":        imageJobStatusFailed,

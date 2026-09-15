@@ -119,18 +119,26 @@ Generated image bytes live on disk while PostgreSQL stores their metadata, so ev
 
 The volume mounts at `imageStorage.mountPath` (`/app/data/images`), which the chart exports as `TOKENHUB_IMAGE_STORAGE_DIR`.
 
+Image-job recovery is scoped to the instance that accepted a request: restarting, upgrading, or scaling the deployment never fails a job that a still-running replica is processing. Jobs owned by an instance that dies are failed after its heartbeat lapses (about 90 seconds), so clients receive a definitive failure instead of waiting forever.
+
 ## Monitoring with PodMonitor
 
 When the cluster runs [Prometheus Operator](https://prometheus-operator.dev/), enable a PodMonitor that scrapes `/metrics` on the API port. The metrics endpoint must be switched on through `extraEnv`:
 
+`extraEnv` is replaced wholesale on every upgrade — `--reuse-values` does not merge it — so restate the entries you already set (the trusted-proxy list from the production install above) alongside the new one:
+
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
-  --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-  --set-string 'extraEnv[0].value=true' \
+  --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
+  --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
+  --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
+  --set-string 'extraEnv[1].value=true' \
   --set podMonitor.enabled=true \
   --set podMonitor.bearerTokenSecret.name=<secret-with-token> \
   --set podMonitor.bearerTokenSecret.key=TOKENHUB_METRICS_TOKEN
 ```
+
+For the same reason a values file (`-f monitoring-values.yaml` holding the full `extraEnv` list) is easier to maintain across several upgrades.
 
 The metrics endpoint requires a bearer token: set a dedicated `TOKENHUB_METRICS_TOKEN` (via `secretEnv`) and reference the secret through `podMonitor.bearerTokenSecret`; add `podMonitor.additionalLabels` so your Prometheus installation selects the monitor.
 
@@ -146,12 +154,14 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
   --set database.url=null \
-  --set postgresql.enabled=null \
-  --set 'secretEnv.TOKENHUB_SECRET_KEY=null' \
-  --set 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=null'
+  --set postgresql.enabled=false \
+  --set-string 'secretEnv.TOKENHUB_SECRET_KEY=' \
+  --set-string 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD='
 ```
 
-On a fresh install without prior values the same command works without the `=null` entries. The chart stops managing the credentials secret during this transition; the operator takes ownership of it on the first sync.
+The empty-string assignments matter: Helm deletes a map key that is assigned `null`, and a deleted key no longer produces the pod's secret environment reference even after ESO fills the secret — the container then fails startup. `postgresql.enabled=false` instead of `null` for the same reason: `null` strips the boolean the subchart condition keys on and leaves the bundled PostgreSQL rendered. Assigning `database.url=null` is safe because the pod reads the database URL through the secret only.
+
+On a fresh install without prior values the same command works without those overrides. The chart stops managing the credentials secret during this transition; the operator takes ownership of it on the first sync.
 
 With AWS Secrets Manager as the example, the three values map to:
 

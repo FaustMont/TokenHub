@@ -119,18 +119,26 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 
 卷挂载在 `imageStorage.mountPath`(`/app/data/images`),chart 会把它导出为 `TOKENHUB_IMAGE_STORAGE_DIR`。
 
+图片任务的恢复只作用于接受该请求的实例:重启、升级或扩容都不会让仍在运行的副本上的任务失败。持有任务的实例死亡后,其心跳过期(约 90 秒)时任务会被标记失败,客户端拿到确定的失败结果而不是一直等待。
+
 ## 用 PodMonitor 监控
 
 集群运行 [Prometheus Operator](https://prometheus-operator.dev/) 时,可以启用 PodMonitor 抓取 API 端口上的 `/metrics`。metrics 端点需要先通过 `extraEnv` 打开:
 
+`extraEnv` 在每次升级时都会被整体替换——`--reuse-values` 不会合并它——所以要把已设置的条目(上面生产安装中的 trusted-proxy 列表)和新条目一起重新声明:
+
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
-  --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-  --set-string 'extraEnv[0].value=true' \
+  --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
+  --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
+  --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
+  --set-string 'extraEnv[1].value=true' \
   --set podMonitor.enabled=true \
   --set podMonitor.bearerTokenSecret.name=<存放token的secret> \
   --set podMonitor.bearerTokenSecret.key=TOKENHUB_METRICS_TOKEN
 ```
+
+同样原因,如果后续还要多次升级,用 values 文件(`-f monitoring-values.yaml`,里面写完整的 `extraEnv` 列表)更好维护。
 
 metrics 端点需要 Bearer 鉴权:通过 `secretEnv` 设置专用的 `TOKENHUB_METRICS_TOKEN`,再用 `podMonitor.bearerTokenSecret` 引用对应的 Secret;用 `podMonitor.additionalLabels` 让你的 Prometheus 实例选中这个 monitor。
 
@@ -146,12 +154,14 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
   --set database.url=null \
-  --set postgresql.enabled=null \
-  --set 'secretEnv.TOKENHUB_SECRET_KEY=null' \
-  --set 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=null'
+  --set postgresql.enabled=false \
+  --set-string 'secretEnv.TOKENHUB_SECRET_KEY=' \
+  --set-string 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD='
 ```
 
-全新安装没有旧值时,同样的命令不需要 `=null` 部分。切换过程中 chart 不再管理凭证 secret,首次同步后由 operator 接管其所有权。
+用空字符串赋值是有意为之:Helm 会把赋值为 `null` 的 map 键整个删掉,键被删掉后,即使 ESO 已把值同步进 Secret,Pod 的环境变量引用也不再渲染,容器会启动失败。`postgresql.enabled` 同理要用 `false` 而不是 `null`:`null` 会去掉子 chart condition 依赖的布尔值,导致内置 PostgreSQL 仍被渲染。`database.url=null` 则是安全的,因为 Pod 只通过 Secret 读取数据库 URL。
+
+全新安装没有旧值时,同样的命令不需要这些覆盖参数。切换过程中 chart 不再管理凭证 secret,首次同步后由 operator 接管其所有权。
 
 以 AWS Secrets Manager 为例,三个值的对应关系如下:
 

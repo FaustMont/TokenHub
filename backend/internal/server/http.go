@@ -237,10 +237,14 @@ func newWithConfig(store Store, config Config, billingDependencies BillingDepend
 				event.Action, "billing_connector", event.ResourceID, event.Status, event.Message, event.Before, event.After)
 		},
 	})
-	if jobs, err := store.FailUnfinishedImageJobs("image_worker_restarted", "Image generation stopped because the server restarted"); err != nil {
-		log.Printf("[tokenhub] failed to mark unfinished image jobs after startup: %v", err)
+	// Startup recovery only claims jobs whose owner stopped publishing a
+	// heartbeat: a live peer's running image jobs must survive this
+	// instance's start, and true orphans (dead worker, expired heartbeat)
+	// get cleaned here and by the periodic sweep.
+	if jobs, err := store.FailAbandonedImageJobs("image_worker_restarted", "Image generation stopped because the owning worker stopped"); err != nil {
+		log.Printf("[tokenhub] failed to mark abandoned image jobs after startup: %v", err)
 	} else if len(jobs) > 0 {
-		log.Printf("[tokenhub] marked %d unfinished image jobs as failed after startup", len(jobs))
+		log.Printf("[tokenhub] marked %d abandoned image jobs as failed after startup", len(jobs))
 	}
 	if gormStore, ok := store.(*GormStore); ok {
 		s.stopHeartbeat = gormStore.StartInstanceHeartbeat(config.AppVersion)

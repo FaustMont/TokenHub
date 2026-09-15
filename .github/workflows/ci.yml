@@ -719,6 +719,64 @@ jobs:
             --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
             | grep -Fq 'postgresql://tokenhub:quick-test-password@tokenhub-postgresql:5432/tokenhub?sslmode=disable'
 
+          # Migrating a saved production release to ExternalSecret mode must
+          # keep every secretKeyRef: empty strings preserve the typed
+          # secretEnv keys (null would delete them), and postgresql.enabled
+          # moves to false instead of null so the subchart stays excluded.
+          cat > /tmp/tokenhub-prod-values.yaml <<'VALUES'
+ingress:
+  enabled: true
+  host: tokenhub.example.com
+secretEnv:
+  TOKENHUB_SECRET_KEY: ssssssssssssssssssssssssssssssss
+  TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD: bootstrap-password
+postgresql:
+  enabled: true
+  auth:
+    password: quick-test-password
+extraEnv:
+  - name: TOKENHUB_TRUSTED_PROXY_CIDRS
+    value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+VALUES
+          helm template tokenhub deploy/helm/tokenhub \
+            -f /tmp/tokenhub-prod-values.yaml \
+            --set externalSecret.enabled=true \
+            --set externalSecret.secretStore=aws-secrets-manager \
+            --set externalSecret.sourceSecretId=tokenhub/prod \
+            --set database.url=null \
+            --set postgresql.enabled=false \
+            --set-string 'secretEnv.TOKENHUB_SECRET_KEY=' \
+            --set-string 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=' \
+            > /tmp/tokenhub-migration.yaml
+          migration_rendered="$(cat /tmp/tokenhub-migration.yaml)"
+          grep -Fq 'kind: ExternalSecret' <<<"$migration_rendered"
+          ! grep -q 'kind: StatefulSet' <<<"$migration_rendered"
+          grep -A3 'name: TOKENHUB_SECRET_KEY' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
+          grep -A3 'name: TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
+          grep -A3 'name: TOKENHUB_DATABASE_URL' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
+          grep -Fq 'name: TOKENHUB_TRUSTED_PROXY_CIDRS' <<<"$migration_rendered"
+
+          # Enabling PodMonitor on an existing install must restate the
+          # production extraEnv entries: the list is replaced, not merged.
+          helm template tokenhub deploy/helm/tokenhub \
+            -f /tmp/tokenhub-prod-values.yaml \
+            --set postgresql.enabled=false \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.url='postgresql://tokenhub:test@db.example:5432/tokenhub?sslmode=require' \
+            --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
+            --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
+            --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
+            --set-string 'extraEnv[1].value=true' \
+            --set podMonitor.enabled=true \
+            > /tmp/tokenhub-monitoring.yaml
+          monitoring_rendered="$(cat /tmp/tokenhub-monitoring.yaml)"
+          grep -Fq 'kind: PodMonitor' <<<"$monitoring_rendered"
+          grep -Fq 'name: TOKENHUB_TRUSTED_PROXY_CIDRS' <<<"$monitoring_rendered"
+          grep -Fq 'value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16' <<<"$monitoring_rendered"
+          grep -Fq 'name: TOKENHUB_METRICS_ENABLED' <<<"$monitoring_rendered"
+          grep -Fq 'value: "true"' <<<"$monitoring_rendered"
+
           # Required values fail closed instead of installing placeholders.
           if helm template tokenhub deploy/helm/tokenhub >/dev/null 2>&1; then
             echo "chart rendered without required credentials and database URL" >&2

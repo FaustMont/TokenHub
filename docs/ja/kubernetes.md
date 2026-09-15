@@ -119,18 +119,26 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 
 ボリュームは `imageStorage.mountPath`(`/app/data/images`)にマウントされ、チャートはこれを `TOKENHUB_IMAGE_STORAGE_DIR` としてエクスポートします。
 
+画像ジョブのリカバリはリクエストを受け付けたインスタンスに限定されます。再起動・アップグレード・スケールでも、稼働中レプリカが処理しているジョブは失敗しません。ジョブを保持していたインスタンスが停止した場合は、そのハートビートが失効した時点(約 90 秒)でジョブが失敗として記録され、クライアントは待ち続ける代わりに確定した失敗を受け取ります。
+
 ## PodMonitor での監視
 
 クラスターで [Prometheus Operator](https://prometheus-operator.dev/) が動いている場合、API ポートの `/metrics` をスクレイプする PodMonitor を有効化できます。metrics エンドポイントは先に `extraEnv` で有効化してください:
 
+`extraEnv` はアップグレードのたびに丸ごと置き換えられます。`--reuse-values` はマージしません。そのため、既存のエントリ(上の本番インストールの trusted-proxy リスト)を新しいエントリと一緒に再指定してください:
+
 ```bash
 helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
-  --set 'extraEnv[0].name=TOKENHUB_METRICS_ENABLED' \
-  --set-string 'extraEnv[0].value=true' \
+  --set 'extraEnv[0].name=TOKENHUB_TRUSTED_PROXY_CIDRS' \
+  --set 'extraEnv[0].value=10.0.0.0/8\,172.16.0.0/12\,192.168.0.0/16' \
+  --set 'extraEnv[1].name=TOKENHUB_METRICS_ENABLED' \
+  --set-string 'extraEnv[1].value=true' \
   --set podMonitor.enabled=true \
   --set podMonitor.bearerTokenSecret.name=<トークン用Secret> \
   --set podMonitor.bearerTokenSecret.key=TOKENHUB_METRICS_TOKEN
 ```
+
+同じ理由から、アップグレードを重ねるなら values ファイル(`-f monitoring-values.yaml` に `extraEnv` の全リストを記載)の方が管理しやすくなります。
 
 metrics エンドポイントは Bearer 認証が必要です。`secretEnv` で専用の `TOKENHUB_METRICS_TOKEN` を設定し、その Secret を `podMonitor.bearerTokenSecret` で参照してください。`podMonitor.additionalLabels` で Prometheus 側の選択条件に合わせます。
 
@@ -146,12 +154,14 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values \
   --set externalSecret.secretStore=aws-secrets-manager \
   --set externalSecret.sourceSecretId=tokenhub/prod \
   --set database.url=null \
-  --set postgresql.enabled=null \
-  --set 'secretEnv.TOKENHUB_SECRET_KEY=null' \
-  --set 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=null'
+  --set postgresql.enabled=false \
+  --set-string 'secretEnv.TOKENHUB_SECRET_KEY=' \
+  --set-string 'secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD='
 ```
 
-以前の値がない新規インストールでは、同じコマンドから `=null` の部分を除いてそのまま使えます。移行中、チャートは認証情報 Secret の管理をやめ、初回同期後にオペレーターが所有権を引き継ぎます。
+空文字列での代入には意味があります。Helm は `null` を代入された map のキーを削除します。キーが削除されると、ESO が Secret を同期した後でも Pod の環境変数参照はレンダリングされず、コンテナは起動に失敗します。`postgresql.enabled` も同様に `null` ではなく `false` を使います。`null` はサブチャートの condition が依存する真偽値を取り除き、同梱 PostgreSQL がレンダリングされたままになります。`database.url=null` は安全です。Pod はデータベース URL を Secret 経由でのみ読むためです。
+
+以前の値がない新規インストールでは、同じコマンドからこれらの上書きを除いてそのまま使えます。移行中、チャートは認証情報 Secret の管理をやめ、初回同期後にオペレーターが所有権を引き継ぎます。
 
 AWS Secrets Manager を例にすると、3 つの値の対応は次のとおりです:
 
