@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -452,21 +453,52 @@ func modelIDFromPath(r *http.Request) (string, error) {
 	return strings.TrimSpace(modelID), nil
 }
 
+type modelArchitecture struct {
+	Modality         string   `json:"modality,omitempty"`
+	InputModalities  []string `json:"input_modalities,omitempty"`
+	OutputModalities []string `json:"output_modalities,omitempty"`
+	Tokenizer        string   `json:"tokenizer,omitempty"`
+}
+
+type modelPricing struct {
+	Prompt         string `json:"prompt"`
+	Completion     string `json:"completion"`
+	InputCacheRead string `json:"input_cache_read,omitempty"`
+}
+
+type modelTopProvider struct {
+	ContextLength       int64 `json:"context_length"`
+	MaxCompletionTokens int64 `json:"max_completion_tokens"`
+	IsModerated         bool  `json:"is_moderated"`
+}
+
+type modelReasoningInfo struct {
+	Mandatory        bool     `json:"mandatory"`
+	SupportedEfforts []string `json:"supported_efforts,omitempty"`
+	DefaultEffort    string   `json:"default_effort,omitempty"`
+}
+
 type modelListItem struct {
-	ID                   string `json:"id"`
-	Created              int64  `json:"created"`
-	Object               string `json:"object"`
-	Type                 string `json:"type"`
-	OwnedBy              string `json:"owned_by,omitempty"`
-	InputTokenPricePerM  int64  `json:"input_token_price_per_m"`
-	OutputTokenPricePerM int64  `json:"output_token_price_per_m"`
-	Title                string `json:"title"`
-	DisplayName          string `json:"display_name"`
-	Description          string `json:"description"`
-	ContextSize          int64  `json:"context_size"`
-	CreatedAt            string `json:"created_at"`
-	MaxInputTokens       int64  `json:"max_input_tokens"`
-	MaxTokens            int64  `json:"max_tokens"`
+	ID                   string              `json:"id"`
+	Created              int64               `json:"created"`
+	Object               string              `json:"object"`
+	Type                 string              `json:"type"`
+	OwnedBy              string              `json:"owned_by,omitempty"`
+	InputTokenPricePerM  int64               `json:"input_token_price_per_m"`
+	OutputTokenPricePerM int64               `json:"output_token_price_per_m"`
+	Title                string              `json:"title"`
+	DisplayName          string              `json:"display_name"`
+	Description          string              `json:"description"`
+	ContextSize          int64               `json:"context_size"`
+	ContextLength        int64               `json:"context_length"`
+	CreatedAt            string              `json:"created_at"`
+	MaxInputTokens       int64               `json:"max_input_tokens"`
+	MaxTokens            int64               `json:"max_tokens"`
+	Architecture         modelArchitecture   `json:"architecture"`
+	Pricing              modelPricing        `json:"pricing"`
+	TopProvider          modelTopProvider    `json:"top_provider"`
+	SupportedParameters  []string            `json:"supported_parameters,omitempty"`
+	Reasoning            *modelReasoningInfo `json:"reasoning,omitempty"`
 }
 
 func buildModelListItem(model Model) modelListItem {
@@ -474,7 +506,8 @@ func buildModelListItem(model Model) modelListItem {
 	if inputPrice == 0 && model.EmbeddingPriceUSDPer1M > 0 {
 		inputPrice = model.EmbeddingPriceUSDPer1M
 	}
-	return modelListItem{
+	maxTokens := modelMaxOutputTokens(model)
+	item := modelListItem{
 		ID:                   model.Name,
 		Created:              modelCreatedUnix(model),
 		Object:               "model",
@@ -486,10 +519,98 @@ func buildModelListItem(model Model) modelListItem {
 		DisplayName:          modelTitle(model),
 		Description:          modelDescription(model),
 		ContextSize:          model.ContextWindow,
+		ContextLength:        model.ContextWindow,
 		CreatedAt:            modelCreatedAt(model),
 		MaxInputTokens:       model.ContextWindow,
-		MaxTokens:            modelMaxOutputTokens(model),
+		MaxTokens:            maxTokens,
+		Architecture: modelArchitecture{
+			Modality:         firstNonEmpty(model.Modality, "text->text"),
+			InputModalities:  model.InputModalities,
+			OutputModalities: model.OutputModalities,
+		},
+		Pricing: modelPricing{
+			Prompt:         fmt.Sprintf("%.8f", model.InputPriceUSDPer1M/1000000.0),
+			Completion:     fmt.Sprintf("%.8f", model.OutputPriceUSDPer1M/1000000.0),
+			InputCacheRead: fmt.Sprintf("%.8f", model.CacheReadPriceUSDPer1M/1000000.0),
+		},
+		TopProvider: modelTopProvider{
+			ContextLength:       model.ContextWindow,
+			MaxCompletionTokens: maxTokens,
+			IsModerated:         false,
+		},
+		SupportedParameters: model.SupportedParameters,
 	}
+
+	if len(item.Architecture.InputModalities) == 0 {
+		item.Architecture.InputModalities = []string{"text"}
+	}
+	if len(item.Architecture.OutputModalities) == 0 {
+		item.Architecture.OutputModalities = []string{"text"}
+	}
+	if len(item.SupportedParameters) == 0 {
+		item.SupportedParameters = []string{"max_tokens", "temperature", "top_p", "stream", "tools", "tool_choice", "response_format"}
+	}
+
+	if isReasoningModel(model) {
+		efforts := []string{"low", "medium", "high"}
+		if customEfforts := strings.TrimSpace(model.Metadata["reasoning_supported_efforts"]); customEfforts != "" {
+			efforts = splitCommaSeparated(customEfforts)
+		}
+		defaultEffort := strings.TrimSpace(model.Metadata["reasoning_default_effort"])
+		if defaultEffort == "" {
+			defaultEffort = "medium"
+		}
+		item.Reasoning = &modelReasoningInfo{
+			Mandatory:        false,
+			SupportedEfforts: efforts,
+			DefaultEffort:    defaultEffort,
+		}
+		if !slices.Contains(item.SupportedParameters, "reasoning_effort") {
+			item.SupportedParameters = append(item.SupportedParameters, "reasoning_effort")
+		}
+	}
+
+	return item
+}
+
+func isReasoningModel(model Model) bool {
+	for _, cap := range model.Capabilities {
+		norm := strings.ToLower(strings.TrimSpace(cap))
+		if norm == "reasoning" || norm == "thinking" || norm == "cot" {
+			return true
+		}
+	}
+	for _, param := range model.SupportedParameters {
+		norm := strings.ToLower(strings.TrimSpace(param))
+		if norm == "reasoning_effort" || norm == "thinking" {
+			return true
+		}
+	}
+	if model.Metadata != nil {
+		if strings.TrimSpace(model.Metadata["reasoning_supported_efforts"]) != "" || strings.TrimSpace(model.Metadata["reasoning_default_effort"]) != "" {
+			return true
+		}
+	}
+	name := strings.ToLower(model.Name)
+	return strings.Contains(name, "reasoning") ||
+		strings.Contains(name, "thinking") ||
+		strings.Contains(name, "-r1") ||
+		strings.HasPrefix(name, "r1") ||
+		strings.Contains(name, "gpt-5") ||
+		strings.Contains(name, "gpt-6") ||
+		strings.Contains(name, "o1") ||
+		strings.Contains(name, "o3")
+}
+
+func splitCommaSeparated(s string) []string {
+	parts := strings.Split(s, ",")
+	res := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			res = append(res, t)
+		}
+	}
+	return res
 }
 
 func modelCreatedUnix(model Model) int64 {
@@ -510,12 +631,55 @@ func modelMaxOutputTokens(model Model) int64 {
 	for _, key := range []string{"max_output_tokens", "max_tokens"} {
 		if value := strings.TrimSpace(model.Metadata[key]); value != "" {
 			parsed, err := strconv.ParseInt(value, 10, 64)
-			if err == nil && parsed >= 0 {
+			if err == nil && parsed > 0 {
 				return parsed
 			}
 		}
 	}
-	return 0
+	name := strings.ToLower(model.Name)
+	family := strings.ToLower(model.Family)
+	switch {
+	case strings.Contains(name, "claude-3-5-sonnet") || strings.Contains(name, "claude-3-7-sonnet") || strings.Contains(name, "sonnet"):
+		return 16384
+	case strings.Contains(name, "claude") || strings.Contains(family, "claude"):
+		if strings.Contains(name, "opus") || strings.Contains(name, "fable") {
+			return 131072
+		}
+		return 8192
+	case strings.Contains(name, "gpt-5") || strings.Contains(name, "gpt-6") || strings.Contains(name, "o1") || strings.Contains(name, "o3"):
+		return 131072
+	case strings.Contains(name, "deepseek"):
+		if strings.Contains(name, "r1") || strings.Contains(name, "v3") || strings.Contains(name, "v4") {
+			return 65536
+		}
+		return 32768
+	case strings.Contains(name, "gemini") || strings.Contains(family, "gemini"):
+		return 65536
+	case strings.Contains(name, "qwen") || strings.Contains(family, "qwen"):
+		return 65536
+	case strings.Contains(name, "kimi"):
+		return 16384
+	case strings.Contains(name, "glm"):
+		if strings.Contains(name, "flash") {
+			return 2048
+		}
+		return 8192
+	case model.ContextWindow >= 1000000:
+		return 65536
+	case model.ContextWindow >= 128000:
+		return 16384
+	case model.ContextWindow > 0:
+		limit := model.ContextWindow / 4
+		if limit > 8192 {
+			limit = 8192
+		}
+		if limit < 2048 {
+			limit = 2048
+		}
+		return limit
+	default:
+		return 8192
+	}
 }
 
 func modelTokenPricePerM(priceUSDPer1M float64) int64 {

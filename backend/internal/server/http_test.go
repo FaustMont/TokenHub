@@ -200,6 +200,92 @@ func TestGatewayModelsExposeCodexCompatibleEnvelope(t *testing.T) {
 	}
 }
 
+func TestGatewayModelsExposeOpenRouterCapabilityMetadata(t *testing.T) {
+	store := NewMemoryStore()
+	if err := SeedDemoData(store); err != nil {
+		t.Fatal(err)
+	}
+
+	store.AddModel(Model{
+		Name:                "claude-opus-5",
+		Modality:            "chat",
+		ContextWindow:       1000000,
+		InputPriceUSDPer1M:  2.0,
+		OutputPriceUSDPer1M: 6.0,
+		Capabilities:        []string{"chat", "reasoning"},
+		Status:              StatusActive,
+	})
+	store.AddRoute(ModelRoute{
+		ModelName:     "claude-opus-5",
+		ProviderID:    "prv_mock",
+		ProviderModel: "claude-opus-5",
+		Status:        StatusActive,
+	})
+
+	project := store.CreateProject(Project{Name: "OpenRouter Metadata Test", Status: StatusActive})
+	if _, _, err := store.CreateAPIKey(project.ID, APIKey{Name: "Unrestricted Key"}, "thk_openrouter_test"); err != nil {
+		t.Fatal(err)
+	}
+
+	app := New(store).Handler()
+	resp := doJSON(t, app, http.MethodGet, "/v1/models", nil, "thk_openrouter_test")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resp.Code, resp.Body)
+	}
+
+	var payload struct {
+		Data []modelListItem `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(resp.Body), &payload); err != nil {
+		t.Fatal(err)
+	}
+
+	var demoItem, reasoningItem *modelListItem
+	for i := range payload.Data {
+		if payload.Data[i].ID == "gpt-4.1-mini" {
+			demoItem = &payload.Data[i]
+		}
+		if payload.Data[i].ID == "claude-opus-5" {
+			reasoningItem = &payload.Data[i]
+		}
+	}
+
+	if demoItem == nil || reasoningItem == nil {
+		t.Fatalf("expected both demo and reasoning models in response: %s", resp.Body)
+	}
+
+	// Verify standard OpenRouter fields
+	if demoItem.ContextLength != 128000 || demoItem.ContextSize != 128000 {
+		t.Fatalf("unexpected context length on demo item: %+v", demoItem)
+	}
+	if demoItem.TopProvider.ContextLength != 128000 || demoItem.TopProvider.MaxCompletionTokens <= 0 {
+		t.Fatalf("unexpected top_provider on demo item: %+v", demoItem.TopProvider)
+	}
+	if demoItem.MaxTokens <= 0 {
+		t.Fatalf("expected non-zero max_tokens, got %d", demoItem.MaxTokens)
+	}
+	if len(demoItem.Architecture.InputModalities) == 0 || len(demoItem.Architecture.OutputModalities) == 0 {
+		t.Fatalf("unexpected architecture modalities: %+v", demoItem.Architecture)
+	}
+	if demoItem.Pricing.Prompt == "" || demoItem.Pricing.Completion == "" {
+		t.Fatalf("unexpected pricing format: %+v", demoItem.Pricing)
+	}
+
+	// Verify reasoning capability detection
+	if reasoningItem.Reasoning == nil {
+		t.Fatalf("expected reasoning block for claude-opus-5, got nil: %+v", reasoningItem)
+	}
+	if len(reasoningItem.Reasoning.SupportedEfforts) == 0 || reasoningItem.Reasoning.DefaultEffort == "" {
+		t.Fatalf("unexpected reasoning efforts: %+v", reasoningItem.Reasoning)
+	}
+	if !slices.Contains(reasoningItem.SupportedParameters, "reasoning_effort") {
+		t.Fatalf("expected reasoning_effort in supported_parameters: %+v", reasoningItem.SupportedParameters)
+	}
+	if reasoningItem.TopProvider.MaxCompletionTokens != 131072 {
+		t.Fatalf("expected 131072 max completion tokens for claude-opus-5, got %d", reasoningItem.TopProvider.MaxCompletionTokens)
+	}
+}
+
 func TestGatewayRetrieveModelExposeJieKouCompatibleFields(t *testing.T) {
 	app := newTestServer()
 
