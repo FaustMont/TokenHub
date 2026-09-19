@@ -25,10 +25,14 @@ import (
 )
 
 const (
-	imageJobStatusQueued     = "queued"
-	imageJobStatusRunning    = "running"
-	imageJobStatusCompleted  = "completed"
-	imageJobStatusFailed     = "failed"
+	imageJobStatusQueued    = "queued"
+	imageJobStatusRunning   = "running"
+	imageJobStatusCompleted = "completed"
+	imageJobStatusFailed    = "failed"
+	// imageJobStatusFailing is a transient claim marker used by recovery to
+	// atomically transition rows before refunding them. It is never visible
+	// outside the claiming transaction.
+	imageJobStatusFailing    = "failing"
 	imageDownloadTTL         = 24 * time.Hour
 	maxGeneratedImageBytes   = 64 << 20
 	maxImageEditRequestBytes = 128 << 20
@@ -499,7 +503,6 @@ func (s *Server) createImageJobForRequest(w http.ResponseWriter, r *http.Request
 		}
 		return persisted, call, true, true, err
 	}
-	job.WorkerInstance = s.store.InstanceID()
 	call, ok := s.startImageCall(w, r, project, key, request)
 	if !ok {
 		return ImageJob{}, CallContext{}, false, false, nil
@@ -578,35 +581,8 @@ func imageJobWithAdmission(job ImageJob, call CallContext) ImageJob {
 	return job
 }
 
-// imageJobAbandonSweepInterval paces the periodic recovery sweep. It runs at
-// half the heartbeat TTL so a dead worker's jobs are failed within one TTL of
-// its heartbeat lapsing, without racing the live heartbeat refreshes.
-const imageJobAbandonSweepInterval = InstanceHeartbeatTTL / 2
-
-// sweepAbandonedImageJobs periodically fails unfinished image jobs whose
-// owning instance stopped publishing a heartbeat, so orphans are recovered
-// even when no other instance restarts. Startup runs the same sweep once.
-func (s *Server) sweepAbandonedImageJobs() {
-	ticker := time.NewTicker(imageJobAbandonSweepInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-s.imageContext.Done():
-			return
-		case <-ticker.C:
-			jobs, err := s.store.FailAbandonedImageJobs("image_worker_restarted", "Image generation stopped because the owning worker stopped")
-			if err != nil {
-				log.Printf("[tokenhub] failed to sweep abandoned image jobs: %v", err)
-			} else if len(jobs) > 0 {
-				log.Printf("[tokenhub] marked %d abandoned image jobs as failed", len(jobs))
-			}
-		}
-	}
-}
-
 func (s *Server) startImageWorkers() {
 	s.imageWorkerStart.Do(func() {
-		go s.sweepAbandonedImageJobs()
 		for index := 0; index < s.config.ImageWorkerConcurrency; index++ {
 			s.imageWorkerGroup.Add(1)
 			go func() {

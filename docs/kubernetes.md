@@ -120,6 +120,7 @@ Generated image bytes live on disk while PostgreSQL stores their metadata, so ev
 The volume mounts at `imageStorage.mountPath` (`/app/data/images`), which the chart exports as `TOKENHUB_IMAGE_STORAGE_DIR`.
 
 Image-job recovery is scoped to the instance that accepted a request: restarting, upgrading, or scaling the deployment never fails a job that a still-running replica is processing. Jobs owned by an instance that dies are failed after its heartbeat lapses (about 90 seconds), so clients receive a definitive failure instead of waiting forever.
+This guarantee needs a backend image that contains the fix. The published `0.8.0` image predates instance-scoped recovery and still fails a live peer's running jobs when another replica starts or stops: with that image keep `replicaCount` at `1`, or pin `image.tag` to a release cut after this chart.
 
 ## Monitoring with PodMonitor
 

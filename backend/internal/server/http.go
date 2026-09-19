@@ -237,15 +237,11 @@ func newWithConfig(store Store, config Config, billingDependencies BillingDepend
 				event.Action, "billing_connector", event.ResourceID, event.Status, event.Message, event.Before, event.After)
 		},
 	})
-	// Startup recovery only claims jobs whose owner stopped publishing a
+	// Startup recovery claims only jobs whose owner stopped publishing a
 	// heartbeat: a live peer's running image jobs must survive this
-	// instance's start, and true orphans (dead worker, expired heartbeat)
-	// get cleaned here and by the periodic sweep.
-	if jobs, err := store.FailAbandonedImageJobs("image_worker_restarted", "Image generation stopped because the owning worker stopped"); err != nil {
-		log.Printf("[tokenhub] failed to mark abandoned image jobs after startup: %v", err)
-	} else if len(jobs) > 0 {
-		log.Printf("[tokenhub] marked %d abandoned image jobs as failed after startup", len(jobs))
-	}
+	// instance's start, and the periodic sweep keeps recovering orphans for
+	// the lifetime of the server.
+	s.startImageJobRecovery()
 	if gormStore, ok := store.(*GormStore); ok {
 		s.stopHeartbeat = gormStore.StartInstanceHeartbeat(config.AppVersion)
 	}

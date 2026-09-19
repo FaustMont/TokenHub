@@ -11,7 +11,9 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/astaxie/tokenhub-backend
-  # Defaults to the chart appVersion when empty.
+  # Defaults to the chart appVersion when empty. Running more than one replica
+  # needs an image with instance-scoped image-job recovery, first shipped in a
+  # release after 0.8.0; with the 0.8.0 image keep replicaCount at 1.
   tag: ""
   pullPolicy: IfNotPresent
 

@@ -120,6 +120,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 卷挂载在 `imageStorage.mountPath`(`/app/data/images`),chart 会把它导出为 `TOKENHUB_IMAGE_STORAGE_DIR`。
 
 图片任务的恢复只作用于接受该请求的实例:重启、升级或扩容都不会让仍在运行的副本上的任务失败。持有任务的实例死亡后,其心跳过期(约 90 秒)时任务会被标记失败,客户端拿到确定的失败结果而不是一直等待。
+这一保证需要包含对应修复的后端镜像。已发布的 `0.8.0` 镜像早于按实例隔离的恢复逻辑,当另一个副本启动或停止时,仍会把运行中的任务标记为失败:使用该镜像时请保持 `replicaCount` 为 `1`,或将 `image.tag` 固定到本 chart 之后发布的版本。
 
 ## 用 PodMonitor 监控
 

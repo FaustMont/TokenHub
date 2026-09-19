@@ -573,6 +573,16 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Negated assertions cannot fail a `set -e` step on their own (the
+          # inverted status skips errexit), so absence checks go through this
+          # helper, which exits explicitly.
+          assert_absent() {
+            if grep -q "$1" <<<"$2"; then
+              echo "rendered output unexpectedly contains: $1" >&2
+              exit 1
+            fi
+          }
+
           # Chart.lock pins the dependency but does not register its
           # repository, so a clean runner must add it before building.
           helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -605,8 +615,8 @@ jobs:
           grep -Fq 'emptyDir: {}' <<<"$rendered"
           grep -Fq 'name: api' <<<"$rendered"
           grep -Fq 'name: console' <<<"$rendered"
-          ! grep -q 'kind: PodMonitor' <<<"$rendered"
-          ! grep -q 'kind: ExternalSecret' <<<"$rendered"
+          assert_absent 'kind: PodMonitor' "$rendered"
+          assert_absent 'kind: ExternalSecret' "$rendered"
 
           # Production hardening: the pod runs in the prod environment (the
           # built-in development admin token is rejected there) and the console
@@ -693,7 +703,7 @@ jobs:
           grep -Fq 'kind: ClusterSecretStore' <<<"$externalsecret_rendered"
           grep -Fq 'key: tokenhub/prod' <<<"$externalsecret_rendered"
           grep -Fq 'creationPolicy: Owner' <<<"$externalsecret_rendered"
-          ! grep -q '^kind: Secret$' <<<"$externalsecret_rendered"
+          assert_absent '^kind: Secret$' "$externalsecret_rendered"
 
           # An existing credentials secret combines with any database source:
           # only the chart-managed database secret renders, and the pod reads
@@ -723,21 +733,24 @@ jobs:
           # keep every secretKeyRef: empty strings preserve the typed
           # secretEnv keys (null would delete them), and postgresql.enabled
           # moves to false instead of null so the subchart stays excluded.
+          # The heredoc body and its VALUES terminator share the step's
+          # indentation: YAML strips that common indent, so Bash receives
+          # them at column zero.
           cat > /tmp/tokenhub-prod-values.yaml <<'VALUES'
-ingress:
-  enabled: true
-  host: tokenhub.example.com
-secretEnv:
-  TOKENHUB_SECRET_KEY: ssssssssssssssssssssssssssssssss
-  TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD: bootstrap-password
-postgresql:
-  enabled: true
-  auth:
-    password: quick-test-password
-extraEnv:
-  - name: TOKENHUB_TRUSTED_PROXY_CIDRS
-    value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
-VALUES
+          ingress:
+            enabled: true
+            host: tokenhub.example.com
+          secretEnv:
+            TOKENHUB_SECRET_KEY: ssssssssssssssssssssssssssssssss
+            TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD: bootstrap-password
+          postgresql:
+            enabled: true
+            auth:
+              password: quick-test-password
+          extraEnv:
+            - name: TOKENHUB_TRUSTED_PROXY_CIDRS
+              value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+          VALUES
           helm template tokenhub deploy/helm/tokenhub \
             -f /tmp/tokenhub-prod-values.yaml \
             --set externalSecret.enabled=true \
@@ -750,7 +763,7 @@ VALUES
             > /tmp/tokenhub-migration.yaml
           migration_rendered="$(cat /tmp/tokenhub-migration.yaml)"
           grep -Fq 'kind: ExternalSecret' <<<"$migration_rendered"
-          ! grep -q 'kind: StatefulSet' <<<"$migration_rendered"
+          assert_absent 'kind: StatefulSet' "$migration_rendered"
           grep -A3 'name: TOKENHUB_SECRET_KEY' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
           grep -A3 'name: TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
           grep -A3 'name: TOKENHUB_DATABASE_URL' <<<"$migration_rendered" | grep -Fq 'name: tokenhub-tokenhub-credentials'
