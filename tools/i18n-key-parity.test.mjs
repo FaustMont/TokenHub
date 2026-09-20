@@ -51,6 +51,7 @@ async function loadDictionarySource(file) {
   return import(`data:text/javascript;base64,${Buffer.from(javascript).toString("base64")}`);
 }
 
+const { semanticRoutingTranslations } = await loadDictionarySource("semantic-routing.tsx");
 const { apiKeyAccessTranslations } = await loadDictionarySource("api-key-access.tsx");
 const { adminUICopyTranslations } = await loadDictionarySource("admin-ui-copy.tsx");
 const { billingStatementTranslations } = await loadDictionarySource("billing-statements.tsx");
@@ -82,6 +83,7 @@ const { default: syntheticDNSTranslations } = await loadDictionarySource("synthe
 // Mirrors the full merge in translations.tsx across all feature dictionaries.
 const merged = {
   en: {
+    ...semanticRoutingTranslations.en,
     ...apiKeyAccessTranslations.en,
     ...adminUICopyTranslations.en,
     ...billingStatementTranslations.en,
@@ -107,6 +109,7 @@ const merged = {
     ...syntheticDNSTranslations.en,
   },
   ja: {
+    ...semanticRoutingTranslations.ja,
     ...apiKeyAccessTranslations.ja,
     ...adminUICopyTranslations.ja,
     ...billingStatementTranslations.ja,
@@ -132,6 +135,7 @@ const merged = {
     ...syntheticDNSTranslations.ja,
   },
   ru: {
+    ...semanticRoutingTranslations.ru,
     ...apiKeyAccessTranslations.ru,
     ...adminUICopyTranslations.ru,
     ...ruTranslations,
