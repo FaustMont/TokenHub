@@ -333,6 +333,9 @@ export function providerSaveMessage(updated: boolean, accountResourceCreated: bo
 }
 
 export function countWithLabel(count: number, label: string) {
+  if (activeLanguage === "ru") {
+    return `${formatLocaleNumber(count)} ${russianUnit(count, label, label, label)}`;
+  }
   if (activeLanguage !== "zh-CN") return `${formatLocaleNumber(count)} ${tx(label)}`;
   return `${formatLocaleNumber(count)} ${label}`;
 }

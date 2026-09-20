@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { setActiveLanguage } from "../i18n/runtime";
+import { countWithLabel, setActiveLanguage } from "../i18n/runtime";
 import { gatewayLanguageLabel } from "./gateway-docs-ui";
 import { gatewayDocBundle, type GatewayDocStats } from "./gateway-view";
 import { gatewayLLMUsageDocs } from "./gateway-llm-en";
@@ -60,6 +60,17 @@ describe("gateway Russian docs and labels", () => {
     expect(bundle.groups[0].title).toBe("Начало работы");
     expect(bundle.groups[1].title).toBe("Руководства по ролям");
     expect(bundle.groups[2].title).toBe("Справочник API");
+
+    // Check localized role guide stats
+    const userGuide = bundle.groups[1].items[0];
+    const teamLeaderGuide = bundle.groups[1].items[1];
+    const adminGuide = bundle.groups[1].items[2];
+
+    expect(userGuide.details?.[1]).toEqual({ label: "Область ресурсов", value: "1 доступная модель" });
+    expect(teamLeaderGuide.details?.[1]).toEqual({ label: "Проекты", value: "0 проектов" });
+    expect(adminGuide.details?.[1]).toEqual({ label: "Провайдеры", value: "0 провайдеров" });
+    expect(adminGuide.details?.[2]).toEqual({ label: "Правила маршрутизации", value: "0 правил" });
+    expect(adminGuide.details?.[3]).toEqual({ label: "Пользователи", value: "10 пользователей" });
   });
 
   it("correctly pluralizes quick-card nouns in admin bundle for 1, 2, 5, and 1,000", () => {
@@ -154,5 +165,17 @@ describe("gateway Russian docs and labels", () => {
     const bundle1000 = createUserBundle(1000, 1000);
     expect(bundle1000.quickCards.activeRoutes).toBe("1\u00A0000 доступных моделей");
     expect(bundle1000.quickCards.apiKeys).toBe("1\u00A0000 ключей проекта");
+  });
+
+  it("correctly pluralizes countWithLabel in Russian for 1, 2, and 5", () => {
+    setActiveLanguage("ru");
+
+    expect(countWithLabel(1, "个项目")).toBe("1 проект");
+    expect(countWithLabel(2, "个项目")).toBe("2 проекта");
+    expect(countWithLabel(5, "个项目")).toBe("5 проектов");
+
+    expect(countWithLabel(1, "个 Key")).toBe("1 ключ");
+    expect(countWithLabel(2, "个 Key")).toBe("2 ключа");
+    expect(countWithLabel(5, "个 Key")).toBe("5 ключей");
   });
 });

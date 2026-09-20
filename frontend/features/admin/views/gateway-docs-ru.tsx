@@ -104,7 +104,16 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
             description: "Пользователи работают с доступными моделями, ключами проектов, примерами вызовов, персональным потреблением и журналами запросов.",
             details: [
               { label: "Основное меню", value: "Overview / API Documentation / Model Playground" },
-              { label: "Область ресурсов", value: stats.groups[1].items[0].details?.[1]?.value ?? "" },
+              {
+                label: "Область ресурсов",
+                value: localizeCountNoun(
+                  stats.groups[1].items[0].details?.[1]?.value ?? "",
+                  /visible models?/,
+                  "доступная модель",
+                  "доступные модели",
+                  "доступных моделей",
+                ),
+              },
               { label: "Привязка ключей", value: "Назначенный проект" },
               { label: "Область отчетов", value: "Персональное потребление" },
             ],
@@ -133,7 +142,16 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
             description: "Тимлиды управляют проектами, участниками, выпуском ключей, отчетами команд и распределением затрат по проектам.",
             details: [
               { label: "Основное меню", value: "Team Overview / Projects / Key Management" },
-              { label: "Проекты", value: stats.groups[1].items[1].details?.[1]?.value ?? "" },
+              {
+                label: "Проекты",
+                value: localizeCountNoun(
+                  stats.groups[1].items[1].details?.[1]?.value ?? "",
+                  /projects?/,
+                  "проект",
+                  "проекта",
+                  "проектов",
+                ),
+              },
               { label: "Управление участниками", value: "Боковая панель деталей проекта" },
               { label: "Область отчетов", value: "Потребление команды и проектов" },
             ],
@@ -162,9 +180,36 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
             description: "Администраторы управляют провайдерами, каталогом моделей, маршрутизацией, источниками удостоверений, ролями, аудитом и контролем затрат.",
             details: [
               { label: "Основное меню", value: "Platform Overview / Providers / Routes / Settings" },
-              { label: "Провайдеры", value: stats.groups[1].items[2].details?.[1]?.value ?? "" },
-              { label: "Правила маршрутизации", value: stats.groups[1].items[2].details?.[2]?.value ?? "" },
-              { label: "Пользователи", value: stats.groups[1].items[2].details?.[3]?.value ?? "" },
+              {
+                label: "Провайдеры",
+                value: localizeCountNoun(
+                  stats.groups[1].items[2].details?.[1]?.value ?? "",
+                  /providers?/,
+                  "провайдер",
+                  "провайдера",
+                  "провайдеров",
+                ),
+              },
+              {
+                label: "Правила маршрутизации",
+                value: localizeCountNoun(
+                  stats.groups[1].items[2].details?.[2]?.value ?? "",
+                  /rules?/,
+                  "правило",
+                  "правила",
+                  "правил",
+                ),
+              },
+              {
+                label: "Пользователи",
+                value: localizeCountNoun(
+                  stats.groups[1].items[2].details?.[3]?.value ?? "",
+                  /users?/,
+                  "пользователь",
+                  "пользователя",
+                  "пользователей",
+                ),
+              },
             ],
             notesTitle: "Чек-лист перед запуском",
             notes: [
