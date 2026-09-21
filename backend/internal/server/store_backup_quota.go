@@ -513,11 +513,6 @@ func priceUsage(model Model, usage Usage) Usage {
 }
 
 func priceUsageAt(model Model, usage Usage, requestStartedAt time.Time) Usage {
-	if cost, known := nativeRetrievalCost(model, usage); known {
-		usage.InputCostUSD = cost
-		usage.CostUSD = cost
-		return usage
-	}
 	if usage.MeteringRaw == nil && !usage.MeteringInvalid {
 		units, err := meteringUnits(usage)
 		usage.MeteringInvalid = err != nil
@@ -537,6 +532,11 @@ func priceUsageAt(model Model, usage Usage, requestStartedAt time.Time) Usage {
 		usage.TotalTokens = saturatingAddNonNegative(usage.PromptTokens, usage.CompletionTokens)
 	}
 	usage = clampBillableInputTokens(usage)
+	if cost, known := nativeRetrievalCost(model, usage); known {
+		usage.InputCostUSD = cost
+		usage.CostUSD = cost
+		return usage
+	}
 	if usage.CostUSD == 0 {
 		model = modelPriceAt(model, requestStartedAt)
 		if model.Modality == "embedding" && model.EmbeddingPriceUSDPer1M > 0 {

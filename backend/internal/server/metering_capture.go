@@ -151,7 +151,11 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 	result.Evidence = usage.RetrievalEvidence
 	if evidence := usage.RetrievalEvidence; evidence != nil {
 		result.UsageSource = evidence.Source
-		if evidence.Quantity == nil || usage.MeteringInvalid {
+		if usage.MeteringInvalid {
+			result.Reason = "inconsistent_usage"
+			return result
+		}
+		if evidence.Quantity == nil {
 			result.Reason = "usage_presence_unknown"
 			return result
 		}
