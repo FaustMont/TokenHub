@@ -43,13 +43,14 @@ type meteringAttemptSnapshot struct {
 }
 
 type meteringShadowCharge struct {
-	Status      string                 `json:"status"`
-	Reason      string                 `json:"reason,omitempty"`
-	UsageSource string                 `json:"usage_source"`
-	Price       *meteringPriceSnapshot `json:"price,omitempty"`
-	Units       metering.Units         `json:"units"`
-	Charge      *metering.Charge       `json:"charge,omitempty"`
-	LegacyUSD   string                 `json:"legacy_usd"`
+	Evidence    *RetrievalUsageEvidence `json:"usage_evidence,omitempty"`
+	Status      string                  `json:"status"`
+	Reason      string                  `json:"reason,omitempty"`
+	UsageSource string                  `json:"usage_source"`
+	Price       *meteringPriceSnapshot  `json:"price,omitempty"`
+	Units       metering.Units          `json:"units"`
+	Charge      *metering.Charge        `json:"charge,omitempty"`
+	LegacyUSD   string                  `json:"legacy_usd"`
 }
 
 func legacyMeteringPrice(model Model, at time.Time, provider bool) meteringPriceSnapshot {
@@ -147,6 +148,18 @@ func (s *GormStore) PrepareMeteringAttempt(requestID string, number int, route R
 
 func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) meteringShadowCharge {
 	result := meteringShadowCharge{Status: "pending", UsageSource: "legacy_adapter_unverified", Price: price, LegacyUSD: strconv.FormatFloat(legacy, 'f', -1, 64)}
+	result.Evidence = usage.RetrievalEvidence
+	if evidence := usage.RetrievalEvidence; evidence != nil {
+		result.UsageSource = evidence.Source
+		if evidence.Quantity == nil || usage.MeteringInvalid {
+			result.Reason = "usage_presence_unknown"
+			return result
+		}
+		if evidence.Unit != "token" {
+			result.Reason = "native_unit_price_required"
+			return result
+		}
+	}
 	if price == nil {
 		result.Reason = "missing_price"
 		return result
@@ -163,7 +176,7 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 		return result
 	}
 	result.Units = units
-	if usage.PromptTokens == 0 && usage.CompletionTokens == 0 {
+	if usage.PromptTokens == 0 && usage.CompletionTokens == 0 && usage.RetrievalEvidence == nil {
 		result.Reason = "usage_presence_unknown"
 		return result
 	}
