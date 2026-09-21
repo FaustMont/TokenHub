@@ -30,3 +30,5 @@
 ```
 
 OpenAI SDK は `client.embeddings.create` を使用します。Dify、LangChain/LlamaIndex では対応する統合に公開モデル名と TokenHub URL を設定してください。実際のクライアントバージョンの受け入れ検証は別途必要です。
+
+モデル検出は明示された type、modality、model_type を優先します。未指定の場合は BGE、GTE、E5、Voyage、sentence-transformer の既知の名前を認識し、再ランキング名を優先して分類します。名前からの推定は配備能力の検証ではありません。

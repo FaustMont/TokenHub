@@ -756,7 +756,7 @@ func customProviderModelsFromPayloadWithDefinitions(payload map[string]any, mode
 		displayName = firstNonEmpty(displayName, id)
 		modelType := normalizeModelModality(strings.Join([]string{id, displayName, object}, " "))
 		if item, ok := raw.(map[string]any); ok {
-			switch explicit := firstNonEmpty(catalogStringField(item, "type"), catalogStringField(item, "modality")); explicit {
+			switch explicit := firstNonEmpty(catalogStringField(item, "type"), catalogStringField(item, "modality"), catalogStringField(item, "model_type")); explicit {
 			case "rerank", "embedding", "chat", "audio", "image", "video", "ocr":
 				modelType = explicit
 			}
@@ -848,7 +848,7 @@ func normalizeModelModality(value string) string {
 	switch {
 	case strings.Contains(value, "rerank"):
 		return "rerank"
-	case strings.Contains(value, "embed"):
+	case strings.Contains(value, "embed") || isKnownEmbeddingModelName(value):
 		return "embedding"
 	case strings.Contains(value, "image"):
 		return "image"
