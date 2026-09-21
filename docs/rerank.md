@@ -42,3 +42,5 @@ Use the administrator session, optionally supply `resource_id`, and inspect `res
 ## Validation boundary
 
 Local tests cover representative protocol payloads and responses, gateway authentication, indices and search-unit charges. The configuration screen has a browser fixture. Production account permissions, regional URLs and exact serving versions require real-upstream validation. Dify, LangChain and LlamaIndex require the matching HTTP/rerank integration; OpenAI SDK does not define a native rerank method. Do not infer full client or supplier acceptance from a model appearing in the directory.
+
+Final response validation preserves post-processing and safety redactions; it never restores document text from the original request. Administrator tests load decrypted Provider credentials and the selected resource overrides using the normal execution configuration path. Native-unit billing applies the same nonnegative usage protection as token billing, and free tenant requests still retain provider-cost records.

@@ -154,5 +154,34 @@ func validateRerankResult(response any, request RerankRequest) (any, error) {
 	if err = json.Unmarshal(encoded, &raw); err != nil {
 		return nil, err
 	}
-	return normalizeRerankResponse(raw, "jina", request)
+	// Validation after safety hooks must not reconstruct documents from input.
+	check := request
+	check.ReturnDocuments = false
+	if _, err := normalizeRerankResponse(raw, "jina", check); err != nil {
+		return nil, err
+	}
+	body := raw.(map[string]any)
+	items := body["results"].([]any)
+	expected := len(request.Documents)
+	if request.TopN != nil {
+		expected = *request.TopN
+	}
+	if len(items) != expected || body["model"] != request.Model {
+		return nil, NewHTTPError(502, "invalid_rerank_response", "Final rerank response does not match the request")
+	}
+	for _, value := range items {
+		item := value.(map[string]any)
+		if document, exists := item["document"]; exists && document != nil {
+			fields, ok := document.(map[string]any)
+			if !ok {
+				return nil, NewHTTPError(502, "invalid_rerank_response", "Invalid rerank document")
+			}
+			if text, exists := fields["text"]; exists {
+				if _, ok := text.(string); !ok {
+					return nil, NewHTTPError(502, "invalid_rerank_response", "Invalid rerank document text")
+				}
+			}
+		}
+	}
+	return response, nil
 }

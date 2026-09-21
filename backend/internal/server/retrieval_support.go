@@ -146,21 +146,19 @@ func (s *Server) handleAdminRerankTest(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	provider, ok := s.providerByID(strings.TrimSpace(req.ProviderID))
+	loader, ok := s.store.(interface {
+		LoadProviderTestRoute(context.Context, string, string, string) (RouteSelection, error)
+	})
 	if !ok {
-		writeError(w, r, NewHTTPError(404, "provider_not_found", "Provider not found"))
+		writeError(w, r, NewHTTPError(501, "provider_test_unavailable", "Store cannot load provider execution settings"))
 		return
 	}
-	selection := RouteSelection{Provider: provider, ProviderModel: req.Request.Model}
-	if req.ResourceID != "" {
-		resource, ok := s.providerResourceByID(req.ResourceID)
-		if !ok || resource.ProviderID != provider.ID {
-			writeError(w, r, NewHTTPError(400, "route_resource_mismatch", "Resource must belong to Provider"))
-			return
-		}
-		selection.Resource = &resource
+	selection, err := loader.LoadProviderTestRoute(r.Context(), strings.TrimSpace(req.ProviderID), strings.TrimSpace(req.ResourceID), req.Request.Model)
+	if err != nil {
+		writeError(w, r, err)
+		return
 	}
-	selection, err := s.prepareRouteForUpstream(r.Context(), selection)
+	selection, err = s.prepareRouteForUpstream(r.Context(), selection)
 	if err != nil {
 		writeError(w, r, err)
 		return
@@ -176,7 +174,7 @@ func (s *Server) handleAdminRerankTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response, usage, err := reranker.Rerank(r.Context(), selection.Provider, selection.ProviderModel, req.Request)
-	s.recordAdminAudit(r, user, "test", "provider_rerank", provider.ID, "", map[string]any{"model": req.Request.Model, "usage_evidence": usage.RetrievalEvidence, "success": err == nil})
+	s.recordAdminAudit(r, user, "test", "provider_rerank", selection.Provider.ID, "", map[string]any{"model": req.Request.Model, "usage_evidence": usage.RetrievalEvidence, "success": err == nil})
 	if err != nil {
 		writeError(w, r, err)
 		return
