@@ -513,6 +513,11 @@ func priceUsage(model Model, usage Usage) Usage {
 }
 
 func priceUsageAt(model Model, usage Usage, requestStartedAt time.Time) Usage {
+	if cost, known := nativeRetrievalCost(model, usage); known {
+		usage.InputCostUSD = cost
+		usage.CostUSD = cost
+		return usage
+	}
 	if usage.MeteringRaw == nil && !usage.MeteringInvalid {
 		units, err := meteringUnits(usage)
 		usage.MeteringInvalid = err != nil

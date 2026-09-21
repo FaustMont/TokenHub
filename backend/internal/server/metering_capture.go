@@ -67,7 +67,7 @@ func legacyMeteringPrice(model Model, at time.Time, provider bool) meteringPrice
 			rates.Input = dec(resolved.InputPriceUSDPer1M)
 		}
 	}
-	snapshot := meteringPriceSnapshot{Currency: "USD", Source: "legacy_float_configuration", At: at, Rates: rates}
+	snapshot := meteringPriceSnapshot{SearchUnitPrice: model.Metadata[retrievalSearchUnitPriceKey], Currency: "USD", Source: "legacy_float_configuration", At: at, Rates: rates}
 	for _, period := range model.PricingPeriods {
 		if pricingPeriodMatches(period, at) {
 			snapshot.Period = period.Name
@@ -155,8 +155,18 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 			result.Reason = "usage_presence_unknown"
 			return result
 		}
-		if evidence.Unit != "token" {
-			result.Reason = "native_unit_price_required"
+		if evidence.Unit == "search_unit" {
+			if price == nil {
+				result.Reason = "missing_price"
+				return result
+			}
+			charge, err := metering.PriceNative(evidence.Unit, *evidence.Quantity, price.SearchUnitPrice, price.Currency, price.ExchangeRate)
+			if err != nil {
+				result.Reason = "native_unit_price_required"
+				return result
+			}
+			result.Charge = &charge
+			result.Status = "estimated"
 			return result
 		}
 	}
