@@ -34,3 +34,5 @@ OpenAI SDK 使用 `client.embeddings.create`。Dify、LangChain/LlamaIndex 使�
 模型发现优先采用上游明确声明的 type、modality 或 model_type；缺失时识别常见 BGE、GTE、E5、Voyage 和 sentence-transformer 名称，重排名称优先判为 rerank。名称推断仍不代表部署能力已经验证。
 
 缓存查询和路由前会检查全部启用的路由定义、资源覆盖及可能的 Provider 回退来源；暂时不健康或冷却中的节点也纳入空间判断。健康变化和加权排序不能切换空间。配置冲突返回 `409 embedding_space_conflict`；请移除不兼容线路，或在确认兼容后填写相同的空间标识。
+
+网关插件可改写文本，但必须保留输入条数、维度、编码与任务语义。缓存、Provider 插件及后置处理结果在返回前统一按原始客户端契约校验。缓存插件通过 cache_key 获得绑定空间、请求和调用方范围的宿主键；命中时必须在 cache_key 写入中返回缓存条目保存的键，缺失或不匹配按未命中处理。缓存写入阶段收到相同键，旧缓存插件需适配此约定。

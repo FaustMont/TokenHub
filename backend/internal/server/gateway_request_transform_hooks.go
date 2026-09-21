@@ -103,16 +103,7 @@ func (s *Server) runGatewayResponsesRequestTransformHooksForProtocol(ctx context
 
 func (s *Server) runGatewayEmbeddingsRequestTransformHooks(ctx context.Context, call CallContext, route RouteSelection, req *EmbeddingsRequest) error {
 	return s.runGatewayRequestTransformHooks(ctx, call, route, *req, providerRouteProtocolEmbeddings, func(data json.RawMessage) error {
-		originalModel := req.Model
-		var patched EmbeddingsRequest
-		if err := decodeGatewayHookRequestPatch(data, &patched); err != nil {
-			return err
-		}
-		if patched.Model != originalModel {
-			return NewHTTPError(http.StatusBadGateway, "gateway_hook_patch_invalid", "Gateway plugin cannot change the requested model")
-		}
-		*req = patched
-		return nil
+		return applyEmbeddingsGatewayRequestPatch(req, data)
 	})
 }
 

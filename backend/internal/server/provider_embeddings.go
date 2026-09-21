@@ -225,6 +225,9 @@ func (c openAICompatibleCore) textEmbeddings(ctx context.Context, p Provider, mo
 		return nil, Usage{}, err
 	}
 	usage := retrievalUsage(body, false)
+	if err := validateRetrievalUsageResult(usage); err != nil {
+		return nil, usage, err
+	}
 	body, err = normalizeEmbeddingResponse(body, r)
 	return body, usage, err
 }
@@ -281,6 +284,9 @@ func (a GeminiAdapter) textEmbeddings(ctx context.Context, p Provider, model str
 		}
 	}
 	usage := retrievalUsage(response, false)
+	if err := validateRetrievalUsageResult(usage); err != nil {
+		return nil, usage, err
+	}
 	response, err = normalizeEmbeddingResponse(response, r)
 	return response, usage, err
 }

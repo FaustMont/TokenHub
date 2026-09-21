@@ -120,6 +120,9 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 							}}, nil
 						}
 						var result any = map[string]any{"id": "scope-result", "type": "message", "role": "assistant", "content": []any{map[string]any{"type": "text", "text": "scope-result"}}, "output": []any{map[string]any{"type": "message", "role": "assistant", "content": []any{map[string]any{"type": "output_text", "text": "scope-result"}}}}}
+						if endpoint == "embeddings" {
+							result = map[string]any{"object": "list", "model": "gpt-background", "data": []any{map[string]any{"index": 0, "embedding": []float64{0.25, 0.75}}}}
+						}
 						if endpoint == "images" {
 							result = gatewayImageProviderResponse{DataBase64: encodeBase64(imageBytes), RevisedPrompt: "scope-result"}
 						}
@@ -153,7 +156,11 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 					status, body = response.Code, response.Body
 				}
 				if matching {
-					if calls.Load() != 1 || !strings.Contains(body, "scope-result") || status != 0 && status != http.StatusOK {
+					expectedResult := "scope-result"
+					if endpoint == "embeddings" {
+						expectedResult = `"embedding"`
+					}
+					if calls.Load() != 1 || !strings.Contains(body, expectedResult) || status != 0 && status != http.StatusOK {
 						t.Fatalf("matching hook failed: calls=%d status=%d body=%s", calls.Load(), status, body)
 					}
 				} else {

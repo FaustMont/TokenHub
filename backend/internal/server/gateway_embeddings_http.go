@@ -24,6 +24,7 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	clientRequest := req
 	admittedAt := time.Now().UTC()
 	call, err := s.admitRoutedCall(w, r, project, key, req.Model, false, requestTokenReservation(req))
 	if err != nil {
@@ -75,6 +76,12 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	call.EmbeddingCacheKey, err = embeddingCacheKey(call, space, req)
+	if err != nil {
+		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
 	resp, usage, hit, err := s.runGatewayCacheLookupHooks(r.Context(), call, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
@@ -95,6 +102,18 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		usage, err = s.runGatewayUsageAttributionHooks(r.Context(), call, RouteSelection{}, resp, usage, providerRouteProtocolEmbeddings)
+		if err != nil {
+			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
+			writeError(w, r, err)
+			return
+		}
+		usage, err = pluginRetrievalUsage(resp, usage, false)
+		if err != nil {
+			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
+			writeError(w, r, err)
+			return
+		}
+		resp, err = normalizeEmbeddingResult(resp, clientRequest)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
 			writeError(w, r, err)
@@ -139,6 +158,18 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	usage, err = s.runGatewayUsageAttributionHooks(r.Context(), routed.Call, route, resp, usage, providerRouteProtocolEmbeddings)
+	if err != nil {
+		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
+	usage, err = pluginRetrievalUsage(resp, usage, false)
+	if err != nil {
+		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
+	resp, err = normalizeEmbeddingResult(resp, clientRequest)
 	if err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
 		writeError(w, r, err)

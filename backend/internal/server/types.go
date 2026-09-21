@@ -1278,6 +1278,8 @@ type RoutedCall struct {
 }
 
 type CallContext struct {
+	// EmbeddingCacheKey binds cached vectors to their space and client contract.
+	EmbeddingCacheKey     string
 	RouteProtocol         string
 	RequestID             string
 	Project               Project
