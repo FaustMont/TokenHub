@@ -44,3 +44,5 @@ resource_id は任意です。response、usage_evidence、pricing_status を確�
 ローカルテストは代表プロトコル、変換、認証、索引、検索単位の料金を検証します。設定画面にはブラウザーシナリオを使用します。実アカウント権限、地域 URL、サーバーバージョンは別途実上流検証が必要です。Dify、LangChain、LlamaIndex は対応 HTTP/再ランキング統合を使用してください。OpenAI SDK に標準 rerank メソッドはありません。カタログ掲載だけでは受け入れ完了を意味しません。
 
 最終応答の検証では後処理・匿名化の結果を保持し、元の入力文書を復元しません。管理者テストは通常の実行設定経路から復号済み認証情報と選択リソースの上書きを読み込みます。ネイティブ単位の請求にも非負使用量の保護を適用し、テナント無料リクエストにも上流コストを記録します。
+
+主計量の矛盾（total_tokens=0 と正の prompt_tokens など）や不正なネイティブ数量は 502 invalid_provider_usage とします。有効な検索単位は異常な補助 Token と独立に計価し、Token は非負に保って不整合を記録します。検索単位の Provider プラグインは rerank_protocol=cohere を宣言し、usage.retrieval_evidence に unit、nullable quantity、source（upstream/plugin/unreported）を返します。旧プラグインの全ゼロ Token オブジェクトは実測ゼロとはみなしません。

@@ -225,7 +225,11 @@ func (a providerPluginAdapter) Rerank(ctx context.Context, provider Provider, pr
 	if err := a.executeProviderCommand(ctx, providerPluginRequest{Operation: "rerank", Provider: providerPluginProviderFromRuntime(provider), ProviderModel: providerModel, Request: req, Credentials: providerPluginCredentialsFromRuntime(provider, nil)}, &result); err != nil {
 		return nil, Usage{}, err
 	}
-	return result.Response, result.Usage, nil
+	usage, err := pluginRetrievalUsage(result.Response, result.Usage, providerRerankProtocol(provider) == "cohere")
+	if err != nil {
+		return nil, usage, err
+	}
+	return result.Response, usage, nil
 }
 
 func (a providerPluginAdapter) Embeddings(ctx context.Context, provider Provider, providerModel string, req EmbeddingsRequest) (any, Usage, error) {
@@ -239,7 +243,12 @@ func (a providerPluginAdapter) Embeddings(ctx context.Context, provider Provider
 	}, &result); err != nil {
 		return nil, Usage{}, err
 	}
-	return result.Response, result.Usage, nil
+	usage, err := pluginRetrievalUsage(result.Response, result.Usage, false)
+	if err != nil {
+		return nil, usage, err
+	}
+	response, err := normalizeEmbeddingResult(result.Response, req)
+	return response, usage, err
 }
 
 func (a providerPluginAdapter) GenerateImage(ctx context.Context, provider Provider, providerModel string, req ProviderImageGenerationRequest) ([]byte, string, Usage, error) {

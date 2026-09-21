@@ -100,6 +100,12 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, err)
 			return
 		}
+		usage, err = pluginRetrievalUsage(resp, usage, retrievalResultUsesSearchUnits(resp, usage))
+		if err != nil {
+			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
+			writeError(w, r, err)
+			return
+		}
 		resp, err = validateRerankResult(resp, req)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
@@ -144,6 +150,12 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	usage, err = s.runGatewayUsageAttributionHooks(r.Context(), routed.Call, route, resp, usage, providerRouteProtocolRerank)
+	if err != nil {
+		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
+	usage, err = pluginRetrievalUsage(resp, usage, retrievalResultUsesSearchUnits(resp, usage))
 	if err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
 		writeError(w, r, err)

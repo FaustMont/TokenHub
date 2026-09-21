@@ -101,6 +101,9 @@ func (a OpenAICompatibleAdapter) Rerank(ctx context.Context, p Provider, model s
 	body, _ := raw.(map[string]any)
 	profile := providerRerankProtocol(p)
 	usage := retrievalUsage(body, profile == "cohere")
+	if err := validateRetrievalUsageResult(usage); err != nil {
+		return nil, usage, err
+	}
 	normalized, err := normalizeRerankResponse(raw, profile, r)
 	return normalized, usage, err
 }

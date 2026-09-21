@@ -44,3 +44,5 @@
 本地测试覆盖代表协议、请求/响应转换、网关鉴权、结果索引和搜索单元费用；配置界面使用浏览器场景验证。生产账号权限、地域端点和具体服务版本仍需真实上游验证。Dify、LangChain、LlamaIndex 使用对应 HTTP/重排集成；OpenAI SDK 没有原生 rerank 方法。目录存在模型不等于客户端和供应商已完成验收。
 
 最终响应校验保留后置处理和脱敏结果，不会用请求原文恢复文档内容。管理员试调用通过正常执行配置路径加载解密凭据与所选资源的覆盖配置。原生单位计费遵循相同的非负用量保护，租户免费请求仍保留供应商成本记录。
+
+主计量矛盾（例如 total_tokens 明确为 0 而 prompt_tokens 大于 0）或原生数量非法时返回 502 invalid_provider_usage，不作为成功的零费用请求交付。合法搜索单元与异常辅助 Token 分开处理：搜索单元按配置计费，Token 计数保持非负并保留异常证据。按搜索单元收费的 Provider 插件声明 rerank_protocol=cohere，通过 usage.retrieval_evidence 提供 unit、可空 quantity、source（upstream、plugin 或 unreported）。旧插件仅返回全零 Token 对象时保持未报告，不能推断为实测免费。
