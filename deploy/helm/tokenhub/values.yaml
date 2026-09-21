@@ -11,15 +11,34 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/astaxie/tokenhub-backend
-  # Defaults to the chart appVersion when empty. Running more than one replica
-  # needs an image with instance-scoped image-job recovery, first shipped in a
-  # release after 0.8.0; with the 0.8.0 image keep replicaCount at 1.
+  # Defaults to the chart appVersion when empty. Any configuration that lets
+  # two pods overlap needs an image with instance-scoped image-job recovery,
+  # first shipped in a release after 0.8.0; see confirmInstanceScopedRecovery.
   tag: ""
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
-replicaCount: 2
+# One replica never runs two pods at once, which keeps image-job recovery
+# safe even with the 0.8.0 image (see confirmInstanceScopedRecovery). Scale
+# above one only after pinning such an image.
+replicaCount: 1
+
+# Recreate fully terminates the old pod before the replacement starts, so
+# upgrades and `kubectl rollout restart` never overlap pods. RollingUpdate
+# keeps the old pod serving while the new one starts; it allows overlap and
+# therefore needs the same instance-scoped recovery image as multi-replica
+# installs (see confirmInstanceScopedRecovery).
+strategy: Recreate
+
+# Attestation for pod overlap. The published 0.8.0 image fails every
+# unfinished image job in the shared database when any replica starts or
+# stops, including jobs still running on a live peer. The chart refuses to
+# render any configuration that lets two pods overlap (replicaCount above 1,
+# or strategy RollingUpdate) unless image.tag pins a release containing
+# instance-scoped image-job recovery (first shipped in a release after 0.8.0)
+# and this is set to true to confirm it.
+confirmInstanceScopedRecovery: false
 
 serviceAccount:
   create: true

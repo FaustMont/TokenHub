@@ -618,6 +618,13 @@ jobs:
           assert_absent 'kind: PodMonitor' "$rendered"
           assert_absent 'kind: ExternalSecret' "$rendered"
 
+          # Non-overlapping defaults: one replica with the Recreate strategy,
+          # so even the 0.8.0 image's global image-job recovery only ever
+          # touches its own jobs.
+          grep -Fq 'replicas: 1' <<<"$rendered"
+          grep -Fq 'type: Recreate' <<<"$rendered"
+          assert_absent 'rollingUpdate:' "$rendered"
+
           # Production hardening: the pod runs in the prod environment (the
           # built-in development admin token is rejected there) and the console
           # derives its browser-facing API URL from the ingress host.
@@ -789,6 +796,53 @@ jobs:
           grep -Fq 'value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16' <<<"$monitoring_rendered"
           grep -Fq 'name: TOKENHUB_METRICS_ENABLED' <<<"$monitoring_rendered"
           grep -Fq 'value: "true"' <<<"$monitoring_rendered"
+
+          # Overlap-capable configurations fail closed until the operator pins
+          # an image with instance-scoped image-job recovery (the published
+          # 0.8.0 image predates it) and confirms it: the 0.8.0 image marks
+          # every unfinished image job in the shared database as failed when
+          # any replica starts or stops, including jobs running on a live
+          # peer.
+          if helm template tokenhub deploy/helm/tokenhub \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set replicaCount=2 \
+            > /dev/null 2>&1; then
+            echo "chart rendered replicaCount=2 without instance-scoped recovery confirmation" >&2
+            exit 1
+          fi
+          if helm template tokenhub deploy/helm/tokenhub \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set strategy=RollingUpdate \
+            > /dev/null 2>&1; then
+            echo "chart rendered strategy=RollingUpdate without instance-scoped recovery confirmation" >&2
+            exit 1
+          fi
+
+          # With the confirmation, multi-replica and RollingUpdate renders
+          # succeed and carry the expected scheduling fields.
+          helm template tokenhub deploy/helm/tokenhub \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set replicaCount=2 \
+            --set confirmInstanceScopedRecovery=true \
+            > /tmp/tokenhub-multireplica.yaml
+          grep -Fq 'replicas: 2' /tmp/tokenhub-multireplica.yaml
+          grep -Fq 'type: Recreate' /tmp/tokenhub-multireplica.yaml
+          helm template tokenhub deploy/helm/tokenhub \
+            --set secretEnv.TOKENHUB_SECRET_KEY=ssssssssssssssssssssssssssssssss \
+            --set secretEnv.TOKENHUB_BOOTSTRAP_ADMIN_PASSWORD=bootstrap-password \
+            --set database.existingSecret=tokenhub-database \
+            --set strategy=RollingUpdate \
+            --set confirmInstanceScopedRecovery=true \
+            > /tmp/tokenhub-rollingupdate.yaml
+          grep -Fq 'type: RollingUpdate' /tmp/tokenhub-rollingupdate.yaml
+          grep -Fq 'maxUnavailable: 0' /tmp/tokenhub-rollingupdate.yaml
+          grep -Fq 'maxSurge: 1' /tmp/tokenhub-rollingupdate.yaml
 
           # Required values fail closed instead of installing placeholders.
           if helm template tokenhub deploy/helm/tokenhub >/dev/null 2>&1; then

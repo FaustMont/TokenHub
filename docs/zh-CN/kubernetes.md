@@ -94,7 +94,7 @@ Ingress 路由与 `deploy/nginx.multi-instance.conf` 一致:
 
 ## 健康检查与停机
 
-`tokenhub-run` 会监管两个进程,任一进程退出都会让容器退出,因此 Kubernetes 会在进程故障时重启 Pod。startup 和 readiness 探针通过 HTTP 检查 API 的 `/readyz`,数据库不可达时 Pod 会停止接收流量;liveness 探针检查 API 的 `/livez`。默认 `terminationGracePeriodSeconds` 为 180 秒,覆盖后端默认 150 秒的优雅停机窗口,进行中的流式请求可以在 Pod 移除前排空。滚动更新配置为 `maxUnavailable: 0`,升级期间不会损失容量。
+`tokenhub-run` 会监管两个进程,任一进程退出都会让容器退出,因此 Kubernetes 会在进程故障时重启 Pod。startup 和 readiness 探针通过 HTTP 检查 API 的 `/readyz`,数据库不可达时 Pod 会停止接收流量;liveness 探针检查 API 的 `/livez`。默认 `terminationGracePeriodSeconds` 为 180 秒,覆盖后端默认 150 秒的优雅停机窗口,进行中的流式请求可以在 Pod 移除前排空。滚动更新采用 `Recreate` 策略:升级和 `kubectl rollout restart` 期间,旧 Pod 会先完全终止,替换 Pod 才会启动,因此不会有两个 Pod 同时对外服务,容量会在一个启动窗口内短暂下降。这样即使使用已发布的 `0.8.0` 镜像,镜像任务的恢复也是安全的(见下文)。
 
 ## 默认无状态
 
@@ -120,7 +120,7 @@ helm upgrade tokenhub deploy/helm/tokenhub --reuse-values --set image.tag=<new-t
 卷挂载在 `imageStorage.mountPath`(`/app/data/images`),chart 会把它导出为 `TOKENHUB_IMAGE_STORAGE_DIR`。
 
 图片任务的恢复只作用于接受该请求的实例:重启、升级或扩容都不会让仍在运行的副本上的任务失败。持有任务的实例死亡后,其心跳过期(约 90 秒)时任务会被标记失败,客户端拿到确定的失败结果而不是一直等待。
-这一保证需要包含对应修复的后端镜像。已发布的 `0.8.0` 镜像早于按实例隔离的恢复逻辑,当另一个副本启动或停止时,仍会把运行中的任务标记为失败:使用该镜像时请保持 `replicaCount` 为 `1`,或将 `image.tag` 固定到本 chart 之后发布的版本。
+这一保证需要包含对应修复的后端镜像,而 chart 在部署侧强制执行了这一点。默认配置只部署一个副本并使用 `Recreate` 策略,不会有两个 Pod 同时运行,因此即使已发布的 `0.8.0` 镜像(早于按实例隔离的恢复逻辑,任一副本启动或停止时会把数据库中所有未完成的镜像任务标记为失败)也只会影响自己的任务。任何允许 Pod 重叠的配置(`replicaCount` 大于 `1`,或 `strategy=RollingUpdate`)都会在渲染时失败并给出可操作的提示。要运行允许重叠的部署,请把 `image.tag` 固定到包含按实例隔离恢复逻辑的后端版本(在 `0.8.0` 之后的版本首次发布),并设置 `confirmInstanceScopedRecovery=true` 予以确认;多副本安装还需要共享镜像存储(`pvc` 或 `existingClaim`)。
 
 ## 用 PodMonitor 监控
 

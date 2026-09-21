@@ -7,12 +7,15 @@ metadata:
 spec:
   replicas: {{ .Values.replicaCount }}
   strategy:
-    type: RollingUpdate
+    type: {{ .Values.strategy }}
+    {{- if eq .Values.strategy "RollingUpdate" }}
     rollingUpdate:
-      # The database is the source of truth and every replica serves the same
-      # state, so roll forward without ever dropping capacity.
+      # RollingUpdate is gated on confirmInstanceScopedRecovery: the old pod
+      # keeps serving while the new one starts, which only instance-scoped
+      # image-job recovery makes safe.
       maxUnavailable: 0
       maxSurge: 1
+    {{- end }}
   selector:
     matchLabels:
       {{- include "tokenhub.selectorLabels" . | nindent 6 }}

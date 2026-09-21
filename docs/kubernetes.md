@@ -94,7 +94,7 @@ The default ingress annotations turn response buffering off and raise the read/s
 
 ## Health and shutdown
 
-`tokenhub-run` supervises both processes and exits the container when either dies, so Kubernetes restarts the pod on any process failure. The startup and readiness probes HTTP-check the API `/readyz` endpoint, so pods stop receiving traffic while the database is unreachable; the liveness probe checks API `/livez`. The default `terminationGracePeriodSeconds` of 180 covers the backend's default 150-second graceful shutdown window, so in-flight streaming requests drain before the pod is removed. The rollout keeps `maxUnavailable: 0` so capacity is never dropped during upgrades.
+`tokenhub-run` supervises both processes and exits the container when either dies, so Kubernetes restarts the pod on any process failure. The startup and readiness probes HTTP-check the API `/readyz` endpoint, so pods stop receiving traffic while the database is unreachable; the liveness probe checks API `/livez`. The default `terminationGracePeriodSeconds` of 180 covers the backend's default 150-second graceful shutdown window, so in-flight streaming requests drain before the pod is removed. The rollout uses the `Recreate` strategy: during upgrades and `kubectl rollout restart` the old pod fully terminates before the replacement starts, so two pods never serve at the same time and capacity dips for one startup window. This keeps image-job recovery safe even with the published `0.8.0` image (see below).
 
 ## Stateless by default
 
@@ -120,7 +120,7 @@ Generated image bytes live on disk while PostgreSQL stores their metadata, so ev
 The volume mounts at `imageStorage.mountPath` (`/app/data/images`), which the chart exports as `TOKENHUB_IMAGE_STORAGE_DIR`.
 
 Image-job recovery is scoped to the instance that accepted a request: restarting, upgrading, or scaling the deployment never fails a job that a still-running replica is processing. Jobs owned by an instance that dies are failed after its heartbeat lapses (about 90 seconds), so clients receive a definitive failure instead of waiting forever.
-This guarantee needs a backend image that contains the fix. The published `0.8.0` image predates instance-scoped recovery and still fails a live peer's running jobs when another replica starts or stops: with that image keep `replicaCount` at `1`, or pin `image.tag` to a release cut after this chart.
+This guarantee needs a backend image that contains the fix, and the chart enforces the deployment-side half. The defaults deploy a single replica with the `Recreate` strategy, so two pods never run at the same time and even the published `0.8.0` image — which predates instance-scoped recovery and fails every unfinished image job in the database whenever any replica starts or stops — can only touch its own jobs. Any configuration that lets pods overlap (`replicaCount` above `1`, or `strategy=RollingUpdate`) fails rendering with an actionable message. To run an overlapping deployment, pin `image.tag` to a backend release that contains instance-scoped recovery (first shipped in a release after `0.8.0`) and set `confirmInstanceScopedRecovery=true` to confirm it; multi-replica installs also need shared image storage (`pvc` or `existingClaim`).
 
 ## Monitoring with PodMonitor
 

@@ -50,8 +50,12 @@ client IP attribution is correct.
 - Generated image bytes require shared storage across replicas
   (`imageStorage.type=pvc` or `existingClaim`); the ephemeral default is for
   single test replicas.
-- Overlapping replicas also need a backend image with instance-scoped
-  image-job recovery. The published `0.8.0` image predates that fix: keep
-  `replicaCount=1` with it, or pin `image.tag` to a later release.
+- The defaults deploy one replica with the `Recreate` strategy: two pods
+  never run at the same time, so image-job recovery stays safe even with the
+  published `0.8.0` image, whose recovery is global rather than
+  instance-scoped. Any overlap-capable configuration (`replicaCount` above 1
+  or `strategy=RollingUpdate`) fails rendering unless `image.tag` pins a
+  release containing instance-scoped recovery and
+  `confirmInstanceScopedRecovery=true` confirms it.
 - `TOKENHUB_MANAGED_UPDATES` is forced off: upgrades happen by changing
   `image.tag` and rolling pods.
