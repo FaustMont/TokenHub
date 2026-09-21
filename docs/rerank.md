@@ -8,6 +8,8 @@
 
 The response contains `model` and `results` with original `index`, `relevance_score` and optional `document.text`. Duplicate texts remain distinct by index. Scores are not rescaled or comparable across models. The gateway does not split a listwise request into batches. Empty queries/documents, invalid `top_n`, unsupported fields, invalid upstream indices and missing results are errors. Only text is supported; images, video and asynchronous jobs are outside this release.
 
+`documents` must contain 1–2048 nonempty text strings. When provided, `top_n` must be between 1 and the document count; omitting it returns all documents.
+
 ## Configure a provider
 
 In **Advanced → Text rerank settings**, choose the protocol that the deployed server actually implements. The endpoint path is appended to the Base URL and may be explicitly overridden with `rerank_path`.

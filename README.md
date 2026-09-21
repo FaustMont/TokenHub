@@ -78,6 +78,7 @@ TokenHub separates everyday model usage, team governance, and platform administr
 - Cost controls for token budgets, provider spend comparison, model choice, and future caching-driven savings.
 - Identity source configuration for OAuth/OIDC enterprise sign-in, plus RBAC and audit trails.
 - OpenAI-compatible model APIs: `/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`; Anthropic Messages APIs: `/v1/messages`, `/v1/messages/count_tokens`.
+- Text retrieval: [dense embeddings](docs/embeddings.md) through `/v1/embeddings` and [document reranking](docs/rerank.md) through `/v1/rerank`, with provider-specific protocol configuration.
 - OpenAI-compatible image generation and reference-image editing through `/v1/images/generations` and `/v1/images/edits`, with asynchronous jobs and server-side image retention.
 - Clean console with compact role-aware navigation, global search, light/dark mode, and split-view API documentation.
 - SQLite-first private deployment with native systemd and Docker Compose options.

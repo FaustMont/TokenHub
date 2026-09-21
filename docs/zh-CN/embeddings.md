@@ -4,6 +4,8 @@ TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限
 
 可选参数：`dimensions`、`encoding_format`（`float` / `base64`）、`input_type`（`query` / `document`）、`task`、`normalized`、`truncation`、`late_chunking`、`user`。具体支持取决于上游协议；不支持的参数明确拒绝，不静默丢弃。本接口暂不支持稀疏、量化、多模态和异步 Batch；兼容上游仍可接收 token ID 输入。
 
+网关每次最多接收 2048 条输入，具体协议可能有更低上限。`dimensions` 范围为 1–65536；`task` 与 `input_type` 只能指定其中一个。
+
 ## 配置上游
 
 在 Provider 高级设置中打开“文本 Embedding 配置”。协议可选 `openai`、`cohere`、`jina`、`voyage`、`dashscope`、`tei`；Gemini 走原生适配器。留空采用目录默认值或 OpenAI 兼容协议，自定义渠道应明确选择实际协议。
@@ -24,6 +26,8 @@ TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限
 默认只在相同 Provider、相同上游模型之间故障切换。确认部署兼容后，可在 `embedding_spaces` 填写上游模型到空间标识的 JSON，例如 `{"my-embedding-model":"space-v1"}`。相同标识意味着管理员确认模型版本与编码行为兼容；仅维度相同不够。更换空间需要业务应用重建已有向量索引，TokenHub 不修改外部索引。
 
 计量证据区分未报告与明确零用量，不将估算冒充实测。上游成本和租户收费分别配置。
+
+新增或重新发布路由时，必须配置租户和供应商两侧价格。租户使用 Embedding 单价，上游库存使用输入单价。若确认免费，在对应的对外模型或上游模型设置 `metadata.retrieval_pricing_confirmed="true"`；历史空配置的零值不代表已确认免费。
 
 ```json
 {"model":"public-embedding","input":["第一条文本","第二条文本"],"dimensions":1024,"encoding_format":"float"}

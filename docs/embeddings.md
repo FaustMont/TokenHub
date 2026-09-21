@@ -4,6 +4,8 @@ TokenHub exposes `POST /v1/embeddings` with the normal API-key permissions, rout
 
 Optional parameters are `dimensions`, `encoding_format` (`float` or `base64`), `input_type` (`query` or `document`), `task`, `normalized`, `truncation`, `late_chunking` and `user`. Availability depends on the selected protocol. Unsupported options are rejected rather than silently discarded. Sparse, quantized and multimodal inputs/outputs and asynchronous Batch jobs are outside this endpoint's current scope. Token ID inputs remain available on compatible upstreams.
 
+The gateway accepts at most 2048 inputs per request; individual protocols may impose lower limits. `dimensions` must be between 1 and 65536. Specify either `task` or `input_type`, not both.
+
 ## Provider configuration
 
 In the Provider's advanced settings, open **Text embedding settings**. `embedding_protocol` selects `openai`, `cohere`, `jina`, `voyage`, `dashscope` or `tei`; Gemini uses its native adapter. An empty value uses the catalog default or OpenAI compatibility. Custom providers must select their actual protocol. The path is appended to the Provider Base URL; `embedding_path` overrides that relative endpoint without changing the host or credentials.
@@ -24,6 +26,8 @@ Use the provider's documented regional URL. A catalog listing or passing HTTP co
 By default, failover stays within the same Provider and upstream model. To permit verified equivalent deployments, configure `embedding_spaces` as a JSON mapping from **upstream model ID** to an administrator-confirmed space ID, for example `{"my-embedding-model":"space-v1"}`. Every participating deployment must use equivalent model versions and encoding behavior. Equal dimensions alone are insufficient. Changing spaces requires rebuilding the application's stored vector index; TokenHub never edits that external index.
 
 Missing upstream usage remains unreported in metering evidence, distinct from reported zero. Estimates are not substituted for measured tokens. Provider costs and tenant prices remain separate.
+
+New or republished routes require configured tenant and provider prices. The tenant uses the embedding price, while the upstream inventory uses the input price. To confirm a free token price explicitly, set `metadata.retrieval_pricing_confirmed="true"` on the corresponding public or upstream model; an empty legacy zero is not confirmation.
 
 ```json
 {"model":"public-embedding","input":["first document","second document"],"dimensions":1024,"encoding_format":"float"}
