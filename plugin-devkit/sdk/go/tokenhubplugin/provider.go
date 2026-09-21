@@ -14,6 +14,7 @@ const (
 	OperationResponses       = "responses"
 	OperationResponsesStream = "responses_stream"
 	OperationEmbeddings      = "embeddings"
+	OperationRerank          = "rerank"
 	OperationModels          = "models"
 	OperationProbe           = "probe"
 )

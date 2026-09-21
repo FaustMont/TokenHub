@@ -83,6 +83,9 @@ func (s *GormStore) ListModels() []Model {
 }
 
 func (s *GormStore) UpdateModel(name string, patch Model) (Model, error) {
+	if err := validateRetrievalPriceMetadata(patch.Metadata); err != nil {
+		return Model{}, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

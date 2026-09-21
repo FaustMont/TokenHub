@@ -1293,6 +1293,9 @@ func (s *Server) validateRouteAdapterForModel(route ModelRoute, pendingModel *Mo
 	if !ok {
 		return NewHTTPError(http.StatusBadRequest, "provider_adapter_missing", "Route provider adapter is not registered")
 	}
+	if err := s.validateRetrievalRoute(route, pendingModel, provider); err != nil {
+		return err
+	}
 	if err := s.validateRouteModelProtocol(route.ModelName, pendingModel, descriptor); err != nil {
 		return err
 	}

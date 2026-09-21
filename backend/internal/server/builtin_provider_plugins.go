@@ -110,6 +110,7 @@ func registerBuiltinProviderAdapters(registry *AdapterRegistry, adapters map[str
 			AdapterCapabilityResponses,
 			AdapterCapabilityResponseStream,
 			AdapterCapabilityEmbeddings,
+			AdapterCapabilityRerank,
 			AdapterCapabilityProbe,
 		},
 	}); err != nil {

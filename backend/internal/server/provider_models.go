@@ -96,6 +96,12 @@ func (s *Server) handleAdminProviderModels(w http.ResponseWriter, r *http.Reques
 		}
 		models = filtered
 	}
+	for i := range models {
+		if provider, ok := s.providerByID(models[i].ProviderID); ok {
+			supported := s.providerRetrievalSupport(provider, models[i].Modality) && retrievalTextInputSupported(models[i])
+			models[i].CallSupported = &supported
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": models})
 }
 

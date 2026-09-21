@@ -229,6 +229,7 @@ type ProviderCatalogModel struct {
 // inventory, not a public API model: publication happens only through a
 // ModelRoute that connects a Model to this provider/upstream-model pair.
 type ProviderModel struct {
+	CallSupported             *bool   `json:"call_supported,omitempty" gorm:"-"`
 	ID                        string  `json:"id" gorm:"primaryKey"`
 	ProviderID                string  `json:"provider_id" gorm:"uniqueIndex:idx_provider_upstream;index"`
 	UpstreamModel             string  `json:"upstream_model" gorm:"uniqueIndex:idx_provider_upstream"`

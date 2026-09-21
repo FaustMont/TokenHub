@@ -10,6 +10,7 @@ import { adminFetch, readAdminError } from "../resources/payloads";
 import { StatusPill } from "../shared/ui";
 
 type CostDraft = {
+  searchUnit: string;
   input: string;
   cache: string;
   cacheWrite: string;
@@ -20,6 +21,7 @@ type CostDraft = {
 
 function costDraft(model: ProviderModel): CostDraft {
   return {
+    searchUnit: model.metadata?.search_unit_price_usd ?? "",
     input: String(model.input_price_usd_per_1m ?? 0),
     cache: String(model.cache_read_price_usd_per_1m ?? 0),
     cacheWrite: configuredPriceFormValue(model.cache_write_price_usd_per_1m, model.cache_write_price_configured),
@@ -73,6 +75,7 @@ export function ProviderModelInventory({
       const resp = await adminFetch(api, `/api/admin/provider-models/${encodeURIComponent(model.id)}`, {
         method: "PATCH",
         body: JSON.stringify({
+          metadata: { ...model.metadata, ...(model.modality === "rerank" || model.modality === "embedding" ? { retrieval_pricing_confirmed: "true", search_unit_price_usd: draft.searchUnit.trim() } : {}) },
           input_price_usd_per_1m: costs.input,
           cache_read_price_usd_per_1m: costs.cache,
           cache_write_price_usd_per_1m: costs.cacheWrite,
@@ -134,7 +137,7 @@ export function ProviderModelInventory({
               const draft = drafts[model.id] ?? costDraft(model);
               return (
                 <tr key={model.id}>
-                  <td><strong>{model.display_name || model.upstream_model}</strong><span>{model.upstream_model}</span></td>
+                  <td><strong>{model.display_name || model.upstream_model}</strong><span>{model.upstream_model}</span>{model.call_supported === false ? <span>{tx("当前渠道暂不支持此模型调用")}</span> : null}{model.modality === "rerank" ? <label><span>{tx("搜索单元价格 USD/次")}</span><input type="number" min="0" step="0.000001" value={draft.searchUnit} onChange={(event) => update(model.id, "searchUnit", event.target.value)} /></label> : null}</td>
                   {(["input", "cache", "cacheWrite", "cacheWrite5m", "cacheWrite1h", "output"] as const).map((key) => (
                     <td key={key}>
                       <input min="0" onChange={(event) => update(model.id, key, event.target.value)} step="0.000001" type="number" value={draft[key]} />

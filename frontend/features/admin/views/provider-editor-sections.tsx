@@ -1,3 +1,4 @@
+import { ProviderRerankFields } from "./provider-rerank-fields";
 import { ProviderEmbeddingFields } from "./provider-embedding-fields";
 import { useState } from "react";
 import { type ApiContext, type ProviderResource } from "../core/types";
@@ -144,6 +145,7 @@ export function ProviderAdvancedFields({
           <input value={values.priority ?? "10"} type="number" onChange={(event) => onUpdate("priority", event.target.value)} />
         </label>
       </div>
+      {!accountIntegration ? <ProviderRerankFields values={values} onUpdate={onUpdate} /> : null}
       {!accountIntegration ? <ProviderEmbeddingFields values={values} onUpdate={onUpdate} /> : null}
       {showReasoningCompatibility ? <details className="provider-account-runtime">
         <summary>

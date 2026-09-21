@@ -1,3 +1,4 @@
+import { rerankOptions } from "../domain/provider-rerank-options";
 import { embeddingOptions } from "../domain/provider-embedding-options";
 import { providerBlockedAddressMessage } from "./provider-network-errors";
 import { appRole } from "../core/navigation";
@@ -44,7 +45,7 @@ export function providerPayload(values: Record<string, string>, data?: Pick<AppD
     claude_code_attribution_policy: providerSystemPromptTransformPolicy(values) || defaultProviderSystemPromptTransformPolicy(values.type, values.catalog_id, providerTypeOptions),
     catalog_id: values.catalog_id,
     model_category: values.model_category,
-    options: { ...providerReasoningOptions(values), ...providerPluginOptionValues(values), ...embeddingOptions(values) },
+    options: { ...providerReasoningOptions(values), ...providerPluginOptionValues(values), ...embeddingOptions(values), ...rerankOptions(values) },
     selected_models: splitList(values.selected_models),
     custom_models: parseProviderCatalogModels(values.custom_models),
   };
@@ -272,6 +273,8 @@ export function modelPayload(values: Record<string, string>, existingMetadata?: 
   } else {
     pricingMetadata.cache_read_price_configured = "false";
   }
+  if (values.retrieval_pricing_confirmed !== undefined) pricingMetadata.retrieval_pricing_confirmed = values.retrieval_pricing_confirmed === "true" ? "true" : "false";
+  if (values.search_unit_price_usd !== undefined) pricingMetadata.search_unit_price_usd = values.search_unit_price_usd.trim();
   payload.metadata = pricingMetadata;
   const routes = initialModelRoutes(values.initial_provider_models);
   if (routes.length > 0) payload.routes = routes;

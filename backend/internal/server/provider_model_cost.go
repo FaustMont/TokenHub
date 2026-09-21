@@ -35,6 +35,9 @@ func providerModelCostDecodeError(err error) error {
 }
 
 func validateProviderModelCosts(model ProviderModel) error {
+	if err := validateRetrievalPriceMetadata(model.Metadata); err != nil {
+		return err
+	}
 	if err := validateModelPricingPeriods(model.PricingPeriods); err != nil {
 		return err
 	}

@@ -1,0 +1,44 @@
+# テキスト再ランキング
+
+`POST /v1/rerank` はクエリに基づいて候補文書を順位付けし、API キー、モデル権限、制限、適用される安全ポリシー、プラグイン、ルーティング、監査を利用します。公開モデルは rerank 型で、対応プロトコルと双方の料金設定が必要です。
+
+```json
+{"model":"public-reranker","query":"証明書を更新するには？","documents":["更新手順","無関係な文書"],"top_n":1,"return_documents":true}
+```
+
+応答は model と results に元の index、relevance_score、任意の document.text を返します。重複文書も索引で区別し、スコアを変換しません。listwise 入力を分割しません。空入力、不正な top_n、未対応パラメータ、上流の欠落や不正索引はエラーです。テキストのみ対応し、画像、動画、非同期ジョブは対象外です。
+
+## 設定
+
+Provider の詳細設定で実際の再ランキングプロトコルを選択します。パスは Base URL に追加し、rerank_path で変更できます。
+
+| プロトコル | Base URL 末尾 | 既定パス | 対象 |
+| --- | --- | --- | --- |
+| jina | `/v1` | `/rerank` | Jina、SiliconFlow、互換 vLLM/Xinference。BGE は API を提供するサーバーが必要 |
+| cohere | `/v2` | `/rerank` | Cohere |
+| voyage | `/v1` | `/rerank` | top_n を top_k に変換 |
+| qwen | リージョン別互換 API | `/reranks` | qwen3-rerank |
+| dashscope | `/api/v1` | `/services/rerank/text-rerank/text-rerank` | gte-rerank-v2 |
+| tei | サーバールート | `/rerank` | documents を texts に変換 |
+
+モデル名だけではプロトコルを判定できません。Xinference は配備された MODEL_UID を使います。Alibaba の資料には URL 接頭辞の相違があるため、モデルとリージョンの実際の URL を検証してください。qwen-rerank の自動別名変換は行いません。
+
+適用モデルの jina/qwen/dashscope は instruction、voyage/tei は truncation を扱います。未対応の指定は拒否されます。
+
+## 料金と既存設定
+
+Token 計量は入力料金を使用し、無料の場合も明示的に確認します。Cohere の search_units は別の検索単位料金を上下流で設定します。API の設定は metadata.search_unit_price_usd、無料 Token 料金の確認は metadata.retrieval_pricing_confirmed="true" です。上流コストとテナント料金は独立し、未報告使用量と実測ゼロを区別します。
+
+呼び出せないモデルもカタログに残し、未対応と表示して新規ルートから除外します。新規公開では能力と料金を検証します。更新時に既存の動作するルートを自動停止しません。モデルや Provider の変更・再公開には新しい検証を適用します。誤分類された BGE は明示的な修正または再検出を行い、履歴請求を書き換えません。
+
+管理者は公開前に `POST /api/admin/playground/rerank` を管理セッションで呼び出せます。
+
+```json
+{"provider_id":"configured-provider","request":{"model":"actual-upstream-model-or-uid","query":"example query","documents":["candidate document"]}}
+```
+
+resource_id は任意です。response、usage_evidence、pricing_status を確認してください。管理者の上流テストであり、テナント権限・請求の受け入れ検証とは異なります。監査はモデルと計量証拠を記録し、文書全文を保存しません。
+
+## 検証範囲
+
+ローカルテストは代表プロトコル、変換、認証、索引、検索単位の料金を検証します。設定画面にはブラウザーシナリオを使用します。実アカウント権限、地域 URL、サーバーバージョンは別途実上流検証が必要です。Dify、LangChain、LlamaIndex は対応 HTTP/再ランキング統合を使用してください。OpenAI SDK に標準 rerank メソッドはありません。カタログ掲載だけでは受け入れ完了を意味しません。

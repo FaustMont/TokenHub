@@ -755,6 +755,12 @@ func customProviderModelsFromPayloadWithDefinitions(payload map[string]any, mode
 		seen[id] = true
 		displayName = firstNonEmpty(displayName, id)
 		modelType := normalizeModelModality(strings.Join([]string{id, displayName, object}, " "))
+		if item, ok := raw.(map[string]any); ok {
+			switch explicit := firstNonEmpty(catalogStringField(item, "type"), catalogStringField(item, "modality")); explicit {
+			case "rerank", "embedding", "chat", "audio", "image", "video", "ocr":
+				modelType = explicit
+			}
+		}
 		metadata := map[string]string{"source": "custom-upstream"}
 		if object != "" {
 			metadata["object"] = object
@@ -840,6 +846,8 @@ func normalizeProviderBaseURL(id string, raw string) string {
 func normalizeModelModality(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
 	switch {
+	case strings.Contains(value, "rerank"):
+		return "rerank"
 	case strings.Contains(value, "embed"):
 		return "embedding"
 	case strings.Contains(value, "image"):
