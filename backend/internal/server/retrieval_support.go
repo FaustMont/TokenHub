@@ -53,6 +53,9 @@ func retrievalPriceConfigured(model Model, search bool, provider bool) bool {
 	return price > 0 || model.Metadata["retrieval_pricing_confirmed"] == "true"
 }
 func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provider Provider) error {
+	if route.Status == StatusDisabled {
+		return nil
+	}
 	// Preserve already-published routes during unrelated edits. Their runtime
 	// capability checks still apply; no upgrade silently disables old traffic.
 	for _, old := range s.store.ListRoutes() {

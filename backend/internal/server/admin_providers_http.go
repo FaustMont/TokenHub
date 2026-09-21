@@ -975,6 +975,10 @@ func (s *Server) serveAdminModelsPost(w http.ResponseWriter, r *http.Request, us
 		}
 		preparedRoutes = append(preparedRoutes, route)
 	}
+	if err := s.validateInitialEmbeddingRoutes(r.Context(), req.Model, preparedRoutes); err != nil {
+		writeError(w, r, err)
+		return
+	}
 	req.Model = withExternalModelRole(req.Model)
 	model, err := s.store.CreateModelWithRoutes(req.Model, preparedRoutes)
 	if err != nil {

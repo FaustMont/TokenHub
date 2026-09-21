@@ -137,3 +137,25 @@ func compatibleEmbeddingRoutes(routes []RouteSelection, contract string) []Route
 	}
 	return result
 }
+
+// Validate all proposed routes together before the model and routes are written.
+func (s *Server) validateInitialEmbeddingRoutes(ctx context.Context, model Model, routes []ModelRoute) error {
+	if model.Modality != "embedding" {
+		return nil
+	}
+	contract := ""
+	for _, route := range routes {
+		if route.Status != "" && route.Status != StatusActive {
+			continue
+		}
+		space, err := s.embeddingSpaceContract(ctx, model.Name, &route)
+		if err != nil {
+			return err
+		}
+		if contract != "" && space != contract {
+			return embeddingSpaceConflict()
+		}
+		contract = space
+	}
+	return nil
+}
