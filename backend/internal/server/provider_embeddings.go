@@ -80,6 +80,8 @@ func embeddingPayload(p Provider, model string, r EmbeddingsRequest) (string, an
 			return "", nil, embeddingUnsupportedParameter(profile, "truncation")
 		}
 	case "voyage":
+		delete(body, "encoding_format")
+		body["output_dtype"] = "float"
 		if r.User != "" {
 			return "", nil, embeddingUnsupportedParameter(profile, "user")
 		}

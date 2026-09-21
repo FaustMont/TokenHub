@@ -32,3 +32,5 @@ Missing upstream usage remains unreported in metering evidence, distinct from re
 OpenAI SDK clients can use `client.embeddings.create`. Configure the public model name and TokenHub base URL in Dify or the relevant LangChain/LlamaIndex integration. Actual client/version acceptance is separate from local protocol tests.
 
 Model discovery prefers explicit `type`, `modality` or `model_type`. When absent, established BGE, GTE, E5, Voyage and sentence-transformer names are recognized as embedding candidates; reranker names take precedence. Inferred type still does not prove deployed capability.
+
+All active route definitions, resource overrides and possible provider fallbacks must agree on one space before any cache lookup or routing. Health/cooldown changes and weighted ordering cannot change that contract. Conflicting configurations return `409 embedding_space_conflict`; remove incompatible routes or assign the same verified space only after confirming compatibility.

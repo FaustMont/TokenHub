@@ -32,3 +32,5 @@
 OpenAI SDK は `client.embeddings.create` を使用します。Dify、LangChain/LlamaIndex では対応する統合に公開モデル名と TokenHub URL を設定してください。実際のクライアントバージョンの受け入れ検証は別途必要です。
 
 モデル検出は明示された type、modality、model_type を優先します。未指定の場合は BGE、GTE、E5、Voyage、sentence-transformer の既知の名前を認識し、再ランキング名を優先して分類します。名前からの推定は配備能力の検証ではありません。
+
+キャッシュ照会やルーティング前に、有効なルート定義、リソースの上書き、Provider へのフォールバック候補が同じ空間か確認します。不健全・クールダウン中のノードも対象です。健康状態や重み付き順序で空間は変わりません。競合は `409 embedding_space_conflict` を返します。非互換ルートを削除するか、互換性確認後に同じ空間 ID を設定してください。

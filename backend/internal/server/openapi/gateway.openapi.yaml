@@ -516,6 +516,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/ModelNotAllowed"
+        "409":
+          description: Configured embedding routes disagree on the vector space.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "429":
           $ref: "#/components/responses/QuotaExceeded"
         "501":

@@ -122,16 +122,16 @@ func TestGeminiEmbeddingsUsesIndependentBatchRequests(t *testing.T) {
 func TestEmbeddingFailoverRequiresVerifiedSpace(t *testing.T) {
 	first := RouteSelection{Provider: Provider{ID: "p1"}, ProviderModel: "m"}
 	other := RouteSelection{Provider: Provider{ID: "p2"}, ProviderModel: "m"}
-	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}); len(got) != 1 {
+	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}, embeddingSpaceKey(first)); len(got) != 1 {
 		t.Fatal("same model name incorrectly authorized failover")
 	}
 	first.Provider.Options = map[string]string{"embedding_spaces": `{"m":"space-1"}`}
 	other.Provider.Options = map[string]string{"embedding_spaces": `{"m":"space-1"}`}
-	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}); len(got) != 2 {
+	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}, embeddingSpaceKey(first)); len(got) != 2 {
 		t.Fatal("verified failover missing")
 	}
 	other.ProviderModel = "different"
-	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}); len(got) != 1 {
+	if got := compatibleEmbeddingRoutes([]RouteSelection{first, other}, embeddingSpaceKey(first)); len(got) != 1 {
 		t.Fatal("space assertion leaked to another model")
 	}
 }

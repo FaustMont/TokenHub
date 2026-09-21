@@ -69,6 +69,12 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	space, err := s.embeddingSpaceContract(r.Context(), req.Model, nil)
+	if err != nil {
+		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
 	resp, usage, hit, err := s.runGatewayCacheLookupHooks(r.Context(), call, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
@@ -111,7 +117,7 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	routed.Routes = compatibleEmbeddingRoutes(routed.Routes)
+	routed.Routes = compatibleEmbeddingRoutes(routed.Routes, space)
 	resp, route, usage, attempts, err := s.executeRoutedEmbeddings(r, routed, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)

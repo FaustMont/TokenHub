@@ -32,3 +32,5 @@ TokenHub 通过 `POST /v1/embeddings` 提供文本向量，复用 API Key 权限
 OpenAI SDK 使用 `client.embeddings.create`。Dify、LangChain/LlamaIndex 使用对应集成并配置 TokenHub 地址和对外模型名；客户端实际版本验收独立于本地协议测试。
 
 模型发现优先采用上游明确声明的 type、modality 或 model_type；缺失时识别常见 BGE、GTE、E5、Voyage 和 sentence-transformer 名称，重排名称优先判为 rerank。名称推断仍不代表部署能力已经验证。
+
+缓存查询和路由前会检查全部启用的路由定义、资源覆盖及可能的 Provider 回退来源；暂时不健康或冷却中的节点也纳入空间判断。健康变化和加权排序不能切换空间。配置冲突返回 `409 embedding_space_conflict`；请移除不兼容线路，或在确认兼容后填写相同的空间标识。

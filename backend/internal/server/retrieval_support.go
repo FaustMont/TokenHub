@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"tokenhub/backend/internal/metering"
@@ -81,6 +82,11 @@ func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provid
 	}
 	if model.Modality != "embedding" && model.Modality != "rerank" {
 		return nil
+	}
+	if model.Modality == "embedding" {
+		if _, err := s.embeddingSpaceContract(context.Background(), model.Name, &route); err != nil {
+			return err
+		}
 	}
 	if provider.Type == ProviderMock {
 		return nil
