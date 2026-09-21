@@ -2178,7 +2178,7 @@ components:
     EmbeddingsRequest:
       type: object
       required: [model, input]
-      additionalProperties: true
+      additionalProperties: false
       properties:
         model:
           type: string
@@ -2189,6 +2189,27 @@ components:
               items: {}
         encoding_format:
           type: string
+          enum: [float, base64]
+        dimensions:
+          type: integer
+          minimum: 1
+          maximum: 65536
+        input_type:
+          type: string
+          enum: [query, document]
+        task:
+          type: string
+        normalized:
+          type: boolean
+        truncation:
+          type: boolean
+        late_chunking:
+          type: boolean
+        user:
+          type: string
+        stream:
+          type: boolean
+          const: false
     EmbeddingsResponse:
       type: object
       required: [object, data]

@@ -1205,11 +1205,6 @@ func cloneRawJSON(source map[string]json.RawMessage, extra int) map[string]json.
 	return cloned
 }
 
-type EmbeddingsRequest struct {
-	Model string `json:"model"`
-	Input any    `json:"input"`
-}
-
 type RouteSelection struct {
 	MeteringSnapshot *meteringAttemptSnapshot `json:"-"`
 	Provider         Provider

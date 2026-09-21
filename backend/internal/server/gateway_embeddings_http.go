@@ -20,6 +20,10 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, NewHTTPError(400, "missing_model", "model is required"))
 		return
 	}
+	if err := validateEmbeddingRequest(req); err != nil {
+		writeError(w, r, err)
+		return
+	}
 	admittedAt := time.Now().UTC()
 	call, err := s.admitRoutedCall(w, r, project, key, req.Model, false, requestTokenReservation(req))
 	if err != nil {
@@ -107,6 +111,7 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	routed.Routes = compatibleEmbeddingRoutes(routed.Routes)
 	resp, route, usage, attempts, err := s.executeRoutedEmbeddings(r, routed, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)

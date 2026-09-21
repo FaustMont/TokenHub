@@ -1,3 +1,4 @@
+import { embeddingOptions } from "../domain/provider-embedding-options";
 import { providerBlockedAddressMessage } from "./provider-network-errors";
 import { appRole } from "../core/navigation";
 import { clearSavedSession } from "../core/session";
@@ -43,7 +44,7 @@ export function providerPayload(values: Record<string, string>, data?: Pick<AppD
     claude_code_attribution_policy: providerSystemPromptTransformPolicy(values) || defaultProviderSystemPromptTransformPolicy(values.type, values.catalog_id, providerTypeOptions),
     catalog_id: values.catalog_id,
     model_category: values.model_category,
-    options: { ...providerReasoningOptions(values), ...providerPluginOptionValues(values) },
+    options: { ...providerReasoningOptions(values), ...providerPluginOptionValues(values), ...embeddingOptions(values) },
     selected_models: splitList(values.selected_models),
     custom_models: parseProviderCatalogModels(values.custom_models),
   };

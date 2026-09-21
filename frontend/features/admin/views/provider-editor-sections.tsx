@@ -1,3 +1,4 @@
+import { ProviderEmbeddingFields } from "./provider-embedding-fields";
 import { useState } from "react";
 import { type ApiContext, type ProviderResource } from "../core/types";
 import { providerTypeLabel } from "../domain/labels";
@@ -143,6 +144,7 @@ export function ProviderAdvancedFields({
           <input value={values.priority ?? "10"} type="number" onChange={(event) => onUpdate("priority", event.target.value)} />
         </label>
       </div>
+      {!accountIntegration ? <ProviderEmbeddingFields values={values} onUpdate={onUpdate} /> : null}
       {showReasoningCompatibility ? <details className="provider-account-runtime">
         <summary>
           <strong>{tx("Provider 推理参数兼容")}</strong>
