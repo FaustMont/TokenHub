@@ -532,6 +532,14 @@ func priceUsageAt(model Model, usage Usage, requestStartedAt time.Time) Usage {
 		usage.TotalTokens = saturatingAddNonNegative(usage.PromptTokens, usage.CompletionTokens)
 	}
 	usage = clampBillableInputTokens(usage)
+	if evidence := usage.RetrievalEvidence; evidence != nil && (evidence.Quantity == nil || evidence.Source == "invalid" || (evidence.Unit == "token" && usage.MeteringInvalid)) {
+		usage.CostUSD = 0
+		usage.InputCostUSD = 0
+		usage.OutputCostUSD = 0
+		usage.CacheReadCostUSD = 0
+		usage.CacheWriteCostUSD = 0
+		return usage
+	}
 	if cost, known := nativeRetrievalCost(model, usage); known {
 		usage.InputCostUSD = cost
 		usage.CostUSD = cost

@@ -68,11 +68,14 @@ func TestRetrievalBillingPreservesFreeCostsAndRejectsNegativeCounters(t *testing
 				}
 			}
 			if tc.negative {
+				if rows[0].CostUSD != 0.003 || rows[0].ProviderCostUSD != 0.001 {
+					t.Fatalf("valid native quantity lost its prices: %+v", rows[0])
+				}
 				var entry meteringEntry
 				if err := store.db.Where("id = ?", rows[0].RequestID+":shadow").First(&entry).Error; err != nil {
 					t.Fatal(err)
 				}
-				if !strings.Contains(entry.Payload, "inconsistent_usage") {
+				if !strings.Contains(entry.Payload, "auxiliary_token_usage_invalid") {
 					t.Fatalf("invalid evidence discarded: %s", entry.Payload)
 				}
 			}

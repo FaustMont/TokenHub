@@ -151,7 +151,7 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 	result.Evidence = usage.RetrievalEvidence
 	if evidence := usage.RetrievalEvidence; evidence != nil {
 		result.UsageSource = evidence.Source
-		if usage.MeteringInvalid {
+		if usage.MeteringInvalid && !validNativeRetrievalEvidence(evidence) {
 			result.Reason = "inconsistent_usage"
 			return result
 		}
@@ -160,6 +160,10 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 			return result
 		}
 		if evidence.Unit == "search_unit" {
+			if !validNativeRetrievalEvidence(evidence) {
+				result.Reason = "inconsistent_usage"
+				return result
+			}
 			if price == nil {
 				result.Reason = "missing_price"
 				return result
@@ -171,6 +175,9 @@ func shadowPrice(price *meteringPriceSnapshot, usage Usage, legacy float64) mete
 			}
 			result.Charge = &charge
 			result.Status = "estimated"
+			if usage.MeteringInvalid {
+				result.Reason = "auxiliary_token_usage_invalid"
+			}
 			return result
 		}
 	}

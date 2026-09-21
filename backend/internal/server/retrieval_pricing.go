@@ -9,7 +9,7 @@ const retrievalSearchUnitPriceKey = "search_unit_price_usd"
 
 func nativeRetrievalCost(model Model, usage Usage) (float64, bool) {
 	e := usage.RetrievalEvidence
-	if e == nil || e.Unit != "search_unit" || e.Quantity == nil || usage.MeteringInvalid {
+	if !validNativeRetrievalEvidence(e) {
 		return 0, false
 	}
 	charge, err := metering.PriceNative(e.Unit, *e.Quantity, model.Metadata[retrievalSearchUnitPriceKey], "USD", "")

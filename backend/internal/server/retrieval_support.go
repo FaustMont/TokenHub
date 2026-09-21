@@ -56,7 +56,7 @@ func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provid
 	// Preserve already-published routes during unrelated edits. Their runtime
 	// capability checks still apply; no upgrade silently disables old traffic.
 	for _, old := range s.store.ListRoutes() {
-		if old.ID == route.ID && old.ModelName == route.ModelName && old.ProviderID == route.ProviderID && old.ProviderModel == route.ProviderModel && old.Status == route.Status {
+		if old.ID == route.ID && old.ModelName == route.ModelName && old.ProviderID == route.ProviderID && old.ProviderModel == route.ProviderModel && old.ProviderResourceID == route.ProviderResourceID && strings.TrimSpace(old.ResourceGroup) == strings.TrimSpace(route.ResourceGroup) && old.Status == route.Status {
 			return nil
 		}
 	}
@@ -76,6 +76,14 @@ func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provid
 	}
 	if !found {
 		return nil
+	}
+	// Publication must use the same resource overrides as execution.
+	if route.ProviderResourceID != "" {
+		resource, ok := s.store.GetProviderResource(route.ProviderResourceID)
+		if !ok || resource.ProviderID != provider.ID {
+			return NewHTTPError(400, "route_resource_mismatch", "Resource must belong to Provider")
+		}
+		provider = effectiveProviderResourceConfig(provider, &resource)
 	}
 	if !s.providerRetrievalSupport(provider, model.Modality) {
 		return NewHTTPError(400, "model_operation_unsupported", "Provider cannot execute this model operation; retain it in the catalog without publishing a route")

@@ -69,6 +69,9 @@ func (s *GormStore) providerCostUSD(route RouteSelection, usage Usage) float64 {
 }
 
 func (s *GormStore) providerCostUSDAt(route RouteSelection, usage Usage, requestStartedAt time.Time) float64 {
+	if e := usage.RetrievalEvidence; e != nil && (e.Quantity == nil || e.Source == "invalid" || (e.Unit == "token" && usage.MeteringInvalid)) {
+		return 0
+	}
 	providerID := strings.TrimSpace(route.Provider.ID)
 	upstreamModel := strings.TrimSpace(route.ProviderModel)
 	if providerID == "" || upstreamModel == "" {
