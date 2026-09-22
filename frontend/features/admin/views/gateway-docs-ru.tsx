@@ -35,6 +35,8 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
     quickInfoLabel: "Базовая информация API",
     quickCards: {
       ...stats.quickCards,
+      baseURL: "Базовый URL",
+      authorization: "Авторизация",
       sampleModel: "Пример модели",
       currentConfig: "Текущая конфигурация",
       activeRoutes: localizeCountNoun(
@@ -250,6 +252,10 @@ export function gatewayRussianDocs(stats: GatewayDocBundle): GatewayDocBundle {
               ],
             },
             examplesTitle: "Примеры",
+            examples: stats.groups[2].items[0].examples?.map((ex) => ({
+              ...ex,
+              title: ex.title === "Chat completion" ? "Генерация чата" : ex.title,
+            })),
           },
           {
             ...stats.groups[2].items[1],

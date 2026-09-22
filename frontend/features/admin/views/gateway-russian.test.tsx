@@ -60,6 +60,9 @@ describe("gateway Russian docs and labels", () => {
     expect(bundle.groups[0].title).toBe("Начало работы");
     expect(bundle.groups[1].title).toBe("Руководства по ролям");
     expect(bundle.groups[2].title).toBe("Справочник API");
+    expect(bundle.quickCards.baseURL).toBe("Базовый URL");
+    expect(bundle.quickCards.authorization).toBe("Авторизация");
+    expect(bundle.groups[2].items[0].examples?.[0]?.title).toBe("Генерация чата");
 
     // Check localized role guide stats
     const userGuide = bundle.groups[1].items[0];

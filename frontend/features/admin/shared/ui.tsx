@@ -7,7 +7,7 @@ import { findProvider, modelRoutesFor } from "../domain/entities";
 import { compactNumber, routeStrategyLabel } from "../domain/formatting";
 import { enumOptionLabel, enumValueLabel, providerTypeLabel, splitList } from "../domain/labels";
 import { providerCatalogEntriesFromPluginCapabilities } from "../domain/provider-plugin-catalog";
-import { clearCustomValidity, formatTranslationTemplate, handleRequiredFieldInvalid, selectedModelsText, selectedOptionsText, translatedCell, tx } from "../i18n/runtime";
+import { clearCustomValidity, formatLocaleNumber, formatTranslationTemplate, handleRequiredFieldInvalid, selectedModelsText, selectedOptionsText, translatedCell, tx } from "../i18n/runtime";
 import { PaginationControls, usePagination } from "./pagination";
 import { useModalFocus } from "./modal-focus";
 
@@ -49,7 +49,7 @@ export function ConfirmDialog({
 
 export function issuedKeyCloseCountdownLabel(seconds: number) {
   return formatTranslationTemplate(tx("{seconds}s 后可关闭"), {
-    seconds: String(seconds),
+    seconds: formatLocaleNumber(seconds),
   });
 }
 

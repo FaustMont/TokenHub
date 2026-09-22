@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type AppLanguage, countRatioWithUnit, setActiveLanguage } from "./runtime";
 
@@ -82,6 +82,10 @@ describe("localized count ratios", () => {
 
     setActiveLanguage("zh-CN");
     expect(formatResetExpiryCountdown(1000, 2, 0)).toBe("1,000天2小时后");
+
+    const { issuedKeyCloseCountdownLabel } = await import("../shared/ui");
+    setActiveLanguage("ru");
+    expect(issuedKeyCloseCountdownLabel(1000)).toBe("Закрыть через 1\u00A0000с");
   });
 
   it("formats pagination values with active locale grouping rules", async () => {
@@ -101,5 +105,44 @@ describe("localized count ratios", () => {
     const { container } = render(<PaginationControls pagination={pagination} totalItems={10000} />);
     expect(container.querySelector(".pagination-summary")?.textContent).toBe("1–20 из 10\u00A0000");
     expect(container.querySelector(".page-buttons span")?.textContent).toBe("1 / 500");
+  });
+
+  it("positions LanguageSelect dropdown properly near viewport bottom for 4 options", async () => {
+    const { fireEvent, render } = await import("@testing-library/react");
+    const { LanguageSelect } = await import("./language-switcher");
+
+    // Simulate trigger near viewport bottom
+    const triggerBottom = 580;
+    const triggerTop = 550;
+    const innerHeight = 600;
+
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: innerHeight });
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 800 });
+
+    const { getByRole } = render(<LanguageSelect language="en" onChange={() => {}} />);
+    const trigger = getByRole("button");
+
+    // Mock getBoundingClientRect
+    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+      top: triggerTop,
+      bottom: triggerBottom,
+      left: 600,
+      right: 760,
+      width: 160,
+      height: 30,
+      x: 600,
+      y: triggerTop,
+      toJSON: () => {},
+    });
+
+    fireEvent.click(trigger);
+
+    const listbox = document.querySelector('[role="listbox"]') as HTMLElement;
+    expect(listbox).not.toBeNull();
+
+    // With 4 options: height is 4 * 38 + 3 * 2 + 10 = 168.
+    // Distance to bottom: 600 - 580 = 20px (< 168 + 12 = 180), so opens above!
+    // Top position above: triggerTop (550) - 168 - 6 = 376.
+    expect(listbox.style.top).toBe("376px");
   });
 });
