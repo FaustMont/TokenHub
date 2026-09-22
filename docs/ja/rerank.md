@@ -50,3 +50,5 @@ resource_id は任意です。response、usage_evidence、pricing_status を確�
 主計量の矛盾（total_tokens=0 と正の prompt_tokens など）や不正なネイティブ数量は 502 invalid_provider_usage とします。有効な検索単位は異常な補助 Token と独立に計価し、Token は非負に保って不整合を記録します。検索単位の Provider プラグインは rerank_protocol=cohere を宣言し、usage.retrieval_evidence に unit、nullable quantity、source（upstream/plugin/unreported）を返します。旧プラグインの全ゼロ Token オブジェクトは実測ゼロとはみなしません。
 
 組み込み qwen/local は設定された rerank プロトコルに対応します。公開時は候補リソースの有効な上書き設定と、対応する Provider フォールバックを検証し、在庫の可用性にはリソースのみの能力も含めます。スコープが一致する provider_call フックも利用できます。TPM 予約には instruction を含め、検索単位のみまたは token 未報告の場合は割当制御用の受付時推定量を維持し、課金単位は変換しません。
+
+在庫では検索料金と保存操作をまとめています。検索単位料金と token 料金の両方が設定されている場合、モデル一覧はそれぞれの単価を表示し、実際の課金はルートのプロトコルに従います。リクエスト・レスポンス切替とメタデータ展開で長い結果を読みやすくし、監査証跡は維持します。

@@ -50,3 +50,5 @@
 主计量矛盾（例如 total_tokens 明确为 0 而 prompt_tokens 大于 0）或原生数量非法时返回 502 invalid_provider_usage，不作为成功的零费用请求交付。合法搜索单元与异常辅助 Token 分开处理：搜索单元按配置计费，Token 计数保持非负并保留异常证据。按搜索单元收费的 Provider 插件声明 rerank_protocol=cohere，通过 usage.retrieval_evidence 提供 unit、可空 quantity、source（upstream、plugin 或 unreported）。旧插件仅返回全零 Token 对象时保持未报告，不能推断为实测免费。
 
 内置 qwen/local 渠道支持显式配置的重排协议。发布检查各候选资源的有效覆盖及具备支持能力的渠道回退配置；库存可用性包含仅在资源上配置的能力。匹配作用域的 provider_call 插件路由仍可调用。TPM 预留包含 instruction；仅报告搜索单元或未报告 token 时保留入场 token 估算用于额度控制，不转换计费单位。
+
+渠道库存将检索价格和保存操作放在一起。若同时配置搜索单元与 token 价格，模型目录分别标明两种单价；实际计费取决于路由协议。请求/响应切换和可展开元数据让长重排结果更易阅读，审计证据仍完整保留。
