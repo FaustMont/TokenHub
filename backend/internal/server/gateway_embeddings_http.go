@@ -33,6 +33,12 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	if call.Model.Modality != "embedding" || !retrievalPriceConfigured(call.Model, false, false) {
+		err := NewHTTPError(400, "embedding_model_not_configured", "Publish an embedding model with an explicit tenant price before calling it")
+		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, guardrailAuditSummary{Model: req.Model})
+		writeError(w, r, err)
+		return
+	}
 	if err := s.runGatewayAuthContextHooks(r.Context(), &call, r.Header); err != nil {
 		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, guardrailAuditSummary{Model: req.Model})
 		writeError(w, r, err)

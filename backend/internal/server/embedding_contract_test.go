@@ -137,7 +137,8 @@ func TestEmbeddingFailoverRequiresVerifiedSpace(t *testing.T) {
 }
 
 func TestEmbeddingGatewayPreservesIndependentBatch(t *testing.T) {
-	server, _, secret := newBackgroundResponseTestServer(t)
+	server, store, secret := newBackgroundResponseTestServer(t)
+	configureEmbeddingTestModel(t, store, "gpt-background")
 	response := doJSON(t, server.Handler(), http.MethodPost, "/v1/embeddings", map[string]any{
 		"model": "gpt-background", "input": []string{"first document", "second document"}, "dimensions": 3, "encoding_format": "base64",
 	}, secret)

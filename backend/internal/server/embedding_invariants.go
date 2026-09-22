@@ -11,15 +11,17 @@ func validateEmbeddingPatch(original, next EmbeddingsRequest) error {
 	if err := validateEmbeddingRequest(next); err != nil {
 		return NewHTTPError(502, "gateway_hook_patch_invalid", "Gateway plugin returned an invalid embedding request")
 	}
-	before, _, err := embeddingInputCount(original.Input)
+	before, beforeTokens, err := embeddingInputCount(original.Input)
 	if err != nil {
 		return err
 	}
-	after, _, err := embeddingInputCount(next.Input)
+	after, afterTokens, err := embeddingInputCount(next.Input)
 	if err != nil {
 		return err
 	}
-	if original.Model != next.Model || before != after || !reflect.DeepEqual(original.Dimensions, next.Dimensions) ||
+	originalInput, _ := json.Marshal(original.Input)
+	nextInput, _ := json.Marshal(next.Input)
+	if beforeTokens != afterTokens || (beforeTokens && string(originalInput) != string(nextInput)) || original.Model != next.Model || before != after || !reflect.DeepEqual(original.Dimensions, next.Dimensions) ||
 		original.EncodingFormat != next.EncodingFormat || original.InputType != next.InputType || original.Task != next.Task ||
 		!reflect.DeepEqual(original.Normalized, next.Normalized) || !reflect.DeepEqual(original.Truncation, next.Truncation) || !reflect.DeepEqual(original.LateChunking, next.LateChunking) {
 		return NewHTTPError(502, "gateway_hook_patch_invalid", "Gateway plugin cannot change embedding model, cardinality, dimensions, encoding or task semantics")
