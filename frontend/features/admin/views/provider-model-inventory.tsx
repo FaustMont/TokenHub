@@ -117,6 +117,20 @@ export function ProviderModelInventory({
       </div>
       {notice ? <p className="provider-inventory-notice success">{notice}</p> : null}
       {error ? <p className="provider-inventory-notice error">{error}</p> : null}
+      <div className="retrieval-cost-list">
+        {models.filter((model) => model.modality === "embedding" || model.modality === "rerank").map((model) => {
+          const draft = drafts[model.id] ?? costDraft(model);
+          return <div className="retrieval-cost-row" key={model.id}>
+            <div className="retrieval-cost-identity"><strong>{model.display_name || model.upstream_model}</strong>{model.display_name && model.display_name !== model.upstream_model ? <span>{model.upstream_model}</span> : null}<span className="retrieval-cost-kind">{model.modality} <StatusPill status={model.status} /></span>{model.call_supported === false ? <span>{tx("当前渠道暂不支持此模型调用")}</span> : null}</div>
+            <div className="retrieval-cost-fields">
+              <label><span>{tx("输入成本 USD/1M")}</span><input aria-label={`${tx("输入成本 USD/1M")}: ${model.upstream_model}`} min="0" step="0.000001" type="number" value={draft.input} onChange={(event) => update(model.id, "input", event.target.value)} /></label>
+              {model.modality === "rerank" ? <label><span>{tx("搜索单元价格 USD/次")}</span><input aria-label={`${tx("搜索单元价格 USD/次")}: ${model.upstream_model}`} type="number" min="0" step="0.000001" value={draft.searchUnit} onChange={(event) => update(model.id, "searchUnit", event.target.value)} /></label> : null}
+            </div>
+            <div className="retrieval-cost-actions"><button className="text-button provider-cost-save" disabled={savingID === model.id} onClick={() => void save(model)} type="button"><Save size={14} />{tx(savingID === model.id ? "保存中" : "保存成本")}</button><StatementLauncher api={api} side="provider" providerID={model.provider_id} model={model.upstream_model} /></div>
+          </div>;
+        })}
+      </div>
+      {models.some((model) => model.modality !== "embedding" && model.modality !== "rerank") ? (
       <div className="provider-model-inventory-table-wrap">
         <table className="provider-model-inventory-table">
           <thead>
@@ -133,7 +147,7 @@ export function ProviderModelInventory({
             </tr>
           </thead>
           <tbody>
-            {models.map((model) => {
+            {models.filter((model) => model.modality !== "embedding" && model.modality !== "rerank").map((model) => {
               const draft = drafts[model.id] ?? costDraft(model);
               return (
                 <tr key={model.id}>
@@ -156,6 +170,7 @@ export function ProviderModelInventory({
           </tbody>
         </table>
       </div>
+      ) : null}
     </section>
   );
 }
