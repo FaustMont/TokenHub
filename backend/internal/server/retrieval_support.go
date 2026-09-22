@@ -99,25 +99,7 @@ func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provid
 	return nil
 }
 func (s *Server) pricedRerankRoutes(call CallContext, routes []RouteSelection) []RouteSelection {
-	result := make([]RouteSelection, 0, len(routes))
-	model := call.Model
-	models := s.store.ListProviderModels()
-	for _, route := range routes {
-		if !s.providerRetrievalSupport(route.Provider, "rerank") && !s.hasGatewayProviderCallHookForRoute(call, route, providerRouteProtocolRerank) {
-			continue
-		}
-		search := providerRerankProtocol(route.Provider) == "cohere"
-		if !retrievalPriceConfigured(model, search, false) {
-			continue
-		}
-		for _, upstream := range models {
-			if upstream.ProviderID == route.Provider.ID && upstream.UpstreamModel == route.ProviderModel && retrievalPriceConfigured(providerModelCostModel(upstream), search, true) {
-				result = append(result, route)
-				break
-			}
-		}
-	}
-	return result
+	return s.pricedRetrievalRoutes(call, routes, "rerank", providerRouteProtocolRerank)
 }
 func (s *Server) handleAdminRerankTest(w http.ResponseWriter, r *http.Request) {
 	user, ok := s.requireAdmin(w, r, "provider", r.Method)

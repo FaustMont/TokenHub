@@ -135,7 +135,7 @@ func (s *Server) handleEmbeddings(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	routed.Routes = s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityEmbeddings, providerRouteProtocolEmbeddings)
+	routed.Routes = s.pricedEmbeddingRoutes(routed.Call, routed.Routes)
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "Embeddings are not supported")
 		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
