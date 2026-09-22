@@ -27,7 +27,7 @@ func requestTokenReservation(payload any) int64 {
 		}
 		return tokens
 	case EmbeddingsRequest:
-		return EstimateTextTokens(EmbeddingInputText(request.Input))
+		return embeddingTokenReservation(request.Input)
 	case map[string]json.RawMessage:
 		return compactResponsesTokenReservation(request)
 	default:

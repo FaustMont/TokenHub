@@ -16,7 +16,7 @@ func embeddingCacheKey(call CallContext, space string, request EmbeddingsRequest
 		return "", err
 	}
 	sum := sha256.Sum256(data)
-	return "embedding:v1:" + hex.EncodeToString(sum[:]), nil
+	return "embedding:v2:" + hex.EncodeToString(sum[:]), nil
 }
 func addEmbeddingCacheContract(input *pluginmeta.GatewayHookInput, call CallContext) {
 	if call.EmbeddingCacheKey == "" {

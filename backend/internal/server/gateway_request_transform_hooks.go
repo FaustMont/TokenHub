@@ -103,7 +103,17 @@ func (s *Server) runGatewayResponsesRequestTransformHooksForProtocol(ctx context
 
 func (s *Server) runGatewayEmbeddingsRequestTransformHooks(ctx context.Context, call CallContext, route RouteSelection, req *EmbeddingsRequest) error {
 	return s.runGatewayRequestTransformHooks(ctx, call, route, *req, providerRouteProtocolEmbeddings, func(data json.RawMessage) error {
-		return applyEmbeddingsGatewayRequestPatch(req, data)
+		patched := *req
+		if err := applyEmbeddingsGatewayRequestPatch(&patched, data); err != nil {
+			return err
+		}
+		before, _ := json.Marshal(req.Input)
+		after, _ := json.Marshal(patched.Input)
+		if string(before) != string(after) {
+			return NewHTTPError(502, "gateway_hook_patch_invalid", "Route-scoped embedding hooks cannot change input after cache lookup")
+		}
+		*req = patched
+		return nil
 	})
 }
 

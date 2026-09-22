@@ -44,4 +44,25 @@ func configureEmbeddingTestModel(t *testing.T, store Store, name string) {
 	if _, err := store.UpdateModel(name, Model{Modality: "embedding", EmbeddingPriceUSDPer1M: 1}); err != nil {
 		t.Fatal(err)
 	}
+	for _, route := range store.ListRoutes() {
+		if route.ModelName != name {
+			continue
+		}
+		for _, upstream := range store.ListProviderModels() {
+			if upstream.ProviderID != route.ProviderID || upstream.UpstreamModel != route.ProviderModel {
+				continue
+			}
+			upstream.Modality = "embedding"
+			upstream.Metadata = cloneStringMap(upstream.Metadata)
+			if upstream.Metadata == nil {
+				upstream.Metadata = map[string]string{}
+			}
+			if upstream.InputPriceUSDPer1M == 0 {
+				upstream.Metadata["retrieval_pricing_confirmed"] = "true"
+			}
+			if _, err := store.UpdateProviderModel(upstream.ID, upstream); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 }
