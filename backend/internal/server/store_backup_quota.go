@@ -540,6 +540,13 @@ func priceUsageAt(model Model, usage Usage, requestStartedAt time.Time) Usage {
 		usage.CacheWriteCostUSD = 0
 		return usage
 	}
+	if model.Modality == "embedding" && model.EmbeddingPriceUSDPer1M == 0 && model.Metadata["retrieval_pricing_confirmed"] == "true" {
+		// Explicitly free tenant embeddings never inherit a legacy chat rate or
+		// an adapter-supplied tenant charge. Procurement evidence stays intact.
+		usage.CostUSD, usage.InputCostUSD, usage.OutputCostUSD = 0, 0, 0
+		usage.CacheReadCostUSD, usage.CacheWriteCostUSD = 0, 0
+		return usage
+	}
 	if cost, known := nativeRetrievalCost(model, usage); known {
 		usage.InputCostUSD = cost
 		usage.CostUSD = cost
