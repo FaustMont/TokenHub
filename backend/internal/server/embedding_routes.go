@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 
@@ -19,8 +21,10 @@ func embeddingSpaceKey(route RouteSelection) string {
 	if space := embeddingRouteSpace(route); space != "" {
 		return "verified:" + space
 	}
-	identity, _ := json.Marshal([]string{route.Provider.ID, route.ProviderModel})
-	return "provider-model:" + string(identity)
+	identity, _ := json.Marshal([]string{route.Provider.ID, route.ProviderModel, route.Provider.Type,
+		strings.TrimRight(strings.TrimSpace(route.Provider.BaseURL), "/"), providerEmbeddingProtocol(route.Provider), providerEmbeddingPath(route.Provider)})
+	sum := sha256.Sum256(identity)
+	return "provider-deployment:v2:" + hex.EncodeToString(sum[:])
 }
 func embeddingSpaceConflict() error {
 	return NewHTTPError(409, "embedding_space_conflict", "All routes for an embedding model must share a verified vector space; configure matching space IDs or remove incompatible routes")

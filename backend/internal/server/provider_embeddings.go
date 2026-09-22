@@ -21,6 +21,19 @@ func providerEmbeddingProtocol(p Provider) string {
 	}
 	return "openai"
 }
+func providerEmbeddingPath(p Provider) string {
+	if path := strings.TrimSpace(p.Options["embedding_path"]); path != "" {
+		return path
+	}
+	switch providerEmbeddingProtocol(p) {
+	case "cohere", "tei":
+		return "/embed"
+	case "dashscope":
+		return "/services/embeddings/text-embedding/text-embedding"
+	default:
+		return "/embeddings"
+	}
+}
 func embeddingTask(r EmbeddingsRequest, p string) string {
 	if r.Task != "" {
 		return r.Task
@@ -60,7 +73,7 @@ func embeddingPayload(p Provider, model string, r EmbeddingsRequest) (string, an
 	if err = json.Unmarshal(raw, &body); err != nil {
 		return "", nil, err
 	}
-	path := "/embeddings"
+	path := providerEmbeddingPath(p)
 	if profile != "jina" && (r.Normalized != nil || r.LateChunking != nil) {
 		return "", nil, embeddingUnsupportedParameter(profile, "normalized/late_chunking")
 	}
@@ -103,7 +116,6 @@ func embeddingPayload(p Provider, model string, r EmbeddingsRequest) (string, an
 		}
 		switch profile {
 		case "cohere":
-			path = "/embed"
 			body["model"] = model
 			body["texts"] = texts
 			body["embedding_types"] = []string{"float"}
@@ -126,7 +138,6 @@ func embeddingPayload(p Provider, model string, r EmbeddingsRequest) (string, an
 			if len(texts) > 10 {
 				return "", nil, embeddingRequestError("DashScope native text embeddings accept at most 10 inputs per request")
 			}
-			path = "/services/embeddings/text-embedding/text-embedding"
 			body["model"] = model
 			body["input"] = map[string]any{"texts": texts}
 			params := map[string]any{"output_type": "dense"}
@@ -141,7 +152,6 @@ func embeddingPayload(p Provider, model string, r EmbeddingsRequest) (string, an
 				return "", nil, embeddingUnsupportedParameter(profile, "truncation")
 			}
 		case "tei":
-			path = "/embed"
 			body["inputs"] = texts
 			if r.Dimensions != nil {
 				body["dimensions"] = *r.Dimensions
