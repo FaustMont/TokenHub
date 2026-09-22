@@ -285,7 +285,7 @@ func providerModelFromCatalog(providerID string, model ProviderCatalogModel) Pro
 		CanonicalName:             firstNonEmpty(model.CanonicalName, canonicalModelName(model.ID, model.DisplayName)),
 		Category:                  standardModelCategory(firstNonEmpty(model.Category, inferModelCategory(model.ID, model.DisplayName))),
 		Family:                    firstNonEmpty(model.Family, inferModelFamily(model.ID)),
-		Modality:                  canonicalProviderModality(firstNonEmpty(model.Type, normalizeModelModality(model.ID))),
+		Modality:                  importedRetrievalModality(model.Type, model.ID),
 		ContextWindow:             model.ContextWindow,
 		InputPriceUSDPer1M:        model.InputPriceUSDPer1M,
 		CacheReadPriceUSDPer1M:    model.CacheReadPriceUSDPer1M,

@@ -79,3 +79,12 @@ func canonicalProviderModality(value string) string {
 		return value
 	}
 }
+
+func importedRetrievalModality(declared, id string) string {
+	modality := canonicalProviderModality(declared)
+	inferred := normalizeModelModality(id)
+	if modality == "" || (modality == "chat" && inferred == "rerank") {
+		return inferred
+	}
+	return modality
+}

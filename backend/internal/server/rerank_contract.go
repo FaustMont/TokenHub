@@ -169,8 +169,14 @@ func validateRerankResult(response any, request RerankRequest) (any, error) {
 	if len(items) != expected || body["model"] != request.Model {
 		return nil, NewHTTPError(502, "invalid_rerank_response", "Final rerank response does not match the request")
 	}
+	previousScore := math.Inf(1)
 	for _, value := range items {
 		item := value.(map[string]any)
+		score := item["relevance_score"].(float64)
+		if score > previousScore {
+			return nil, NewHTTPError(502, "invalid_rerank_response", "Final rerank results must be ordered by descending relevance_score")
+		}
+		previousScore = score
 		if document, exists := item["document"]; exists && document != nil {
 			fields, ok := document.(map[string]any)
 			if !ok {
