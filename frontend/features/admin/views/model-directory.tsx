@@ -9,8 +9,8 @@ import { findProvider, modelRoutesFor } from "../domain/entities";
 import { modelDirectorySubtitle, modelDisplayName } from "../domain/model-display-name";
 import { modelMetadataFacts } from "../domain/model-endpoints";
 import { externalModels, filterExternalModels, isCustomModelAlias, modelPublicationState, modelRuntimeState, type ModelPublicationState } from "../domain/model-directory";
-import { modelTokenPriceMetric } from "../domain/model-token-price";
-import { compactNumber, formatMoney } from "../domain/formatting";
+import { modelTokenPriceMetric, formatRetrievalUSD } from "../domain/model-token-price";
+import { compactNumber } from "../domain/formatting";
 import { tx } from "../i18n/runtime";
 import { adminFetch, readAdminError } from "../resources/payloads";
 import { DataSection, StatusPill } from "../shared/ui";
@@ -244,7 +244,7 @@ function ExternalModelsTable({ api, data, models, readOnly, busy, onOpenRoutes, 
                   <td><StatusPill status={publication === "published" ? "active" : "disabled"} label={tx(publicationLabel(publication))} /></td>
                   <td><RuntimeStatus state={runtime} active={activeRoutes.length} total={routes.length} /></td>
                 </> : <td><StatusPill status="active" label={tx("当前账号可用")} /></td>}
-                <td>{model.modality === "rerank" && model.metadata?.search_unit_price_usd?.trim() ? <><strong>${formatMoney(Number(model.metadata.search_unit_price_usd))}</strong><span>{tx("搜索单元价格 USD/次")}</span>{model.input_price_usd_per_1m != null ? <span>{tx("输入")} · {modelTokenPriceMetric(model)}</span> : null}</> : <><strong>{modelTokenPriceMetric(model)}</strong><span>{model.modality === "embedding" ? "Embedding" : tx("输入")}{model.modality !== "embedding" && model.modality !== "rerank" ? <> · {priceMetric(model.output_price_usd_per_1m)} {tx("输出")}</> : null}</span></>}</td>
+                <td>{model.modality === "rerank" && model.metadata?.search_unit_price_usd?.trim() ? <><strong>{formatRetrievalUSD(Number(model.metadata.search_unit_price_usd))}</strong><span>{tx("搜索单元价格 USD/次")}</span>{model.input_price_usd_per_1m != null ? <span>{tx("输入")} · {modelTokenPriceMetric(model)}</span> : null}</> : <><strong>{modelTokenPriceMetric(model)}</strong><span>{model.modality === "embedding" ? "Embedding" : tx("输入")}{model.modality !== "embedding" && model.modality !== "rerank" ? <> · {priceMetric(model.output_price_usd_per_1m)} {tx("输出")}</> : null}</span></>}</td>
                 {!readOnly ? (
                   <td><div className="directory-row-actions"><StatementLauncher api={api} side="tenant" model={model.name} /><button aria-label={`${tx("路由策略")}: ${model.name}`} className="text-button" onClick={() => onOpenRoutes(model)} type="button">{tx("路由策略")}</button><button className="text-button" onClick={() => onEdit(model)} type="button">{tx("编辑")}</button><button className="text-button" disabled={busy || (publication !== "published" && activeRoutes.length === 0)} onClick={() => onPublish(model, publication !== "published")} type="button">{tx(publication === "published" ? "下线" : "发布")}</button><button className="danger-button" onClick={() => onDelete(model)} type="button">{tx("删除")}</button></div></td>
                 ) : null}
