@@ -90,3 +90,19 @@ test(`retrieval-layout inventory-${mobile ? "mobile" : "desktop"}`, async ({ pag
 });
 
 }
+
+test("retrieval-layout distinguishes free and unknown prices", async ({ page, api }, info) => {
+  const freeModels: Model[] = [
+    { ...models[0], id: "free", name: "confirmed-free", embedding_price_usd_per_1m: 0, metadata: { directory_role: "external", retrieval_pricing_confirmed: "true" } },
+    { ...models[0], id: "unknown", name: "unconfirmed-price", embedding_price_usd_per_1m: 0, metadata: { directory_role: "external" } },
+  ];
+  const overview = shellResponses().get("GET /api/admin/overview") as Record<string, unknown>;
+  api.replaceResponse("GET", "/api/admin/overview", { ...overview, models: freeModels, providers: [provider] });
+  api.respond("GET", "/api/admin/routing-rules", { data: freeModels.map((model, index) => ({ ...routes[0], id: `free-route-${index}`, model_name: model.name })) });
+  api.respond("GET", "/api/admin/provider-catalog", { data: [] });
+  await page.goto("/models");
+  const table = page.locator(".model-directory-table");
+  await expect(table.getByRole("row").filter({ hasText: "confirmed-free" })).toContainText("$0.000000/Mt");
+  await expect(table.getByRole("row").filter({ hasText: "unconfirmed-price" })).toContainText("$-");
+  await capture(page, info, table, "free-vs-unknown", "明确免费与未配置单价", "viewport");
+});

@@ -23,7 +23,7 @@ Use the provider's documented regional URL. A catalog listing or passing HTTP co
 
 ## Vector compatibility
 
-By default, failover stays within the same Provider and upstream model. To permit verified equivalent deployments, configure `embedding_spaces` as a JSON mapping from **upstream model ID** to an administrator-confirmed space ID, for example `{"my-embedding-model":"space-v1"}`. Every participating deployment must use equivalent model versions and encoding behavior. Equal dimensions alone are insufficient. Changing spaces requires rebuilding the application's stored vector index; TokenHub never edits that external index.
+By default, sources must match the Provider, upstream model, adapter type, effective Base URL, embedding protocol and endpoint path. Resource overrides participate in this identity; different deployments need an explicit shared space. To permit verified equivalent deployments, configure `embedding_spaces` as a JSON mapping from **upstream model ID** to an administrator-confirmed space ID, for example `{"my-embedding-model":"space-v1"}`. Every participating deployment must use equivalent model versions and encoding behavior. Equal dimensions alone are insufficient. Changing spaces requires rebuilding the application's stored vector index; TokenHub never edits that external index.
 
 Missing upstream usage remains unreported in metering evidence, distinct from reported zero. Estimates are not substituted for measured tokens. Provider costs and tenant prices remain separate.
 
@@ -44,3 +44,5 @@ Gateway hooks may rewrite text but must preserve input cardinality, dimensions, 
 The public model must have modality `embedding` and a configured embedding price or explicit free-price confirmation before hooks execute. Hooks cannot change text/token input modes or rewrite token IDs. When token usage is unreported, TPM settlement retains the admission estimate for quota enforcement only; billing evidence remains unreported.
 
 The model directory displays the embedding rate rather than the chat input rate. Provider inventory uses a compact retrieval price editor; hidden chat/cache rates remain unchanged when saving. Request details show the response first, with request payloads selectable and additional metadata/usage breakdown expandable.
+
+Explicitly confirmed free embeddings remain zero-priced even if a legacy chat input rate or adapter-reported charge is present. Provider costs and token counters are retained. The directory displays confirmed free retrieval rates as zero and unconfigured rates as unknown. Deployment identity changes invalidate prior embedding cache entries; no database migration is required.
