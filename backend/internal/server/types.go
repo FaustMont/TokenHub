@@ -15,6 +15,7 @@ const (
 	StatusDisabled = "disabled"
 	StatusRevoked  = "revoked"
 
+	RouteStrategyJev              = "jev"
 	RouteStrategyBalanced         = "balanced"
 	RouteStrategyAdaptive         = "adaptive"
 	RouteStrategyCost             = "cost"
@@ -1279,15 +1280,18 @@ type RoutedCall struct {
 
 type CallContext struct {
 	// EmbeddingCacheKey binds cached vectors to their space and client contract.
-	EmbeddingCacheKey     string
-	RouteProtocol         string
-	RequestID             string
-	Project               Project
-	Key                   APIKey
-	Model                 Model
-	RoutingPolicyID       string
-	RoutingPolicyScope    string
-	RoutingPolicyPriority int
+	EmbeddingCacheKey       string
+	JevResponseBound        bool
+	jevResponseBinding      *pendingJevResponseBinding
+	RoutingStrategyOverride string
+	RouteProtocol           string
+	RequestID               string
+	Project                 Project
+	Key                     APIKey
+	Model                   Model
+	RoutingPolicyID         string
+	RoutingPolicyScope      string
+	RoutingPolicyPriority   int
 	// StartedAt is the database clock reading taken when the call was admitted:
 	// StartCall derives the quota buckets and the lease expiry from that reading
 	// so every replica agrees on them, and reports it here for callers that want
