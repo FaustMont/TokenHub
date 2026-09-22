@@ -12,7 +12,7 @@ import (
 )
 
 func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
-	for _, endpoint := range []string{"chat", "chat-stream", "embeddings", "responses", "responses-stream", "responses-background", "anthropic", "anthropic-stream", "gemini", "gemini-stream", "images"} {
+	for _, endpoint := range []string{"chat", "chat-stream", "embeddings", "rerank", "responses", "responses-stream", "responses-background", "anthropic", "anthropic-stream", "gemini", "gemini-stream", "images"} {
 		for _, scopeCase := range []string{"matching", "unscoped", "project-mismatch", "key-mismatch", "operation-mismatch", "legacy-matching", "legacy-mismatch", "split-matches", "response-only", "stream-only", "no-response", "separate-mode-hooks", "output-scope-split"} {
 			t.Run(endpoint+"/"+scopeCase, func(t *testing.T) {
 				config := responseJobTestConfig()
@@ -31,6 +31,17 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 					store.AddModel(Model{Name: openAIImageModelName, Modality: "image", Status: StatusActive})
 					store.AddRoute(ModelRoute{ID: "image-scope-route", ModelName: openAIImageModelName, ProviderID: "prv_background", ProviderResourceID: "rsrc_background", ProviderModel: "image-upstream", Status: StatusActive, Weight: 100})
 				}
+				if endpoint == "embeddings" || endpoint == "rerank" {
+					modality := "embedding"
+					if endpoint == "rerank" {
+						modality = "rerank"
+					}
+					_, err := store.UpdateModel("gpt-background", Model{Modality: modality, Metadata: map[string]string{"retrieval_pricing_confirmed": "true"}})
+					if err != nil {
+						t.Fatal(err)
+					}
+					store.AddProviderModel(ProviderModel{ProviderID: "prv_background", UpstreamModel: "gpt-background-upstream", Modality: modality, Metadata: map[string]string{"retrieval_pricing_confirmed": "true"}})
+				}
 				server := NewWithConfig(store, config)
 				t.Cleanup(func() { _ = server.Shutdown(context.Background()) })
 				protocol := providerRouteProtocolResponses
@@ -43,6 +54,9 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 					payload = map[string]any{"model": "gpt-background", "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "hello"}}}
 				case endpoint == "embeddings":
 					protocol, path = providerRouteProtocolEmbeddings, "/v1/embeddings"
+				case endpoint == "rerank":
+					protocol, path = providerRouteProtocolRerank, "/v1/rerank"
+					payload = map[string]any{"model": "gpt-background", "query": "hello", "documents": []string{"document"}}
 				case strings.HasPrefix(endpoint, "anthropic"):
 					protocol, path = providerRouteProtocolAnthropic, "/v1/messages"
 					payload = map[string]any{"model": "gpt-background", "max_tokens": 32, "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "hello"}}}
@@ -123,6 +137,9 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 						if endpoint == "embeddings" {
 							result = map[string]any{"object": "list", "model": "gpt-background", "data": []any{map[string]any{"index": 0, "embedding": []float64{0.25, 0.75}}}}
 						}
+						if endpoint == "rerank" {
+							result = map[string]any{"model": "gpt-background", "results": []any{map[string]any{"index": 0, "relevance_score": 0.8}}}
+						}
 						if endpoint == "images" {
 							result = gatewayImageProviderResponse{DataBase64: encodeBase64(imageBytes), RevisedPrompt: "scope-result"}
 						}
@@ -159,6 +176,9 @@ func TestProviderCallCapabilityHonorsRequestScope(t *testing.T) {
 					expectedResult := "scope-result"
 					if endpoint == "embeddings" {
 						expectedResult = `"embedding"`
+					}
+					if endpoint == "rerank" {
+						expectedResult = `"relevance_score"`
 					}
 					if calls.Load() != 1 || !strings.Contains(body, expectedResult) || status != 0 && status != http.StatusOK {
 						t.Fatalf("matching hook failed: calls=%d status=%d body=%s", calls.Load(), status, body)

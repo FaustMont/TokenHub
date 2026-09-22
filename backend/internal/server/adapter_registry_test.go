@@ -62,12 +62,12 @@ var builtinAdapterCapabilities = map[string][]AdapterCapability{
 	},
 	"qwen": {
 		AdapterCapabilityChat, AdapterCapabilityChatStream,
-		AdapterCapabilityEmbeddings, AdapterCapabilityProbe,
+		AdapterCapabilityEmbeddings, AdapterCapabilityProbe, AdapterCapabilityRerank,
 		AdapterCapabilityResponses, AdapterCapabilityResponseStream,
 	},
 	"local": {
 		AdapterCapabilityChat, AdapterCapabilityChatStream,
-		AdapterCapabilityEmbeddings, AdapterCapabilityProbe,
+		AdapterCapabilityEmbeddings, AdapterCapabilityProbe, AdapterCapabilityRerank,
 		AdapterCapabilityResponses, AdapterCapabilityResponseStream,
 	},
 }

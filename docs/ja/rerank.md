@@ -31,7 +31,7 @@ Provider の詳細設定で実際の再ランキングプロトコルを選択�
 
 Token 計量は入力料金を使用し、無料の場合も明示的に確認します。Cohere の search_units は別の検索単位料金を上下流で設定します。API の設定は metadata.search_unit_price_usd、無料 Token 料金の確認は metadata.retrieval_pricing_confirmed="true" です。上流コストとテナント料金は独立し、未報告使用量と実測ゼロを区別します。
 
-呼び出せないモデルもカタログに残し、未対応と表示して新規ルートから除外します。新規公開では能力と料金を検証します。更新時に既存の動作するルートを自動停止しません。モデルや Provider の変更・再公開には新しい検証を適用します。誤分類された BGE は明示的な修正または再検出を行い、履歴請求を書き換えません。
+呼び出せないモデルもカタログに残し、未対応と表示して新規ルートから除外します。新規公開では能力と料金を検証します。更新時に既存の動作するルートを自動停止しません。モデルや Provider の変更・再公開には新しい検証を適用します。起動時に reranker の別名と、旧版で chat として保存された明確な reranker 在庫を冪等に補正します。公開 chat 別名は、設定済みの全上流が明確な reranker の場合に限り補正し、混在用途の別名は維持します。料金、ルート設定、過去の請求は変更しません。
 
 管理者は公開前に `POST /api/admin/playground/rerank` を管理セッションで呼び出せます。
 
@@ -48,3 +48,5 @@ resource_id は任意です。response、usage_evidence、pricing_status を確�
 最終応答の検証では後処理・匿名化の結果を保持し、元の入力文書を復元しません。管理者テストは通常の実行設定経路から復号済み認証情報と選択リソースの上書きを読み込みます。ネイティブ単位の請求にも非負使用量の保護を適用し、テナント無料リクエストにも上流コストを記録します。
 
 主計量の矛盾（total_tokens=0 と正の prompt_tokens など）や不正なネイティブ数量は 502 invalid_provider_usage とします。有効な検索単位は異常な補助 Token と独立に計価し、Token は非負に保って不整合を記録します。検索単位の Provider プラグインは rerank_protocol=cohere を宣言し、usage.retrieval_evidence に unit、nullable quantity、source（upstream/plugin/unreported）を返します。旧プラグインの全ゼロ Token オブジェクトは実測ゼロとはみなしません。
+
+組み込み qwen/local は設定された rerank プロトコルに対応します。公開時は候補リソースの有効な上書き設定と、対応する Provider フォールバックを検証し、在庫の可用性にはリソースのみの能力も含めます。スコープが一致する provider_call フックも利用できます。TPM 予約には instruction を含め、検索単位のみまたは token 未報告の場合は割当制御用の受付時推定量を維持し、課金単位は変換しません。

@@ -608,14 +608,7 @@ func (s *GormStore) finishCallTransaction(tx *gorm.DB, call CallContext, route R
 			}
 			liveKeyExists = false
 		}
-		providerTokens := meteredTokens(usage)
-		actualTokens := usage.RateLimitTokens
-		if actualTokens <= 0 {
-			actualTokens = providerTokens
-		}
-		if call.StreamOutputCommitted && providerTokens == 0 && actualTokens < call.ReservedTokens {
-			actualTokens = call.ReservedTokens
-		}
+		actualTokens := quotaActualTokens(call, usage)
 		quotaUsage := usage
 		quotaUsage.TotalTokens = actualTokens
 		if !call.RedisBillingAdmitted {

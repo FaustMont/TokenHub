@@ -21,7 +21,7 @@ func requestTokenReservation(payload any) int64 {
 		input = saturatingAddNonNegative(input, estimateRawJSONTokens(request.raw["text"]))
 		return saturatingAddNonNegative(input, outputTokenReservation(int64(request.MaxTokens)))
 	case RerankRequest:
-		var tokens int64
+		tokens := EstimateTextTokens(request.Instruction)
 		for _, document := range request.Documents {
 			tokens = saturatingAddNonNegative(tokens, EstimateTextTokens(request.Query+" "+document))
 		}

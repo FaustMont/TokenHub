@@ -122,7 +122,7 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	routed.Routes = s.pricedRerankRoutes(call.Model, s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityRerank, providerRouteProtocolRerank))
+	routed.Routes = s.pricedRerankRoutes(routed.Call, s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityRerank, providerRouteProtocolRerank))
 	if len(routed.Routes) == 0 {
 		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "No rerank route has a supported protocol and configured provider/tenant prices")
 		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)

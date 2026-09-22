@@ -24,7 +24,7 @@ func (s *Server) providerRetrievalSupport(provider Provider, modality string) bo
 		if !adapterSupports(descriptor, AdapterCapabilityEmbeddings) {
 			return false
 		}
-		if provider.Type == ProviderOpenAICompatible {
+		if usesCompatibleRetrievalProtocol(provider.Type) {
 			switch providerEmbeddingProtocol(provider) {
 			case "openai", "cohere", "jina", "voyage", "dashscope", "tei":
 				return true
@@ -34,7 +34,7 @@ func (s *Server) providerRetrievalSupport(provider Provider, modality string) bo
 		}
 		return true
 	case "rerank":
-		return adapterSupports(descriptor, AdapterCapabilityRerank) && (provider.Type != ProviderOpenAICompatible || validRerankProtocol(providerRerankProtocol(provider)))
+		return adapterSupports(descriptor, AdapterCapabilityRerank) && (!usesCompatibleRetrievalProtocol(provider.Type) || validRerankProtocol(providerRerankProtocol(provider)))
 	case "video", "audio", "ocr":
 		return false
 	default:
@@ -80,50 +80,30 @@ func (s *Server) validateRetrievalRoute(route ModelRoute, pending *Model, provid
 	if !found {
 		return nil
 	}
-	// Publication must use the same resource overrides as execution.
-	if route.ProviderResourceID != "" {
-		resource, ok := s.store.GetProviderResource(route.ProviderResourceID)
-		if !ok || resource.ProviderID != provider.ID {
-			return NewHTTPError(400, "route_resource_mismatch", "Resource must belong to Provider")
-		}
-		provider = effectiveProviderResourceConfig(provider, &resource)
-	}
-	if !s.providerRetrievalSupport(provider, model.Modality) {
-		return NewHTTPError(400, "model_operation_unsupported", "Provider cannot execute this model operation; retain it in the catalog without publishing a route")
-	}
 	if model.Modality != "embedding" && model.Modality != "rerank" {
-		return nil
+		return s.validateRetrievalProviderPrice(model, route, provider)
 	}
-	if model.Modality == "embedding" {
-		if _, err := s.embeddingSpaceContract(context.Background(), model.Name, &route); err != nil {
+	configs, err := s.retrievalRouteProviders(provider, route, model.Modality, s.store.ListProviderResources())
+	if err != nil {
+		return err
+	}
+	for _, config := range configs {
+		if err := s.validateRetrievalProviderPrice(model, route, config); err != nil {
 			return err
 		}
 	}
-	if provider.Type == ProviderMock {
-		return nil
+	if model.Modality == "embedding" {
+		_, err := s.embeddingSpaceContract(context.Background(), model.Name, &route)
+		return err
 	}
-	search := model.Modality == "rerank" && providerRerankProtocol(provider) == "cohere"
-	if !retrievalPriceConfigured(model, search, false) {
-		return NewHTTPError(400, "retrieval_price_required", "Configure the tenant price or explicitly confirm a free token price before publishing")
-	}
-	for _, upstream := range s.store.ListProviderModels() {
-		if upstream.ProviderID == provider.ID && upstream.UpstreamModel == route.ProviderModel {
-			if !retrievalTextInputSupported(upstream) || (upstream.Modality != "" && upstream.Modality != model.Modality) {
-				return NewHTTPError(400, "model_operation_mismatch", "Upstream and public model operations differ")
-			}
-			if !retrievalPriceConfigured(providerModelCostModel(upstream), search, true) {
-				return NewHTTPError(400, "retrieval_price_required", "Configure the provider price or explicitly confirm a free token price before publishing")
-			}
-			return nil
-		}
-	}
-	return NewHTTPError(400, "provider_model_required", "Import and configure the upstream model before publishing")
+	return nil
 }
-func (s *Server) pricedRerankRoutes(model Model, routes []RouteSelection) []RouteSelection {
+func (s *Server) pricedRerankRoutes(call CallContext, routes []RouteSelection) []RouteSelection {
 	result := make([]RouteSelection, 0, len(routes))
+	model := call.Model
 	models := s.store.ListProviderModels()
 	for _, route := range routes {
-		if !s.providerRetrievalSupport(route.Provider, "rerank") {
+		if !s.providerRetrievalSupport(route.Provider, "rerank") && !s.hasGatewayProviderCallHookForRoute(call, route, providerRouteProtocolRerank) {
 			continue
 		}
 		search := providerRerankProtocol(route.Provider) == "cohere"

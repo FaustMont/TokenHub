@@ -297,6 +297,9 @@ func registerBuiltinProviderAdapters(registry *AdapterRegistry, adapters map[str
 				AdapterCapabilityProbe,
 			},
 		}
+		if adapterType == "qwen" || adapterType == "local" {
+			adapter.capabilities = append(adapter.capabilities, AdapterCapabilityRerank)
+		}
 		if adapterType == "deepseek" {
 			adapter.preserveReasoningContent = boolPointer(true)
 			adapter.responsesModelAllowlist = []string{"deepseek-v4-flash", "deepseek-v4-pro"}
