@@ -50,9 +50,7 @@ export const SKIP_DIRECTORIES = new Set([
  */
 export const FROZEN = new Map([
   ["frontend/app/styles/legacy/resources.css", 1508],
-  ["frontend/features/admin/i18n/en.tsx", 1501],
-  ["frontend/features/admin/i18n/ja.tsx", 1501],
-  ["frontend/features/admin/views/provider-editor.tsx", 1779],
+  ["frontend/features/admin/views/provider-editor.tsx", 1777],
 ]);
 
 export function countLines(contents) {

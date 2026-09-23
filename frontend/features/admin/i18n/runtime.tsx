@@ -202,8 +202,13 @@ const RUSSIAN_UNIT_MAP: Record<string, { one: string; few: string; many: string 
   "个项目": { one: "проект", few: "проекта", many: "проектов" },
   "个团队": { one: "команда", few: "команды", many: "команд" },
   "个渠道": { one: "канал", few: "канала", many: "каналов" },
+  "个待引入": { one: "модель к импорту", few: "модели к импорту", many: "моделей к импорту" },
   "个待引入模型": { one: "модель для импорта", few: "модели для импорта", many: "моделей для импорта" },
   "个可引入模型": { one: "доступная для импорта модель", few: "доступные для импорта модели", many: "доступных для импорта моделей" },
+  "个已引入模型": { one: "импортированная модель", few: "импортированные модели", many: "импортированных моделей" },
+  "个可选上游模型": { one: "доступная модель провайдера", few: "доступные модели провайдера", many: "доступных моделей провайдера" },
+  "条启用线路": { one: "активная линия", few: "активные линии", many: "активных линий" },
+  "个已配置路由": { one: "настроенный маршрут", few: "настроенных маршрута", many: "настроенных маршрутов" },
   "类": { one: "категория", few: "категории", many: "категорий" },
   "项": { one: "элемент", few: "элемента", many: "элементов" },
   "个": { one: "объект", few: "объекта", many: "объектов" },
@@ -443,4 +448,42 @@ export function formatResetExpiryCountdown(days: number, hours: number, minutes:
   if (days > 0) return `${fDays}天${fHours}小时后`;
   if (hours > 0) return `${fHours}小时${fMinutes}分钟后`;
   return `${fMinutes}分钟后`;
+}
+
+export function providerImportHintText(count: number): string {
+  if (count <= 0) {
+    if (activeLanguage === "en") return "No new models are selected. Saving will not change the Provider model inventory.";
+    if (activeLanguage === "ja") return "新しいモデルは選択されていません。保存しても Provider モデルインベントリは変わりません。";
+    if (activeLanguage === "ru") return "Новые модели не выбраны. Сохранение не изменит список моделей провайдера.";
+    return "当前没有选择新模型，保存后不会改变 Provider 模型库存。";
+  }
+  const formatted = formatLocaleNumber(count);
+  if (activeLanguage === "en") {
+    return `Saving will import ${formatted} upstream ${count === 1 ? "model" : "models"}; please visit the Model Directory to create external models, set unified pricing, and select initial routes.`;
+  }
+  if (activeLanguage === "ja") {
+    return `保存すると ${formatted} 件の上流モデルを取り込みます。モデルディレクトリで外部モデルを作成し、統一価格を設定して初期ルートを選択してください。`;
+  }
+  if (activeLanguage === "ru") {
+    const category = russianPluralRules.select(count);
+    const unit = category === "one" ? "модель провайдера" : category === "few" ? "модели провайдера" : "моделей провайдера";
+    return `После сохранения будет импортировано ${formatted} ${unit}; перейдите в каталог моделей для создания внешней модели, установки единой цены и выбора начальных маршрутов.`;
+  }
+  return `保存后会引入 ${formatted} 个上游模型；请前往模型目录创建对外模型、设置统一价格并选择初始线路。`;
+}
+
+export function modelCatalogTemplatesHintText(count: number): string {
+  const formatted = formatLocaleNumber(count);
+  if (activeLanguage === "en") {
+    return `${formatted} default ${count === 1 ? "model" : "models"}, prefilling capabilities, context window, and recommended pricing.`;
+  }
+  if (activeLanguage === "ja") {
+    return `${formatted} 件の既定モデル。機能、コンテキスト、推奨価格をそのまま適用できます。`;
+  }
+  if (activeLanguage === "ru") {
+    const category = russianPluralRules.select(count);
+    const unit = category === "one" ? "стандартная модель" : category === "few" ? "стандартные модели" : "стандартных моделей";
+    return `${formatted} ${unit}, можно сразу применить возможности, контекст и рекомендованную цену.`;
+  }
+  return `${formatted} 个默认模型，可直接带出能力、上下文和建议价格。`;
 }

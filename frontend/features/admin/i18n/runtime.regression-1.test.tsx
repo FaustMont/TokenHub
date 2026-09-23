@@ -17,7 +17,12 @@ describe("localized count ratios", () => {
   });
 
   it("handles Russian countWithUnit plural rules", async () => {
-    const { countWithUnit } = await import("./runtime");
+    const {
+      countWithLabel,
+      countWithUnit,
+      modelCatalogTemplatesHintText,
+      providerImportHintText,
+    } = await import("./runtime");
     setActiveLanguage("ru");
     expect(countWithUnit(1, "个模型", "model", "モデル")).toBe("1 модель");
     expect(countWithUnit(2, "个模型", "model", "モデル")).toBe("2 модели");
@@ -29,6 +34,47 @@ describe("localized count ratios", () => {
     expect(countWithUnit(1, "个团队", "team", "チーム")).toBe("1 команда");
     expect(countWithUnit(2, "个团队", "team", "チーム")).toBe("2 команды");
     expect(countWithUnit(5, "个团队", "team", "チーム")).toBe("5 команд");
+
+    // Route direct count phrases through Russian plural selection (1, 2, 5)
+    expect(countWithLabel(1, "个待引入")).toBe("1 модель к импорту");
+    expect(countWithLabel(2, "个待引入")).toBe("2 модели к импорту");
+    expect(countWithLabel(5, "个待引入")).toBe("5 моделей к импорту");
+
+    expect(countWithLabel(1, "个已引入模型")).toBe("1 импортированная модель");
+    expect(countWithLabel(2, "个已引入模型")).toBe("2 импортированные модели");
+    expect(countWithLabel(5, "个已引入模型")).toBe("5 импортированных моделей");
+
+    expect(countWithLabel(1, "个可选上游模型")).toBe("1 доступная модель провайдера");
+    expect(countWithLabel(2, "个可选上游模型")).toBe("2 доступные модели провайдера");
+    expect(countWithLabel(5, "个可选上游模型")).toBe("5 доступных моделей провайдера");
+
+    expect(countWithLabel(1, "条启用线路")).toBe("1 активная линия");
+    expect(countWithLabel(2, "条启用线路")).toBe("2 активные линии");
+    expect(countWithLabel(5, "条启用线路")).toBe("5 активных линий");
+
+    expect(countWithLabel(1, "个已配置路由")).toBe("1 настроенный маршрут");
+    expect(countWithLabel(2, "个已配置路由")).toBe("2 настроенных маршрута");
+    expect(countWithLabel(5, "个已配置路由")).toBe("5 настроенных маршрутов");
+
+    expect(providerImportHintText(1)).toBe(
+      "После сохранения будет импортировано 1 модель провайдера; перейдите в каталог моделей для создания внешней модели, установки единой цены и выбора начальных маршрутов."
+    );
+    expect(providerImportHintText(2)).toBe(
+      "После сохранения будет импортировано 2 модели провайдера; перейдите в каталог моделей для создания внешней модели, установки единой цены и выбора начальных маршрутов."
+    );
+    expect(providerImportHintText(5)).toBe(
+      "После сохранения будет импортировано 5 моделей провайдера; перейдите в каталог моделей для создания внешней модели, установки единой цены и выбора начальных маршрутов."
+    );
+
+    expect(modelCatalogTemplatesHintText(1)).toBe(
+      "1 стандартная модель, можно сразу применить возможности, контекст и рекомендованную цену."
+    );
+    expect(modelCatalogTemplatesHintText(2)).toBe(
+      "2 стандартные модели, можно сразу применить возможности, контекст и рекомендованную цену."
+    );
+    expect(modelCatalogTemplatesHintText(5)).toBe(
+      "5 стандартных моделей, можно сразу применить возможности, контекст и рекомендованную цену."
+    );
   });
 
   it("handles routeAttemptCountText in Russian conditionally", async () => {
