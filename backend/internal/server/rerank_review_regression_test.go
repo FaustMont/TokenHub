@@ -139,3 +139,38 @@ func TestRerankPluginUnitMustMatchRoute(t *testing.T) {
 		}
 	}
 }
+
+func TestRerankCacheRequiresMatchingHostKey(t *testing.T) {
+	app := newEmbeddingsCacheHookTestServer(t)
+	t.Cleanup(func() { _ = app.Shutdown(context.Background()) })
+	echoed := ""
+	hook := pluginmeta.GatewayHookDescriptor{PluginID: "test.rank-cache", HookID: "hit", Stage: pluginmeta.StageCacheLookup, Priority: 2000, Reads: []pluginmeta.GatewayDataClass{pluginmeta.DataCacheKey}, Writes: []pluginmeta.GatewayDataClass{pluginmeta.DataProviderResponse, pluginmeta.DataUsage, pluginmeta.DataCacheKey}, FailurePolicy: pluginmeta.FailurePolicyFailOpen}
+	if err := app.gatewayChain.RegisterHook(hook); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.gatewayHooks.RegisterHandler(hook, pluginmeta.GatewayHookHandlerFunc(func(_ context.Context, input pluginmeta.GatewayHookInput) (pluginmeta.GatewayHookResult, error) {
+		if string(input.Data[pluginmeta.DataCacheKey]) != `"rerank:v1:expected"` {
+			t.Fatalf("missing host key: %s", input.Data[pluginmeta.DataCacheKey])
+		}
+		result := rawProviderCallResult(t, map[string]any{"results": []any{}}, Usage{})
+		if echoed != "" {
+			key, _ := json.Marshal(echoed)
+			result.Writes[pluginmeta.DataCacheKey] = pluginmeta.RawPatch{Value: key}
+		}
+		return result, nil
+	})); err != nil {
+		t.Fatal(err)
+	}
+	call := gatewayPluginTestCall()
+	call.RerankCacheKey = "rerank:v1:expected"
+	for _, key := range []string{"", "rerank:v1:other", "rerank:v1:expected"} {
+		echoed = key
+		_, _, hit, err := app.runGatewayCacheLookupHooks(context.Background(), call, RerankRequest{Model: "rank", Query: "q", Documents: []string{"d"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if hit != (key == call.RerankCacheKey) {
+			t.Fatalf("key=%q hit=%v", key, hit)
+		}
+	}
+}
