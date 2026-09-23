@@ -31,6 +31,7 @@ func (s *Server) runGatewayCacheLookupHooks(ctx context.Context, call CallContex
 		Data: gatewayHookCallData(call, body),
 	}
 	addEmbeddingCacheContract(&input, call)
+	addRerankCacheContract(&input, call)
 	report, err := s.runAuditedGatewayHookStage(ctx, call, pluginmeta.StageCacheLookup, input)
 	if err != nil {
 		return nil, Usage{}, false, gatewayHookHTTPError(pluginmeta.StageCacheLookup, err)
@@ -39,7 +40,7 @@ func (s *Server) runGatewayCacheLookupHooks(ctx context.Context, call CallContex
 		return nil, Usage{}, false, nil
 	}
 	result := report.Results[len(report.Results)-1]
-	if !embeddingCacheHitMatches(call, result) {
+	if !embeddingCacheHitMatches(call, result) || !rerankCacheHitMatches(call, result) {
 		return nil, Usage{}, false, nil
 	}
 	responsePatch, ok := result.Writes[pluginmeta.DataProviderResponse]
@@ -89,6 +90,7 @@ func (s *Server) runGatewayCacheWriteHooks(ctx context.Context, call CallContext
 		Data: gatewayHookCallData(call, body),
 	}
 	addEmbeddingCacheContract(&input, call)
+	addRerankCacheContract(&input, call)
 	input.Data[pluginmeta.DataProviderResponse] = responseBody
 	if encodedUsage, ok := marshalGatewayHookData(usage); ok {
 		input.Data[pluginmeta.DataUsage] = encodedUsage

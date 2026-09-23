@@ -69,17 +69,3 @@ func pluginRetrievalUsage(response any, reported Usage, searchUnits bool) (Usage
 	}
 	return reported, validateRetrievalUsageResult(reported)
 }
-
-func retrievalResultUsesSearchUnits(response any, usage Usage) bool {
-	if usage.RetrievalEvidence != nil {
-		return usage.RetrievalEvidence.Unit == "search_unit"
-	}
-	body, ok := response.(map[string]any)
-	if !ok {
-		return false
-	}
-	meta, _ := body["meta"].(map[string]any)
-	billed, _ := meta["billed_units"].(map[string]any)
-	_, present := billed["search_units"]
-	return present
-}

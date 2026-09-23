@@ -4,10 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"reflect"
 )
 
 func rerankPatch(r *RerankRequest) func(json.RawMessage) error {
 	return func(data json.RawMessage) error { return applyRerankPatch(r, data) }
+}
+
+// Route transforms run after cache binding and must preserve the ranking input.
+func rerankRoutePatch(r *RerankRequest) func(json.RawMessage) error {
+	return func(data json.RawMessage) error {
+		next := *r
+		if err := applyRerankPatch(&next, data); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(next, *r) {
+			return NewHTTPError(502, "gateway_hook_patch_invalid", "Route plugins cannot change cache-bound rerank input")
+		}
+		return nil
+	}
 }
 func (s *Server) runGatewayRerankDecodeNormalizeHooks(ctx context.Context, call CallContext, headers http.Header, r *RerankRequest) error {
 	return s.runGatewayDecodeNormalizeHooks(ctx, call, headers, *r, rerankPatch(r))
@@ -29,10 +44,13 @@ func (s *Server) executeRoutedRerank(r *http.Request, routed RoutedCall, req Rer
 		}
 		upstream := req
 		upstream.Documents = append([]string(nil), req.Documents...)
-		if err = s.runGatewayRequestTransformHooks(ctx, routed.Call, route, upstream, providerRouteProtocolRerank, rerankPatch(&upstream)); err != nil {
+		if err = s.runGatewayRequestTransformHooks(ctx, routed.Call, route, upstream, providerRouteProtocolRerank, rerankRoutePatch(&upstream)); err != nil {
 			return nil, Usage{}, err
 		}
 		if resp, usage, handled, err := s.runGatewayProviderCallHooks(ctx, routed.Call, route, upstream, providerRouteProtocolRerank); err != nil || handled {
+			if err == nil {
+				usage, err = pluginRetrievalUsage(resp, usage, providerRerankProtocol(route.Provider) == "cohere")
+			}
 			return resp, usage, err
 		}
 		adapter, err := s.adapterForRoute(route)
@@ -43,6 +61,10 @@ func (s *Server) executeRoutedRerank(r *http.Request, routed RoutedCall, req Rer
 		if !ok {
 			return nil, Usage{}, NewHTTPError(501, "provider_capability_not_supported", "Provider does not support rerank")
 		}
-		return reranker.Rerank(ctx, route.Provider, route.ProviderModel, upstream)
+		resp, usage, err := reranker.Rerank(ctx, route.Provider, route.ProviderModel, upstream)
+		if err == nil {
+			usage, err = pluginRetrievalUsage(resp, usage, providerRerankProtocol(route.Provider) == "cohere")
+		}
+		return resp, usage, err
 	})
 }

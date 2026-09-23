@@ -75,6 +75,21 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
+	routed, ok := s.prepareAdmittedRoutedCallWithAudit(w, r, call, req.Model, auditPayload)
+	if !ok {
+		return
+	}
+	routed.Routes = s.pricedRerankRoutes(routed.Call, s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityRerank, providerRouteProtocolRerank))
+	if len(routed.Routes) == 0 {
+		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "No rerank route has a supported protocol and configured provider/tenant prices")
+		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
+		writeError(w, r, err)
+		return
+	}
+	call = routed.Call
+	cacheRoute := routed.Routes[0]
+	call.RerankCacheKey = rerankCacheKey(call, cacheRoute, req)
+	routed.Call = call
 	resp, usage, hit, err := s.runGatewayCacheLookupHooks(r.Context(), call, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
@@ -82,25 +97,25 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if hit {
-		resp, err = s.runGatewayResponsePostHooks(r.Context(), call, RouteSelection{}, resp, providerRouteProtocolRerank)
+		resp, err = s.runGatewayResponsePostHooks(r.Context(), call, cacheRoute, resp, providerRouteProtocolRerank)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
 			writeError(w, r, err)
 			return
 		}
-		resp, err = s.runGatewayGuardrailPostHooks(r.Context(), call, RouteSelection{}, resp, usage, providerRouteProtocolRerank)
+		resp, err = s.runGatewayGuardrailPostHooks(r.Context(), call, cacheRoute, resp, usage, providerRouteProtocolRerank)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
 			writeError(w, r, err)
 			return
 		}
-		usage, err = s.runGatewayUsageAttributionHooks(r.Context(), call, RouteSelection{}, resp, usage, providerRouteProtocolRerank)
+		usage, err = s.runGatewayUsageAttributionHooks(r.Context(), call, cacheRoute, resp, usage, providerRouteProtocolRerank)
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
 			writeError(w, r, err)
 			return
 		}
-		usage, err = pluginRetrievalUsage(resp, usage, retrievalResultUsesSearchUnits(resp, usage))
+		usage, err = pluginRetrievalUsage(resp, usage, providerRerankProtocol(cacheRoute.Provider) == "cohere")
 		if err != nil {
 			s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, usage, err, auditPayload)
 			writeError(w, r, err)
@@ -116,17 +131,6 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("x-request-id", call.RequestID)
 		w.Header().Set("x-tokenhub-cache", "hit")
 		writeJSON(w, http.StatusOK, resp)
-		return
-	}
-	routed, ok := s.prepareAdmittedRoutedCallWithAudit(w, r, call, req.Model, auditPayload)
-	if !ok {
-		return
-	}
-	routed.Routes = s.pricedRerankRoutes(routed.Call, s.routesWithAdapterCapabilityOrProviderCall(routed.Call, routed.Routes, AdapterCapabilityRerank, providerRouteProtocolRerank))
-	if len(routed.Routes) == 0 {
-		err := NewHTTPError(http.StatusNotImplemented, "provider_capability_not_supported", "No rerank route has a supported protocol and configured provider/tenant prices")
-		s.finishFailedRoutedCall(r, routed, nil, Usage{}, err, auditPayload)
-		writeError(w, r, err)
 		return
 	}
 	resp, route, usage, attempts, err := s.executeRoutedRerank(r, routed, req)
@@ -155,7 +159,7 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	usage, err = pluginRetrievalUsage(resp, usage, retrievalResultUsesSearchUnits(resp, usage))
+	usage, err = pluginRetrievalUsage(resp, usage, providerRerankProtocol(route.Provider) == "cohere")
 	if err != nil {
 		s.finishFailedRoutedCall(r, routed, attempts, usage, err, auditPayload)
 		writeError(w, r, err)
@@ -168,6 +172,7 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	attempts = attemptsWithAttributedUsage(routed.Call, attempts, route, usage)
+	routed.Call.RerankCacheKey = rerankCacheKey(routed.Call, route, req)
 	s.runGatewayCacheWriteHooks(r.Context(), routed.Call, route, req, resp, usage, providerRouteProtocolRerank)
 	s.finishSuccessfulRoutedCall(r, routed, route, usage, attempts, auditPayload, resp)
 	w.Header().Set("x-request-id", routed.Call.RequestID)

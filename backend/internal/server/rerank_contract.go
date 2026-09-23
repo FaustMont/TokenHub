@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -63,8 +64,8 @@ func applyRerankPatch(r *RerankRequest, data json.RawMessage) error {
 	if err := decodeGatewayHookRequestPatch(data, &next); err != nil {
 		return err
 	}
-	if next.Model != r.Model || len(next.Documents) != len(r.Documents) {
-		return NewHTTPError(502, "gateway_hook_patch_invalid", "Rerank plugins cannot change model or document cardinality")
+	if next.Model != r.Model || len(next.Documents) != len(r.Documents) || next.ReturnDocuments != r.ReturnDocuments || !reflect.DeepEqual(next.TopN, r.TopN) {
+		return NewHTTPError(502, "gateway_hook_patch_invalid", "Rerank plugins cannot change model, document cardinality, top_n or return_documents")
 	}
 	if err := validateRerankRequest(next); err != nil {
 		return err
@@ -177,6 +178,9 @@ func validateRerankResult(response any, request RerankRequest) (any, error) {
 			return nil, NewHTTPError(502, "invalid_rerank_response", "Final rerank results must be ordered by descending relevance_score")
 		}
 		previousScore = score
+		if _, exists := item["document"]; exists && !request.ReturnDocuments {
+			return nil, NewHTTPError(502, "invalid_rerank_response", "Final rerank response cannot include documents unless requested")
+		}
 		if document, exists := item["document"]; exists && document != nil {
 			fields, ok := document.(map[string]any)
 			if !ok {

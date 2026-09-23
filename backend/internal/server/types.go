@@ -1279,7 +1279,8 @@ type RoutedCall struct {
 }
 
 type CallContext struct {
-	// EmbeddingCacheKey binds cached vectors to their space and client contract.
+	// Cache keys bind retrieval results to their input, caller and route contracts.
+	RerankCacheKey          string
 	EmbeddingCacheKey       string
 	JevResponseBound        bool
 	jevResponseBinding      *pendingJevResponseBinding
