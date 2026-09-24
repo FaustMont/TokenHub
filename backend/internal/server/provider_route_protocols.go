@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	providerRouteProtocolSystemOne       = "systemone"
 	providerRouteProtocolAnthropic       = "anthropic"
 	providerRouteProtocolChatCompletions = "chat/completions"
 	providerRouteProtocolCodexResponses  = "codex/responses"
@@ -20,6 +21,9 @@ func routeProviderProtocolsFromCapabilities(descriptor AdapterDescriptor) map[st
 	protocols := map[string]bool{}
 	if adapterSupports(descriptor, AdapterCapabilityRerank) {
 		protocols[providerRouteProtocolRerank] = true
+	}
+	if adapterSupports(descriptor, AdapterCapabilitySystemOne) {
+		protocols[providerRouteProtocolSystemOne] = true
 	}
 	if adapterSupports(descriptor, AdapterCapabilityChat) || adapterSupports(descriptor, AdapterCapabilityChatStream) {
 		protocols[providerRouteProtocolChatCompletions] = true

@@ -87,10 +87,20 @@ func (s *Server) handleRerank(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	call = routed.Call
-	cacheRoute := routed.Routes[0]
-	call.RerankCacheKey = rerankCacheKey(call, cacheRoute, req)
+	var cacheRoute RouteSelection
+	var resp any
+	var usage Usage
+	var hit bool
+	// Probe every eligible route so results from a previous failover remain reusable.
+	for _, candidate := range routed.Routes {
+		cacheRoute = candidate
+		call.RerankCacheKey = rerankCacheKey(call, candidate, req)
+		resp, usage, hit, err = s.runGatewayCacheLookupHooks(r.Context(), call, req)
+		if err != nil || hit {
+			break
+		}
+	}
 	routed.Call = call
-	resp, usage, hit, err := s.runGatewayCacheLookupHooks(r.Context(), call, req)
 	if err != nil {
 		s.finishFailedRoutedCall(r, RoutedCall{Call: call}, nil, Usage{}, err, auditPayload)
 		writeError(w, r, err)
