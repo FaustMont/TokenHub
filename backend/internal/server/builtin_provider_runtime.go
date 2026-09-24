@@ -33,6 +33,7 @@ func newBuiltinProviderRuntime(deps builtinProviderRuntimeDependencies) builtinP
 	}
 	return builtinProviderRuntime{
 		adapters: map[string]any{
+			providerTypeSafe:         TypeSafeAdapter{Client: deps.Client},
 			ProviderMock:             MockAdapter{},
 			ProviderOpenAI:           openai,
 			ProviderOpenAICompatible: openai,
@@ -51,6 +52,11 @@ func newBuiltinProviderRuntime(deps builtinProviderRuntimeDependencies) builtinP
 				StreamIdleTimeout: deps.StreamIdleTimeout,
 			},
 			ProviderGemini: GeminiAdapter{
+				Client:            deps.Client,
+				StreamClient:      deps.StreamClient,
+				StreamIdleTimeout: deps.StreamIdleTimeout,
+			},
+			ProviderDify: DifyAdapter{
 				Client:            deps.Client,
 				StreamClient:      deps.StreamClient,
 				StreamIdleTimeout: deps.StreamIdleTimeout,
