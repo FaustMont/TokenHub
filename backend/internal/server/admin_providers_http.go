@@ -661,6 +661,8 @@ func (s *Server) serveAdminProviderTestConnection(w http.ResponseWriter, r *http
 		if err == nil {
 			catalog, err = s.discoverProviderCatalogFromCreateRequest(ctx, user, req)
 		}
+	} else if strings.TrimSpace(req.Type) == ProviderDify {
+		catalog, err = s.difyConnectionTestCatalog(ctx, req)
 	} else {
 		catalog, err = s.discoverProviderCatalogFromCreateRequest(ctx, user, req)
 	}
@@ -1339,7 +1341,7 @@ func (s *Server) validateRouteModelProtocol(modelName string, pendingModel *Mode
 
 func (s *Server) validateRoutePolicy(route ModelRoute) error {
 	switch routeStrategy(route) {
-	case RouteStrategyBalanced, RouteStrategyAdaptive, RouteStrategyCost, RouteStrategyQuality, RouteStrategyPriorityWeighted, RouteStrategyPriorityOnly:
+	case RouteStrategyJev, RouteStrategyBalanced, RouteStrategyAdaptive, RouteStrategyCost, RouteStrategyQuality, RouteStrategyPriorityWeighted, RouteStrategyPriorityOnly:
 	default:
 		return NewHTTPError(http.StatusBadRequest, "invalid_route_strategy", "Unsupported route strategy")
 	}

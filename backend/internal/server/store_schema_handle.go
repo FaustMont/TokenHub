@@ -89,6 +89,7 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 	return []dbschema.Migration{
 		meteringMigration(),
 		auditCorrelationMigration(),
+		jevResponseBindingMigration(),
 		{
 			Version:          2,
 			Name:             "add-granular-billing-columns-sqlite",
@@ -139,7 +140,10 @@ func SchemaMigrationRegistry() []dbschema.Migration {
 			},
 		},
 		{
-			Version: 6,
+			// Version 6 belongs to add-jev-response-bindings on the main
+			// line; this expansion registers as 7 so the frozen registry
+			// keeps one migration per version.
+			Version: 7,
 			Name:    "add-image-job-worker-instance",
 			Go:      addImageJobWorkerInstance,
 			// The column plus its index per dialect.

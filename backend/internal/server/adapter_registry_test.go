@@ -16,6 +16,7 @@ import (
 // type advertises. Capabilities gate routing and the admin adapter listing, so
 // an unintended change here is a product behaviour change, not a refactor.
 var builtinAdapterCapabilities = map[string][]AdapterCapability{
+	providerTypeSafe: {AdapterCapabilityModels, AdapterCapabilityProbe, AdapterCapabilitySystemOne},
 	ProviderMock: {
 		AdapterCapabilityChat, AdapterCapabilityChatStream,
 		AdapterCapabilityEmbeddings, AdapterCapabilityResponses,
@@ -49,6 +50,10 @@ var builtinAdapterCapabilities = map[string][]AdapterCapability{
 		AdapterCapabilityChat, AdapterCapabilityChatStream,
 		AdapterCapabilityEmbeddings, AdapterCapabilityProbe,
 	},
+	ProviderDify: {
+		AdapterCapabilityChat, AdapterCapabilityChatStream,
+		AdapterCapabilityModels, AdapterCapabilityProbe,
+	},
 	ProviderKronk: {
 		AdapterCapabilityChat, AdapterCapabilityChatStream,
 		AdapterCapabilityEmbeddings, AdapterCapabilityModels,
@@ -73,6 +78,7 @@ var builtinAdapterCapabilities = map[string][]AdapterCapability{
 }
 
 var builtinAdapterPlugins = map[string]string{
+	providerTypeSafe:         "tokenhub.provider.typesafe",
 	ProviderMock:             "tokenhub.provider.mock",
 	ProviderOpenAI:           "tokenhub.provider.openai",
 	ProviderOpenAICompatible: "tokenhub.provider.openai-compatible",
@@ -80,6 +86,7 @@ var builtinAdapterPlugins = map[string]string{
 	ProviderAzureOpenAI:      "tokenhub.provider.azure-openai",
 	ProviderAnthropic:        "tokenhub.provider.anthropic",
 	ProviderGemini:           "tokenhub.provider.gemini",
+	ProviderDify:             "tokenhub.provider.dify",
 	ProviderKronk:            "tokenhub.provider.kronk",
 	"deepseek":               "tokenhub.provider.deepseek",
 	"qwen":                   "tokenhub.provider.qwen",

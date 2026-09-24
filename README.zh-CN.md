@@ -198,15 +198,15 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
   </tr>
   <tr>
     <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/samz406">
-        <img src="https://avatars.githubusercontent.com/u/3055810?v=4" width="80px" alt="samz406" />
-        <br /><sub><b>samz406</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/imaben">
         <img src="https://avatars.githubusercontent.com/u/3390195?v=4" width="80px" alt="imaben" />
         <br /><sub><b>imaben</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/samz406">
+        <img src="https://avatars.githubusercontent.com/u/3055810?v=4" width="80px" alt="samz406" />
+        <br /><sub><b>samz406</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
@@ -219,6 +219,12 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
       <a href="https://github.com/CLukeLi">
         <img src="https://avatars.githubusercontent.com/u/252523101?v=4" width="80px" alt="CLukeLi" />
         <br /><sub><b>CLukeLi</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/jackiesre721">
+        <img src="https://avatars.githubusercontent.com/u/8868514?v=4" width="80px" alt="jackiesre721" />
+        <br /><sub><b>jackiesre721</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
@@ -239,14 +245,14 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
         <br /><sub><b>hoorayman</b></sub>
       </a>
     </td>
+  </tr>
+  <tr>
     <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/debin-ge">
         <img src="https://avatars.githubusercontent.com/u/21329997?v=4" width="80px" alt="debin-ge" />
         <br /><sub><b>debin-ge</b></sub>
       </a>
     </td>
-  </tr>
-  <tr>
     <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/ocass-chen">
         <img src="https://avatars.githubusercontent.com/u/172055494?v=4" width="80px" alt="ocass-chen" />
@@ -260,9 +266,21 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/DeanHH">
+        <img src="https://avatars.githubusercontent.com/u/1842770?v=4" width="80px" alt="DeanHH" />
+        <br /><sub><b>DeanHH</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/yujiewanwan">
         <img src="https://avatars.githubusercontent.com/u/268286250?v=4" width="80px" alt="yujiewanwan" />
         <br /><sub><b>yujiewanwan</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/longzhang83">
+        <img src="https://avatars.githubusercontent.com/u/38556219?v=4" width="80px" alt="longzhang83" />
+        <br /><sub><b>longzhang83</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
@@ -275,6 +293,14 @@ TokenHub 的演进离不开真实企业场景里的使用反馈、网关集成�
       <a href="https://github.com/susunola">
         <img src="https://avatars.githubusercontent.com/u/38539169?v=4" width="80px" alt="susunola" />
         <br /><sub><b>susunola</b></sub>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/desertsurge">
+        <img src="https://avatars.githubusercontent.com/u/1735018?v=4" width="80px" alt="desertsurge" />
+        <br /><sub><b>desertsurge</b></sub>
       </a>
     </td>
   </tr>
