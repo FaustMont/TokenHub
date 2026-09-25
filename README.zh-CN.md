@@ -78,6 +78,7 @@ TokenHub 将日常模型使用、团队治理和平台运维拆成清晰的角�
 - 成本治理：支持 Token 预算、Provider 花费对比、模型选择和未来基于缓存的降本策略。
 - 身份源配置：支持 OAuth/OIDC 企业登录，并配合 RBAC 和审计追踪。
 - OpenAI-Compatible 模型 API：`/v1/chat/completions`、`/v1/responses`、`/v1/embeddings`；Anthropic Messages API：`/v1/messages`、`/v1/messages/count_tokens`。
+- 文本检索：通过 `/v1/embeddings` 调用[稠密文本向量](docs/zh-CN/embeddings.md)，通过 `/v1/rerank` 调用[文档重排](docs/zh-CN/rerank.md)，并按供应商配置实际协议。
 - OpenAI-Compatible 生图与参考图编辑 API：`/v1/images/generations`、`/v1/images/edits`，支持异步任务和服务端图片留存。
 - 简洁控制台：分角色导航、全局搜索、黑白主题，以及左侧 API 导航 + 右侧详情的接口文档。
 - SQLite-first 私有化部署，提供原生 systemd 和 Docker Compose 两种方式。

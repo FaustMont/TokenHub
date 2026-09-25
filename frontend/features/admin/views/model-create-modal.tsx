@@ -193,6 +193,8 @@ export function ModelCreateModal({
                 {renderField("cache_read_price_usd_per_1m")}
                 {renderField("output_price_usd_per_1m")}
                 {renderField("embedding_price_usd_per_1m")}
+                {renderField("search_unit_price_usd")}
+                {renderField("retrieval_pricing_confirmed")}
               </div>
               <div className="model-create-pricing-note"><Info size={17} /><span>{tx("Provider 模型价格继续用于真实成本审计，不会覆盖此处的对外统一价格。")}</span></div>
             </section>
