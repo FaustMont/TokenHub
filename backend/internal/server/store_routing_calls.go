@@ -83,6 +83,9 @@ func (s *GormStore) ListModels() []Model {
 }
 
 func (s *GormStore) UpdateModel(name string, patch Model) (Model, error) {
+	if err := validateRetrievalPriceMetadata(patch.Metadata); err != nil {
+		return Model{}, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -605,14 +608,7 @@ func (s *GormStore) finishCallTransaction(tx *gorm.DB, call CallContext, route R
 			}
 			liveKeyExists = false
 		}
-		providerTokens := meteredTokens(usage)
-		actualTokens := usage.RateLimitTokens
-		if actualTokens <= 0 {
-			actualTokens = providerTokens
-		}
-		if call.StreamOutputCommitted && providerTokens == 0 && actualTokens < call.ReservedTokens {
-			actualTokens = call.ReservedTokens
-		}
+		actualTokens := quotaActualTokens(call, usage)
 		quotaUsage := usage
 		quotaUsage.TotalTokens = actualTokens
 		if !call.RedisBillingAdmitted {
@@ -692,7 +688,7 @@ func (s *GormStore) finishCallTransaction(tx *gorm.DB, call CallContext, route R
 			}
 		}
 	}
-	if usage.TotalTokens > 0 || usage.CostUSD > 0 {
+	if usage.TotalTokens > 0 || usage.CostUSD > 0 || usage.ProviderCostUSD > 0 || usage.RetrievalEvidence != nil {
 		if err := tx.Create(newUsageRecord(call, route, usage, now)).Error; err != nil {
 			return err
 		}
