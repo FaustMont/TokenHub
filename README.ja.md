@@ -199,15 +199,15 @@ TokenHub は、実際のエンタープライズ利用からのフィードバ�
   </tr>
   <tr>
     <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/imaben">
-        <img src="https://avatars.githubusercontent.com/u/3390195?v=4" width="80px" alt="imaben" />
-        <br /><sub><b>imaben</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/samz406">
         <img src="https://avatars.githubusercontent.com/u/3055810?v=4" width="80px" alt="samz406" />
         <br /><sub><b>samz406</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/imaben">
+        <img src="https://avatars.githubusercontent.com/u/3390195?v=4" width="80px" alt="imaben" />
+        <br /><sub><b>imaben</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
@@ -223,6 +223,12 @@ TokenHub は、実際のエンタープライズ利用からのフィードバ�
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/jackiesre721">
+        <img src="https://avatars.githubusercontent.com/u/8868514?v=4" width="80px" alt="jackiesre721" />
+        <br /><sub><b>jackiesre721</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/CLukeLi">
         <img src="https://avatars.githubusercontent.com/u/252523101?v=4" width="80px" alt="CLukeLi" />
         <br /><sub><b>CLukeLi</b></sub>
@@ -232,12 +238,6 @@ TokenHub は、実際のエンタープライズ利用からのフィードバ�
       <a href="https://github.com/myssl">
         <img src="https://avatars.githubusercontent.com/u/27838738?v=4" width="80px" alt="myssl" />
         <br /><sub><b>myssl</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/jackiesre721">
-        <img src="https://avatars.githubusercontent.com/u/8868514?v=4" width="80px" alt="jackiesre721" />
-        <br /><sub><b>jackiesre721</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
@@ -255,15 +255,15 @@ TokenHub は、実際のエンタープライズ利用からのフィードバ�
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
-      <a href="https://github.com/debin-ge">
-        <img src="https://avatars.githubusercontent.com/u/21329997?v=4" width="80px" alt="debin-ge" />
-        <br /><sub><b>debin-ge</b></sub>
-      </a>
-    </td>
-    <td align="center" valign="top" width="12.5%">
       <a href="https://github.com/ocass-chen">
         <img src="https://avatars.githubusercontent.com/u/172055494?v=4" width="80px" alt="ocass-chen" />
         <br /><sub><b>ocass-chen</b></sub>
+      </a>
+    </td>
+    <td align="center" valign="top" width="12.5%">
+      <a href="https://github.com/debin-ge">
+        <img src="https://avatars.githubusercontent.com/u/21329997?v=4" width="80px" alt="debin-ge" />
+        <br /><sub><b>debin-ge</b></sub>
       </a>
     </td>
     <td align="center" valign="top" width="12.5%">
